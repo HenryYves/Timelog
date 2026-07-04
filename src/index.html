@@ -107,7 +107,8 @@
   .divider{height:1px;background:var(--border);margin:16px 0;}
   .small{font-size:12px;color:var(--text2);}
 kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);border:1px solid #D6D5D3;border-radius:4px;padding:1px 6px;white-space:nowrap;}
-.help-section{margin:12px 0;}
+.help-section{margin:12px 0;position:relative;padding-left:14px;}
+.help-section::before{content:'';position:absolute;left:0;top:2px;bottom:6px;width:3px;border-radius:2px;background:linear-gradient(to bottom,rgb(145,234,228) 0%,rgb(134,168,231) 15%,rgb(127,127,213) 40%);}
 .help-section h3{font-size:13.5px;margin:0 0 4px;color:var(--text);}
 .help-section ul{margin:0;padding:0 0 0 18px;}
 .help-section li{font-size:13px;line-height:1.9;color:var(--text2);}
@@ -177,10 +178,10 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
 <!-- help modal -->
 <div class="overlay" id="helpOverlay" hidden>
   <div class="modal">
-    <h2>⏱️ 操作指南</h2>
+    <h2><img src="icons/icon.svg" style="width:20px;height:20px;vertical-align:-3px;margin-right:4px;">操作指南</h2>
 
     <div class="help-section">
-      <h3>📌 时间块操作</h3>
+      <h3>时间块操作</h3>
       <ul>
         <li>在时间轴上<span>拖动</span>选择时段，松开后填写内容</li>
         <li><span>左键</span>点击色块编辑</li>
@@ -190,7 +191,7 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
     </div>
 
     <div class="help-section">
-      <h3>⌨️ 快捷键</h3>
+      <h3>快捷键</h3>
       <ul>
         <li><kbd>Esc</kbd> 关闭弹窗 / 取消选择</li>
         <li><kbd>Delete</kbd> 删除选中的时间块</li>
@@ -203,7 +204,7 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
     </div>
 
     <div class="help-section">
-      <h3>💾 数据备份</h3>
+      <h3>数据备份</h3>
       <ul>
         <li>桌面应用<span>自动静默备份</span>到 <code>timelog_data</code> 文件夹</li>
         <li>浏览器中请用<span>「导出备份」</span>按钮手动保存 JSON</li>
@@ -212,7 +213,7 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
     </div>
 
     <div class="help-section">
-      <h3>📋 文本导入/导出</h3>
+      <h3>文本导入/导出</h3>
       <ul>
         <li>用<span>「导出文本」</span>复制当天内容，可粘贴到笔记</li>
         <li>用<span>「文本导入」</span>把之前导出的文本解析回来</li>
