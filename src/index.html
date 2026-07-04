@@ -137,7 +137,7 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
     <button id="todayBtn">今天</button>
   </div>
   <span class="spacer"></span>
-  <span class="version">v0.1</span>
+  <span class="version">v0.2.4</span>
   <div class="more-wrap">
     <button class="more-btn" id="moreBtn" title="更多"><img src="icons/more.svg" alt="更多"></button>
     <div class="dropdown" id="dropdown">
@@ -187,6 +187,16 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
 
     <label>时间块透明度 <span id="opacityVal" style="font-weight:400;color:var(--text2);">15%</span></label>
     <input type="range" id="setOpacity" min="5" max="200" value="15" style="width:100%;margin-top:4px;">
+
+    <label class="switchrow"><input type="checkbox" id="setFullscreen"> <span>启动时进入全屏</span></label>
+
+    <div class="divider"></div>
+    <label>备份路径</label>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+      <span class="small" id="bkPathLabel" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">默认（AppData）</span>
+      <button id="bkPathBtn" style="flex:none;font-size:12px;">选择文件夹</button>
+      <button id="bkPathReset" style="flex:none;font-size:12px;">恢复默认</button>
+    </div>
 
     <div class="divider"></div>
 
@@ -549,16 +559,41 @@ function inField(){const ae=document.activeElement,tg=ae&&ae.tagName;return tg==
 function copySelected(){if(!selectedBlocks.size)return false;const ids=selectedBlocks;clipboard=loadBlocks().filter(b=>ids.has(b.id)).sort((a,b)=>a.start-b.start).map(b=>({start:b.start,end:b.end,title:b.title,note:b.note,tags:(b.tags||[]).slice()}));toast('已复制 '+clipboard.length+' 个（切换日期或悬停目标位置后 Ctrl/⌘+V）');return true;}
 function doPaste(){if(!clipboard.length)return;const list=loadBlocks();const minStart=Math.min.apply(null,clipboard.map(c=>c.start));let offset=0,anchored=false;if(overGrid){const anchor=Math.round(lastHoverMin/5)*5;offset=anchor-minStart;anchored=true;}const news=clipboard.map(c=>{const dur=c.end-c.start;let s=c.start+offset,en=c.end+offset;if(s<0){s=0;en=dur;}if(en>DAYMIN){en=DAYMIN;s=Math.max(0,en-dur);}return {id:newId(),start:s,end:en,title:c.title,note:c.note,tags:(c.tags||[]).slice()};});blocks=list.concat(news);saveBlocks();selectedBlocks=new Set(news.map(n=>n.id));render();toast('已粘贴 '+news.length+' 个'+(anchored?('（'+fmt(Math.round(lastHoverMin/5)*5)+' 起）'):'（原时间）'));}
 function deleteSelected(){if(!selectedBlocks.size)return;if(!confirm('确定删除勾选的 '+selectedBlocks.size+' 个时间块？'))return;const ids=selectedBlocks;blocks=loadBlocks().filter(b=>!ids.has(b.id));saveBlocks();selectedBlocks=new Set();render();}
-document.addEventListener('keydown',e=>{if(adrag){if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();adrag.cur=Math.max(0,Math.min(DAYMIN,adrag.cur+(e.key==='ArrowUp'?-1:1)));applyDrag();return;}if(e.key==='Escape'){e.preventDefault();endDrag(false);return;}return;}if(e.key==='Escape'){if(!overlay.hidden)closeModal();else if(!tagOverlay.hidden)tagOverlay.hidden=true;else if(!exOverlay.hidden)exOverlay.hidden=true;else if(!mgOverlay.hidden)mgOverlay.hidden=true;else if(!imOverlay.hidden){imOverlay.hidden=true;pendingImport=null;}else if(!setOverlay.hidden)setOverlay.hidden=true;else if(!txOverlay.hidden)txOverlay.hidden=true;else if(!helpOverlay.hidden)helpOverlay.hidden=true;else if(dropdown.classList.contains('open'))dropdown.classList.remove('open');else if(selectedBlocks.size){selectedBlocks.clear();render();}return;}if(e.key==='Enter'&&!overlay.hidden&&e.target.id==='mTitle'){saveBlock();return;}if(e.key==='Delete'&&!overlay.hidden&&editingId&&document.activeElement.id!=='mNote'){e.preventDefault();blocks=loadBlocks().filter(b=>b.id!==editingId);saveBlocks();render();closeModal();return;}if(!anyModalOpen()&&!inField()){if((e.ctrlKey||e.metaKey)&&(e.key==='c'||e.key==='C')){if(copySelected())e.preventDefault();return;}if((e.ctrlKey||e.metaKey)&&(e.key==='v'||e.key==='V')){if(clipboard.length){e.preventDefault();doPaste();}return;}if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();if(selectedBlocks.size)deleteSelected();return;}}if((e.key==='t'||e.key==='T')&&!anyModalOpen()){if(inField())return;e.preventDefault();const now=new Date();let s=(dkey(now)===dkey(curDate))?now.getHours()*60+now.getMinutes():540;s=Math.round(s/5)*5;if(s>1380)s=1380;openCreate(s,Math.min(s+defaultDuration,1440));}if(e.key==='?'&&!anyModalOpen()){if(inField())return;e.preventDefault();helpOverlay.hidden=false;}});
+document.addEventListener('keydown',e=>{if(adrag){if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();adrag.cur=Math.max(0,Math.min(DAYMIN,adrag.cur+(e.key==='ArrowUp'?-1:1)));applyDrag();return;}if(e.key==='Escape'){e.preventDefault();endDrag(false);return;}return;}if(e.key==='Escape'){if(!overlay.hidden)closeModal();else if(!tagOverlay.hidden)tagOverlay.hidden=true;else if(!exOverlay.hidden)exOverlay.hidden=true;else if(!mgOverlay.hidden)mgOverlay.hidden=true;else if(!imOverlay.hidden){imOverlay.hidden=true;pendingImport=null;}else if(!setOverlay.hidden)setOverlay.hidden=true;else if(!txOverlay.hidden)txOverlay.hidden=true;else if(!helpOverlay.hidden)helpOverlay.hidden=true;else if(dropdown.classList.contains('open'))dropdown.classList.remove('open');else if(selectedBlocks.size){selectedBlocks.clear();render();}return;}if(e.key==='Enter'&&!overlay.hidden&&e.target.id==='mTitle'){saveBlock();return;}if(e.key==='Delete'&&!overlay.hidden&&editingId&&document.activeElement.id!=='mNote'){e.preventDefault();blocks=loadBlocks().filter(b=>b.id!==editingId);saveBlocks();render();closeModal();return;}if(!anyModalOpen()&&!inField()){if((e.ctrlKey||e.metaKey)&&(e.key==='c'||e.key==='C')){if(copySelected())e.preventDefault();return;}if((e.ctrlKey||e.metaKey)&&(e.key==='v'||e.key==='V')){if(clipboard.length){e.preventDefault();doPaste();}return;}if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();if(selectedBlocks.size)deleteSelected();return;}}if((e.key==='t'||e.key==='T')&&!anyModalOpen()){if(inField())return;e.preventDefault();const now=new Date();let s=(dkey(now)===dkey(curDate))?now.getHours()*60+now.getMinutes():540;s=Math.round(s/5)*5;if(s>1380)s=1380;openCreate(s,Math.min(s+defaultDuration,1440));}if(e.key==='?'&&!anyModalOpen()){if(inField())return;e.preventDefault();helpOverlay.hidden=false;}if(e.key==='F11'&&!anyModalOpen()){e.preventDefault();if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}});
 function scrollToNow(){if(!autoScroll)return;const now=new Date();const min=(dkey(now)===dkey(curDate))?(now.getHours()*60+now.getMinutes()):8*60;document.getElementById('scroller').scrollTop=Math.max(0,min*PXMIN-160);}
 
 // ---------- auto backup (Tauri v2 native fs) ----------
-function o(n){return {path:n,options:{baseDir:AD}};}
-async function tEnsureDir(){if(!(await INVOKE('plugin:fs|exists',o(DATA_DIR))))await INVOKE('plugin:fs|mkdir',{path:DATA_DIR,options:{baseDir:AD,recursive:true}});}
-async function tWrite(name,text){await tEnsureDir();const p=DATA_DIR+'/'+name;await INVOKE('plugin:fs|write_text_file',enc.encode(text),{headers:{path:encodeURIComponent(p),options:JSON.stringify({baseDir:AD})}});}
-async function tRead(name){try{const p=DATA_DIR+'/'+name;if(await INVOKE('plugin:fs|exists',o(p))){const arr=await INVOKE('plugin:fs|read_text_file',o(p));return dec.decode(arr instanceof ArrayBuffer?new Uint8Array(arr):Uint8Array.from(arr));}}catch(e){}return null;}
-async function tList(){try{const es=await INVOKE('plugin:fs|read_dir',o(DATA_DIR));return es.map(e=>e.name).filter(n=>/^timelog-backup-\d{4}-\d{2}-\d{2}\.json$/.test(n));}catch(e){return [];}}
-async function tRemove(name){try{await INVOKE('plugin:fs|remove',o(DATA_DIR+'/'+name));}catch(e){}}
+function fp(n){if(bkCustomPath)return bkCustomPath.replace(/\\/g,'/')+'/'+n.replace(/\\/g,'/');return n;}
+function fo(n){if(bkCustomPath)return {path:fp(n),options:{}};return {path:n,options:{baseDir:AD}};}
+function foDir(n,r){if(bkCustomPath)return {path:fp(n),options:{recursive:!!r}};return {path:n,options:{baseDir:AD,recursive:!!r}};}
+async function tEnsureDir(){if(!(await INVOKE('plugin:fs|exists',fo(DATA_DIR))))await INVOKE('plugin:fs|mkdir',foDir(DATA_DIR,true));}
+async function tWrite(name,text){await tEnsureDir();const p=fp(DATA_DIR+'/'+name);const hd=bkCustomPath?'{}':JSON.stringify({baseDir:AD});await INVOKE('plugin:fs|write_text_file',enc.encode(text),{headers:{path:encodeURIComponent(p),options:hd}});}
+async function tRead(name){try{const rn=DATA_DIR+'/'+name;if(await INVOKE('plugin:fs|exists',fo(rn))){const arr=await INVOKE('plugin:fs|read_text_file',fo(rn));return dec.decode(arr instanceof ArrayBuffer?new Uint8Array(arr):Uint8Array.from(arr));}}catch(e){}return null;}
+async function tList(){try{const es=await INVOKE('plugin:fs|read_dir',fo(DATA_DIR));return es.map(e=>e.name).filter(n=>/^timelog-backup-\d{4}-\d{2}-\d{2}\.json$/.test(n));}catch(e){return [];}}
+async function tRemove(name){try{await INVOKE('plugin:fs|remove',fo(DATA_DIR+'/'+name));}catch(e){}}
+
+async function migrateBackups(oldPath,newPath){
+  if(!TAURI||!oldPath||oldPath===newPath)return;
+  try{
+    const oldDir=oldPath.replace(/\\/g,'/');
+    const files=await INVOKE('plugin:fs|read_dir',{path:oldDir,options:{}}).catch(()=>[]);
+    const bks=files.map(e=>e.name).filter(n=>/^timelog-backup-\d{4}-\d{2}-\d{2}\.json$/.test(n));
+    if(!bks.length)return;
+    const nd=(newPath||'').replace(/\\/g,'/');
+    for(const f of bks){
+      const arr=await INVOKE('plugin:fs|read_text_file',{path:oldDir+'/'+f,options:{}});
+      const text=dec.decode(arr instanceof ArrayBuffer?new Uint8Array(arr):Uint8Array.from(arr));
+      if(nd){
+        await INVOKE('plugin:fs|mkdir',{path:nd,options:{recursive:true}});
+        await INVOKE('plugin:fs|write_text_file',enc.encode(text),{headers:{path:encodeURIComponent(nd+'/'+f),options:'{}'}});
+      }else{
+        await INVOKE('plugin:fs|write_text_file',enc.encode(text),{headers:{path:encodeURIComponent(DATA_DIR+'/'+f),options:JSON.stringify({baseDir:AD})}});
+      }
+      await INVOKE('plugin:fs|remove',{path:oldDir+'/'+f,options:{}});
+    }
+    toast('已迁移 '+bks.length+' 个备份文件');
+  }catch(e){console.error('migrate error',e);}
+}
 async function rotateBackups(){const files=(await tList()).sort();while(files.length>4){await tRemove(files.shift());}}
 function restoreAllData(data){if(data&&data.tags&&Array.isArray(data.tags)){localStorage.setItem('timelog:tags',JSON.stringify(data.tags.map(t=>({name:t.name,color:normColor(t.color),group:t.group||''}))));tags=loadTags();}if(data&&data.days){Object.keys(data.days).forEach(d=>{if(Array.isArray(data.days[d])&&data.days[d].length)localStorage.setItem('timelog:'+d,JSON.stringify(data.days[d]));});}}
 function setBk(text,state){document.getElementById('bkStatus').textContent=text;const dot=document.getElementById('bkDot');dot.className='dot'+(state==='on'?' on':state==='warn'?' warn':'');}
@@ -578,6 +613,8 @@ let autoScroll=loadBool('autoScroll',true);
 let exportTimestamp=loadBool('exportTimestamp',true);
 let exportDialog=loadBool('exportDialog',false);
 let blockOpacity=loadNum('blockOpacity',15);
+let startupFullscreen=loadBool('startupFullscreen',false);
+let bkCustomPath=localStorage.getItem('timelog:bkCustomPath')||'';
 
 const setOverlay=document.getElementById('setOverlay');
 const elDur=document.getElementById('setDuration');
@@ -587,6 +624,8 @@ const elDlg=document.getElementById('setExportDialog');
 const elOp=document.getElementById('setOpacity');
 const elOpV=document.getElementById('opacityVal');
 const elBk=document.getElementById('setBackup');
+const elFS=document.getElementById('setFullscreen');
+const elBkLbl=document.getElementById('bkPathLabel');
 
 document.getElementById('settingsBtn').addEventListener('click',()=>{
   elDur.value=defaultDuration;
@@ -594,6 +633,8 @@ document.getElementById('settingsBtn').addEventListener('click',()=>{
   elTs.checked=exportTimestamp;
   elDlg.checked=exportDialog;
   elOp.value=blockOpacity;elOpV.textContent=blockOpacity+'%';
+  elFS.checked=startupFullscreen;
+  elBkLbl.textContent=bkCustomPath||'默认（AppData）';
   elBk.checked=backupOn;
   setOverlay.hidden=false;
 });
@@ -608,6 +649,18 @@ elTs.addEventListener('change',()=>{exportTimestamp=elTs.checked;localStorage.se
 elDlg.addEventListener('change',()=>{exportDialog=elDlg.checked;localStorage.setItem('timelog:exportDialog',exportDialog?'1':'0');});
 elOp.addEventListener('input',()=>{blockOpacity=parseInt(elOp.value);elOpV.textContent=blockOpacity+'%';localStorage.setItem('timelog:blockOpacity',blockOpacity);render();});
 elBk.addEventListener('change',e=>{backupOn=e.target.checked;localStorage.setItem('timelog:backupOn',backupOn?'1':'0');if(TAURI)setBk(backupOn?'已连接 · 自动备份':'自动备份已关闭',backupOn?'on':'warn');if(backupOn)scheduleSave();});
+elFS.addEventListener('change',()=>{startupFullscreen=elFS.checked;localStorage.setItem('timelog:startupFullscreen',startupFullscreen?'1':'0');});
+
+document.getElementById('bkPathBtn').addEventListener('click',async()=>{
+  try{const h=await window.showDirectoryPicker();const old=bkCustomPath;bkCustomPath=h.name;localStorage.setItem('timelog:bkCustomPath',bkCustomPath);elBkLbl.textContent=bkCustomPath;
+    await migrateBackups(old,bkCustomPath);}catch(e){if(e.name!=='AbortError')toast('选择文件夹失败');}
+});
+document.getElementById('bkPathReset').addEventListener('click',async()=>{
+  if(!bkCustomPath)return;
+  if(!confirm('将备份位置恢复为默认（AppData），并迁移已有备份文件？'))return;
+  const old=bkCustomPath;bkCustomPath='';localStorage.removeItem('timelog:bkCustomPath');elBkLbl.textContent='默认（AppData）';
+  await migrateBackups(old,'');
+});
 
 // ---------- more dropdown ----------
 const moreBtn=document.getElementById('moreBtn');
@@ -618,6 +671,7 @@ dropdown.querySelectorAll('.dropdown-item').forEach(el=>{el.addEventListener('cl
 
 // init
 buildGutter();buildDayLines();render();scrollToNow();initBackup();
+if(startupFullscreen&&!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});
 </script>
 </body>
 </html>
