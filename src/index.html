@@ -139,7 +139,7 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
   <span class="spacer"></span>
   <span class="version">v0.1</span>
   <div class="more-wrap">
-    <button class="more-btn" id="moreBtn"><img src="icons/more.svg" alt="更多"></button>
+    <button class="more-btn" id="moreBtn" title="更多"><img src="icons/more.svg" alt="更多"></button>
     <div class="dropdown" id="dropdown">
       <div class="dropdown-item" id="settingsBtn"><img src="icons/settings.svg" alt="">设置</div>
       <div class="dropdown-item" id="tagBtn"><img src="icons/tag.svg" alt="">标签</div>
@@ -166,11 +166,37 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
 <div class="overlay" id="setOverlay" hidden>
   <div class="modal">
     <h2>设置</h2>
+
+    <label>默认时长（分钟）</label>
+    <input type="number" id="setDuration" min="1" max="1440" style="width:80px;">
+    <div class="small">按 <kbd>T</kbd> 键快速创建时默认时间块长度</div>
+
+    <div class="divider"></div>
+
+    <label class="switchrow"><input type="checkbox" id="setAutoScroll" checked> <span>打开时滚到当前时间</span></label>
+
+    <div class="divider"></div>
+    <label style="margin-bottom:4px;">导出</label>
+
+    <label class="switchrow"><input type="checkbox" id="setExportTimestamp" checked> <span>文件名加时间戳</span></label>
+    <div class="small">例：timelog-backup-2026-07-04-1730.json</div>
+
+    <label class="switchrow"><input type="checkbox" id="setExportDialog"> <span>导出时弹出保存对话框</span></label>
+
+    <div class="divider"></div>
+
+    <label>时间块透明度 <span id="opacityVal" style="font-weight:400;color:var(--text2);">15%</span></label>
+    <input type="range" id="setOpacity" min="5" max="200" value="15" style="width:100%;margin-top:4px;">
+
+    <div class="divider"></div>
+
     <label class="switchrow"><input type="checkbox" id="setBackup"> <span>启用自动备份（Tauri）</span></label>
-    <div class="small">关闭后不再自动写入备份文件，避免数据量大时影响性能；你仍可随时点“💾 立即备份”手动保存。</div>
+    <div class="small">关闭后不再自动写入备份文件，避免数据量大时影响性能；你仍可随时点「立即备份」手动保存。</div>
+
     <div class="divider"></div>
     <label>备份策略</label>
-    <div class="small">每天首次操作时，会把当前数据快照存为上一次日期的备份（timelog-backup-日期.json）；最多保留4个，超出自动删除最早的。</div>
+    <div class="small">每天首次操作时，会把当前数据快照存为上一次日期的备份（timelog-backup-日期.json）；最多保留 4 个，超出自动删除最早的。</div>
+
     <div class="actions"><span class="spacer"></span><button id="setClose">关闭</button></div>
   </div>
 </div>
@@ -232,7 +258,7 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
 <div class="overlay" id="txOverlay" hidden>
   <div class="modal">
     <h2>从文本导入</h2>
-    <div class="sub">粘贴“导出文本”格式的内容，解析为记录导入到指定日期。</div>
+    <div class="sub">粘贴"导出文本"格式的内容，解析为记录导入到指定日期。</div>
     <label>粘贴文本</label>
     <textarea class="exportbox" id="txText" placeholder="- (9:00-10:30:工作)写周报;记得同步进度" style="min-height:180px;height:34vh;"></textarea>
     <label>导入到日期</label>
@@ -277,7 +303,7 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
 <div class="overlay" id="tagOverlay" hidden>
   <div class="modal">
     <h2>管理标签</h2>
-    <div class="sub">点左侧色块自定义颜色；相同“分组”的标签会归类显示（如“很自律”与“自律”放同一组）。</div>
+    <div class="sub">点左侧色块自定义颜色；相同"分组"的标签会归类显示（如"很自律"与"自律"放同一组）。</div>
     <div id="tagList"></div>
     <button id="tagAdd" style="margin-top:8px">＋ 新增标签</button>
     <div class="actions"><span class="spacer"></span><button id="tagCancel">取消</button><button class="primary" id="tagSave">保存</button></div>
@@ -386,8 +412,10 @@ function loadTags(){try{const t=JSON.parse(localStorage.getItem('timelog:tags'))
 function saveTags(){localStorage.setItem('timelog:tags',JSON.stringify(tags));scheduleSave();}
 function loadBlocks(){try{const b=JSON.parse(localStorage.getItem('timelog:'+dkey(curDate)));return Array.isArray(b)?b:[];}catch(e){return [];}}
 function saveBlocks(){localStorage.setItem('timelog:'+dkey(curDate),JSON.stringify(blocks));scheduleSave();}
+function blkAlpha(){return Math.min(blockOpacity,100)/100;}
+function boostHex(hex,amount){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);const mean=(r+g+b)/3;const f=1-amount*0.3;const s=1+amount*0.25;return '#'+[r,g,b].map(c=>Math.round(Math.max(0,Math.min(255,mean+(c-mean)*s))*f).toString(16).padStart(2,'0')).join('');}
 function hexA(hex,a){const h=hex.replace('#','');const n=h.length===3?h.split('').map(c=>c+c).join(''):h;const r=parseInt(n.slice(0,2),16)||0,g=parseInt(n.slice(2,4),16)||0,b=parseInt(n.slice(4,6),16)||0;return 'rgba('+r+','+g+','+b+','+a+')';}
-function colorOf(name){const t=tags.find(x=>x.name===name);const hex=t?normColor(t.color):'#8A8A8A';return {hex:hex,bg:hexA(hex,0.15)};}
+function colorOf(name){const t=tags.find(x=>x.name===name);const hex=t?normColor(t.color):'#8A8A8A';if(blockOpacity>100){const bh=boostHex(hex,(blockOpacity-100)/100);return {hex:hex,bg:bh};}return {hex:hex,bg:hexA(hex,blkAlpha())};}
 function isDayKey(k){return /^timelog:\d{4}-\d{2}-\d{2}$/.test(k);}
 function getAllData(){const days={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(isDayKey(k)){try{const a=JSON.parse(localStorage.getItem(k));if(Array.isArray(a)&&a.length)days[k.slice(8)]=a;}catch(e){}}}return {app:'timelog',version:2,updatedAt:new Date().toISOString(),tags:tags,days:days};}
 function newId(){return 'b'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
@@ -484,8 +512,11 @@ document.getElementById('txText').addEventListener('input',()=>{const n=parseImp
 document.getElementById('txConfirm').addEventListener('click',()=>{const recs=parseImportText(document.getElementById('txText').value);if(!recs.length){alert('未解析到有效记录，请检查文本格式。');return;}const date=document.getElementById('txDate').value||dkey(curDate);const mode=document.querySelector('input[name=txMode]:checked').value;const key='timelog:'+date;let existing=[];try{existing=JSON.parse(localStorage.getItem(key))||[];}catch(e){}existing=(mode==='merge')?existing.concat(recs):recs;localStorage.setItem(key,JSON.stringify(existing));let added=false;recs.forEach(r=>r.tags.forEach(tn=>{if(tn&&!tags.find(x=>x.name===tn)){tags.push({name:tn,color:'#8A8A8A',group:''});added=true;}}));if(added)saveTags();txOverlay.hidden=true;if(date===dkey(curDate)){selectedBlocks.clear();render();}scheduleSave();toast('已导入 '+recs.length+' 条到 '+date);});
 
 // ---------- JSON export (download) ----------
-function download(name,text,type){const blob=new Blob([text],{type:type||'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-document.getElementById('exportJsonBtn').addEventListener('click',()=>{download('timelog-backup-'+dkey(new Date())+'.json',JSON.stringify(getAllData(),null,2));});
+function exportName(){const d=new Date();let n='timelog-backup-'+dkey(d);if(exportTimestamp){n+='-'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0');}return n+'.json';}
+async function download(name,text,type){const blob=new Blob([text],{type:type||'application/json'});
+  if(exportDialog&&typeof window.showSaveFilePicker==='function'){try{const h=await window.showSaveFilePicker({suggestedName:name,types:[{description:'JSON',accept:{'application/json':['.json']}}]});const w=await h.createWritable();await w.write(blob);await w.close();toast('已保存');return;}catch(e){if(e.name==='AbortError')return;}}
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+document.getElementById('exportJsonBtn').addEventListener('click',()=>{download(exportName(),JSON.stringify(getAllData(),null,2));});
 
 // ---------- import ----------
 const imOverlay=document.getElementById('imOverlay');
@@ -518,8 +549,8 @@ function inField(){const ae=document.activeElement,tg=ae&&ae.tagName;return tg==
 function copySelected(){if(!selectedBlocks.size)return false;const ids=selectedBlocks;clipboard=loadBlocks().filter(b=>ids.has(b.id)).sort((a,b)=>a.start-b.start).map(b=>({start:b.start,end:b.end,title:b.title,note:b.note,tags:(b.tags||[]).slice()}));toast('已复制 '+clipboard.length+' 个（切换日期或悬停目标位置后 Ctrl/⌘+V）');return true;}
 function doPaste(){if(!clipboard.length)return;const list=loadBlocks();const minStart=Math.min.apply(null,clipboard.map(c=>c.start));let offset=0,anchored=false;if(overGrid){const anchor=Math.round(lastHoverMin/5)*5;offset=anchor-minStart;anchored=true;}const news=clipboard.map(c=>{const dur=c.end-c.start;let s=c.start+offset,en=c.end+offset;if(s<0){s=0;en=dur;}if(en>DAYMIN){en=DAYMIN;s=Math.max(0,en-dur);}return {id:newId(),start:s,end:en,title:c.title,note:c.note,tags:(c.tags||[]).slice()};});blocks=list.concat(news);saveBlocks();selectedBlocks=new Set(news.map(n=>n.id));render();toast('已粘贴 '+news.length+' 个'+(anchored?('（'+fmt(Math.round(lastHoverMin/5)*5)+' 起）'):'（原时间）'));}
 function deleteSelected(){if(!selectedBlocks.size)return;if(!confirm('确定删除勾选的 '+selectedBlocks.size+' 个时间块？'))return;const ids=selectedBlocks;blocks=loadBlocks().filter(b=>!ids.has(b.id));saveBlocks();selectedBlocks=new Set();render();}
-document.addEventListener('keydown',e=>{if(adrag){if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();adrag.cur=Math.max(0,Math.min(DAYMIN,adrag.cur+(e.key==='ArrowUp'?-1:1)));applyDrag();return;}if(e.key==='Escape'){e.preventDefault();endDrag(false);return;}return;}if(e.key==='Escape'){if(!overlay.hidden)closeModal();else if(!tagOverlay.hidden)tagOverlay.hidden=true;else if(!exOverlay.hidden)exOverlay.hidden=true;else if(!mgOverlay.hidden)mgOverlay.hidden=true;else if(!imOverlay.hidden){imOverlay.hidden=true;pendingImport=null;}else if(!setOverlay.hidden)setOverlay.hidden=true;else if(!txOverlay.hidden)txOverlay.hidden=true;else if(!helpOverlay.hidden)helpOverlay.hidden=true;else if(dropdown.classList.contains('open'))dropdown.classList.remove('open');else if(selectedBlocks.size){selectedBlocks.clear();render();}return;}if(e.key==='Enter'&&!overlay.hidden&&e.target.id==='mTitle'){saveBlock();return;}if(e.key==='Delete'&&!overlay.hidden&&editingId&&document.activeElement.id!=='mNote'){e.preventDefault();blocks=loadBlocks().filter(b=>b.id!==editingId);saveBlocks();render();closeModal();return;}if(!anyModalOpen()&&!inField()){if((e.ctrlKey||e.metaKey)&&(e.key==='c'||e.key==='C')){if(copySelected())e.preventDefault();return;}if((e.ctrlKey||e.metaKey)&&(e.key==='v'||e.key==='V')){if(clipboard.length){e.preventDefault();doPaste();}return;}if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();if(selectedBlocks.size)deleteSelected();return;}}if((e.key==='t'||e.key==='T')&&!anyModalOpen()){if(inField())return;e.preventDefault();const now=new Date();let s=(dkey(now)===dkey(curDate))?now.getHours()*60+now.getMinutes():540;s=Math.round(s/5)*5;if(s>1380)s=1380;openCreate(s,Math.min(s+30,1440));}if(e.key==='?'&&!anyModalOpen()){if(inField())return;e.preventDefault();helpOverlay.hidden=false;}});
-function scrollToNow(){const now=new Date();const min=(dkey(now)===dkey(curDate))?(now.getHours()*60+now.getMinutes()):8*60;document.getElementById('scroller').scrollTop=Math.max(0,min*PXMIN-160);}
+document.addEventListener('keydown',e=>{if(adrag){if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();adrag.cur=Math.max(0,Math.min(DAYMIN,adrag.cur+(e.key==='ArrowUp'?-1:1)));applyDrag();return;}if(e.key==='Escape'){e.preventDefault();endDrag(false);return;}return;}if(e.key==='Escape'){if(!overlay.hidden)closeModal();else if(!tagOverlay.hidden)tagOverlay.hidden=true;else if(!exOverlay.hidden)exOverlay.hidden=true;else if(!mgOverlay.hidden)mgOverlay.hidden=true;else if(!imOverlay.hidden){imOverlay.hidden=true;pendingImport=null;}else if(!setOverlay.hidden)setOverlay.hidden=true;else if(!txOverlay.hidden)txOverlay.hidden=true;else if(!helpOverlay.hidden)helpOverlay.hidden=true;else if(dropdown.classList.contains('open'))dropdown.classList.remove('open');else if(selectedBlocks.size){selectedBlocks.clear();render();}return;}if(e.key==='Enter'&&!overlay.hidden&&e.target.id==='mTitle'){saveBlock();return;}if(e.key==='Delete'&&!overlay.hidden&&editingId&&document.activeElement.id!=='mNote'){e.preventDefault();blocks=loadBlocks().filter(b=>b.id!==editingId);saveBlocks();render();closeModal();return;}if(!anyModalOpen()&&!inField()){if((e.ctrlKey||e.metaKey)&&(e.key==='c'||e.key==='C')){if(copySelected())e.preventDefault();return;}if((e.ctrlKey||e.metaKey)&&(e.key==='v'||e.key==='V')){if(clipboard.length){e.preventDefault();doPaste();}return;}if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();if(selectedBlocks.size)deleteSelected();return;}}if((e.key==='t'||e.key==='T')&&!anyModalOpen()){if(inField())return;e.preventDefault();const now=new Date();let s=(dkey(now)===dkey(curDate))?now.getHours()*60+now.getMinutes():540;s=Math.round(s/5)*5;if(s>1380)s=1380;openCreate(s,Math.min(s+defaultDuration,1440));}if(e.key==='?'&&!anyModalOpen()){if(inField())return;e.preventDefault();helpOverlay.hidden=false;}});
+function scrollToNow(){if(!autoScroll)return;const now=new Date();const min=(dkey(now)===dkey(curDate))?(now.getHours()*60+now.getMinutes()):8*60;document.getElementById('scroller').scrollTop=Math.max(0,min*PXMIN-160);}
 
 // ---------- auto backup (Tauri v2 native fs) ----------
 function o(n){return {path:n,options:{baseDir:AD}};}
@@ -536,17 +567,47 @@ let saveTimer=null;
 function scheduleSave(){if(!TAURI||!backupOn)return;clearTimeout(saveTimer);saveTimer=setTimeout(doAutoSave,500);}
 async function doAutoSave(){if(!TAURI)return;try{const today=dkey(new Date());const last=localStorage.getItem('timelog:lastBackupDate');if(last&&last!==today){const prev=await tRead(MAIN_NAME);if(prev){await tWrite('timelog-backup-'+last+'.json',prev);await rotateBackups();}}localStorage.setItem('timelog:lastBackupDate',today);await tWrite(MAIN_NAME,JSON.stringify(getAllData(),null,2));setBk('已备份 · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),'on');}catch(e){setBk('备份失败','warn');}}
 // (folder picker removed — Tauri writes to the app data dir automatically)
-document.getElementById('backupBtn').addEventListener('click',async()=>{if(!TAURI){alert('自动备份会在打包后的桌面应用（Tauri）中静默保存到应用数据目录。\n在浏览器中请用“导出备份”手动保存 JSON（数据仍存在本地，不会一关就丢）。');return;}await doAutoSave();alert('已备份到应用数据目录的 '+DATA_DIR+' 文件夹。');});
+document.getElementById('backupBtn').addEventListener('click',async()=>{if(!TAURI){alert('自动备份会在打包后的桌面应用（Tauri）中静默保存到应用数据目录。\n在浏览器中请用"导出备份"手动保存 JSON（数据仍存在本地，不会一关就丢）。');return;}await doAutoSave();alert('已备份到应用数据目录的 '+DATA_DIR+' 文件夹。');});
 async function initBackup(){if(!TAURI){setBk('浏览器模式 · 仅本地','warn');return;}try{const raw=await tRead(MAIN_NAME);let has=false;for(let i=0;i<localStorage.length;i++){if(isDayKey(localStorage.key(i))){has=true;break;}}if(raw&&!has){try{restoreAllData(JSON.parse(raw));render();if(typeof renderTagChips==='function')renderTagChips();}catch(e){}}setBk(backupOn?'已连接 · 自动备份':'自动备份已关闭',backupOn?'on':'warn');}catch(e){setBk('备份初始化失败','warn');}}
 
 // ---------- settings ----------
+function loadNum(k,d){const v=localStorage.getItem('timelog:'+k);return v!=null?parseInt(v):d;}
+function loadBool(k,d){const v=localStorage.getItem('timelog:'+k);return v!=null?(v==='1'):d;}
+let defaultDuration=loadNum('defaultDuration',30);
+let autoScroll=loadBool('autoScroll',true);
+let exportTimestamp=loadBool('exportTimestamp',true);
+let exportDialog=loadBool('exportDialog',false);
+let blockOpacity=loadNum('blockOpacity',15);
+
 const setOverlay=document.getElementById('setOverlay');
-document.getElementById('settingsBtn').addEventListener('click',()=>{document.getElementById('setBackup').checked=backupOn;setOverlay.hidden=false;});
+const elDur=document.getElementById('setDuration');
+const elScroll=document.getElementById('setAutoScroll');
+const elTs=document.getElementById('setExportTimestamp');
+const elDlg=document.getElementById('setExportDialog');
+const elOp=document.getElementById('setOpacity');
+const elOpV=document.getElementById('opacityVal');
+const elBk=document.getElementById('setBackup');
+
+document.getElementById('settingsBtn').addEventListener('click',()=>{
+  elDur.value=defaultDuration;
+  elScroll.checked=autoScroll;
+  elTs.checked=exportTimestamp;
+  elDlg.checked=exportDialog;
+  elOp.value=blockOpacity;elOpV.textContent=blockOpacity+'%';
+  elBk.checked=backupOn;
+  setOverlay.hidden=false;
+});
 document.getElementById('setClose').addEventListener('click',()=>setOverlay.hidden=true);
 setOverlay.addEventListener('mousedown',e=>{if(e.target===setOverlay)setOverlay.hidden=true;});
 document.getElementById('helpClose').addEventListener('click',()=>helpOverlay.hidden=true);
 helpOverlay.addEventListener('mousedown',e=>{if(e.target===helpOverlay)helpOverlay.hidden=true;});
-document.getElementById('setBackup').addEventListener('change',e=>{backupOn=e.target.checked;localStorage.setItem('timelog:backupOn',backupOn?'1':'0');if(TAURI)setBk(backupOn?'已连接 · 自动备份':'自动备份已关闭',backupOn?'on':'warn');if(backupOn)scheduleSave();});
+
+elDur.addEventListener('change',()=>{defaultDuration=Math.max(1,parseInt(elDur.value)||30);localStorage.setItem('timelog:defaultDuration',defaultDuration);elDur.value=defaultDuration;});
+elScroll.addEventListener('change',()=>{autoScroll=elScroll.checked;localStorage.setItem('timelog:autoScroll',autoScroll?'1':'0');});
+elTs.addEventListener('change',()=>{exportTimestamp=elTs.checked;localStorage.setItem('timelog:exportTimestamp',exportTimestamp?'1':'0');});
+elDlg.addEventListener('change',()=>{exportDialog=elDlg.checked;localStorage.setItem('timelog:exportDialog',exportDialog?'1':'0');});
+elOp.addEventListener('input',()=>{blockOpacity=parseInt(elOp.value);elOpV.textContent=blockOpacity+'%';localStorage.setItem('timelog:blockOpacity',blockOpacity);render();});
+elBk.addEventListener('change',e=>{backupOn=e.target.checked;localStorage.setItem('timelog:backupOn',backupOn?'1':'0');if(TAURI)setBk(backupOn?'已连接 · 自动备份':'自动备份已关闭',backupOn?'on':'warn');if(backupOn)scheduleSave();});
 
 // ---------- more dropdown ----------
 const moreBtn=document.getElementById('moreBtn');
