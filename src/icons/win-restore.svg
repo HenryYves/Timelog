@@ -1,0 +1,18 @@
+<?xml version="1.0" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200">
+<!-- back frame (second box) -->
+<rect x="468" y="258" width="352" height="352" fill="#FFFFFF" stroke="#106AC4" stroke-width="44"/>
+<!-- ears (behind front box) -->
+<path d="M188 405 L300 405 L214 300 Z" fill="#F4CB1C"/>
+<path d="M474 405 L586 405 L560 300 Z" fill="#F4CB1C"/>
+<!-- front frame (cat head) -->
+<rect x="152" y="402" width="470" height="470" fill="#FFFFFF" stroke="#106AC4" stroke-width="50"/>
+<!-- eyes -->
+<circle cx="312" cy="602" r="33" fill="#0F315B"/>
+<circle cx="462" cy="602" r="33" fill="#0F315B"/>
+<!-- nose -->
+<rect x="370" y="658" width="34" height="27" fill="#106AC4"/>
+<!-- whiskers left -->
+<path d="M60 578 H150 M60 610 H150 M60 642 H150" stroke="#F4CB1C" stroke-width="20" stroke-linecap="round"/>
+<!-- whiskers right -->
+<path d="M624 578 H714 M624 610 H714 M624 642 H714" stroke="#F4CB1C" stroke-width="20" stroke-linecap="round"/>
+</svg>

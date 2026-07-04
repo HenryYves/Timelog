@@ -125,6 +125,13 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
 .dropdown-item img{width:18px;height:18px;flex:none;opacity:.75;}
 .dropdown-item .dot{margin-left:auto;flex:none;}
 .version{font-size:12px;color:var(--text2);margin-right:4px;user-select:none;}
+.win-ctrls{display:none;gap:2px;margin-left:4px;}
+.win-ctrls.on{display:flex;}
+.win-btn{width:32px;height:32px;padding:4px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--canvas);transition:background .12s;}
+.win-btn:hover{background:var(--soft2);}
+.win-btn img{width:20px;height:20px;opacity:.7;}
+.win-btn.close:hover{background:var(--red);}
+.win-btn.close:hover img{filter:brightness(0) invert(1);opacity:1;}
 </style>
 </head>
 <body>
@@ -152,6 +159,11 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
     </div>
   </div>
   <button id="exportBtn" class="primary">导出文本</button>
+  <span class="win-ctrls" id="winCtrls">
+    <button class="win-btn" id="winMin" title="最小化"><img src="icons/win-min.svg" alt=""></button>
+    <button class="win-btn" id="winMax" title="最大化"><img src="icons/win-max.svg" id="winMaxImg" alt=""></button>
+    <button class="win-btn close" id="winClose" title="关闭"><img src="icons/win-close.svg" alt=""></button>
+  </span>
 </header>
 <div class="hint">拖动时间轴创建记录，右键多选，<kbd>?</kbd> 查看操作指南</div>
 <main id="scroller">
@@ -195,6 +207,11 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
       <button id="bkPathReset" style="flex:none;font-size:12px;">恢复默认</button>
     </div>
     <div class="small">输入绝对路径，留空则使用 AppData</div>
+
+    <div class="divider"></div>
+
+    <label class="switchrow"><input type="checkbox" id="setBorderless"> <span>无边框窗口</span></label>
+    <div class="small">启用后隐藏原生标题栏，顶部右侧显示窗口控制按钮</div>
 
     <div class="divider"></div>
 
@@ -612,6 +629,8 @@ let exportTimestamp=loadBool('exportTimestamp',true);
 let exportDialog=loadBool('exportDialog',false);
 let blockOpacity=loadNum('blockOpacity',15);
 let bkCustomPath=localStorage.getItem('timelog:bkCustomPath')||'';
+let borderless=loadBool('borderless',false);
+let _winMaxed=false;
 
 const setOverlay=document.getElementById('setOverlay');
 const elDur=document.getElementById('setDuration');
@@ -622,6 +641,7 @@ const elOp=document.getElementById('setOpacity');
 const elOpV=document.getElementById('opacityVal');
 const elBk=document.getElementById('setBackup');
 const elBkIn=document.getElementById('bkPathInput');
+const elBL=document.getElementById('setBorderless');
 
 document.getElementById('settingsBtn').addEventListener('click',()=>{
   elDur.value=defaultDuration;
@@ -630,6 +650,7 @@ document.getElementById('settingsBtn').addEventListener('click',()=>{
   elDlg.checked=exportDialog;
   elOp.value=blockOpacity;elOpV.textContent=blockOpacity+'%';
   elBkIn.value=bkCustomPath;elBkIn.title=bkCustomPath;
+  elBL.checked=borderless;
   elBk.checked=backupOn;
   setOverlay.hidden=false;
 });
@@ -644,6 +665,17 @@ elTs.addEventListener('change',()=>{exportTimestamp=elTs.checked;localStorage.se
 elDlg.addEventListener('change',()=>{exportDialog=elDlg.checked;localStorage.setItem('timelog:exportDialog',exportDialog?'1':'0');});
 elOp.addEventListener('input',()=>{blockOpacity=parseInt(elOp.value);elOpV.textContent=blockOpacity+'%';localStorage.setItem('timelog:blockOpacity',blockOpacity);render();});
 elBk.addEventListener('change',e=>{backupOn=e.target.checked;localStorage.setItem('timelog:backupOn',backupOn?'1':'0');if(TAURI)setBk(backupOn?'已连接 · 自动备份':'自动备份已关闭',backupOn?'on':'warn');if(backupOn)scheduleSave();});
+elBL.addEventListener('change',()=>{borderless=elBL.checked;localStorage.setItem('timelog:borderless',borderless?'1':'0');applyBorderless();});
+
+function applyBorderless(){
+  const ctrls=document.getElementById('winCtrls');
+  if(borderless){ctrls.classList.add('on');}else{ctrls.classList.remove('on');}
+  if(TAURI){console.log('__TAURI__ keys:',Object.keys(window.__TAURI__));try{window.__TAURI__.window.getCurrentWindow().setDecorations(!borderless);}catch(e){console.error('setDecorations failed:',e.message);}}
+}
+document.getElementById('winMin').addEventListener('click',()=>{if(TAURI)try{const w=window.__TAURI__.window.getCurrentWindow();w.minimize();}catch(e){console.error('minimize failed:',e.message);}});
+document.getElementById('winMax').addEventListener('click',()=>{if(TAURI)try{const w=window.__TAURI__.window.getCurrentWindow();if(_winMaxed){w.unmaximize();_winMaxed=false;document.getElementById('winMaxImg').src='icons/win-max.svg';document.getElementById('winMax').title='最大化';}else{w.maximize();_winMaxed=true;document.getElementById('winMaxImg').src='icons/win-restore.svg';document.getElementById('winMax').title='还原';}}catch(e){console.error('maximize failed:',e.message);}});
+document.getElementById('winClose').addEventListener('click',()=>{if(TAURI)try{window.__TAURI__.window.getCurrentWindow().close();}catch(e){console.error('close failed:',e.message);}else window.close();});
+
 document.getElementById('bkPathSave').addEventListener('click',async()=>{
   const np=elBkIn.value.trim();
   if(np===bkCustomPath)return;
@@ -666,7 +698,7 @@ document.addEventListener('click',e=>{if(!dropdown.contains(e.target)&&e.target!
 dropdown.querySelectorAll('.dropdown-item').forEach(el=>{el.addEventListener('click',()=>{dropdown.classList.remove('open');setTimeout(()=>el.focus(),10);});});
 
 // init
-buildGutter();buildDayLines();render();scrollToNow();initBackup();
+buildGutter();buildDayLines();render();scrollToNow();initBackup();applyBorderless();
 </script>
 </body>
 </html>
