@@ -3,21 +3,21 @@
   <!-- 三组抽象时针-分针 · 配色 B: #69D2E7 / #E0E4CC / #FA6900 -->
 
   <!-- 第1组 · 青 -->
-  <g transform="translate(220,512)">
+  <g transform="translate(220,512) scale(1.2)">
     <circle cx="0" cy="0" r="22" fill="#69D2E7"/>
     <rect x="-10" y="-100" width="20" height="100" rx="10" fill="#69D2E7" transform="rotate(-40)"/>
     <rect x="-8" y="-155" width="16" height="155" rx="8" fill="#69D2E7" transform="rotate(35)"/>
   </g>
 
   <!-- 第2组 · 米 -->
-  <g transform="translate(512,512)">
+  <g transform="translate(512,512) scale(1.2)">
     <circle cx="0" cy="0" r="22" fill="#E0E4CC"/>
     <rect x="-10" y="-105" width="20" height="105" rx="10" fill="#E0E4CC" transform="rotate(-5)"/>
     <rect x="-8" y="-160" width="16" height="160" rx="8" fill="#E0E4CC" transform="rotate(80)"/>
   </g>
 
   <!-- 第3组 · 橙 -->
-  <g transform="translate(804,512)">
+  <g transform="translate(804,512) scale(1.2)">
     <circle cx="0" cy="0" r="22" fill="#FA6900"/>
     <rect x="-10" y="-95" width="20" height="95" rx="10" fill="#FA6900" transform="rotate(30)"/>
     <rect x="-8" y="-150" width="16" height="150" rx="8" fill="#FA6900" transform="rotate(-50)"/>
