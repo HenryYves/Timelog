@@ -223,6 +223,10 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
     <div class="divider"></div>
     <label>备份策略</label>
     <div class="small">每天首次操作时，会把当前数据快照存为上一次日期的备份（timelog-backup-日期.json）；最多保留 4 个，超出自动删除最早的。</div>
+    <div class="divider"></div>
+    <label>只保留最近 N 天数据</label>
+    <input type="number" id="setKeepDays" min="0" max="3650" style="width:80px;" placeholder="0">
+    <div class="small">0 = 保留全部；设 7 则每天首次操作时自动删掉第 8 个及更早有数据的天，仅保留最近 7 个有数据的天。</div>
 
     <div class="actions"><span class="spacer"></span><button id="setClose">关闭</button></div>
   </div>
@@ -437,9 +441,9 @@ const DATA_DIR = 'timelog_data';
 function dkey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function normColor(c){if(typeof c==='string'&&c.charAt(0)==='#')return c;return PALETTE[c]||'#8A8A8A';}
 function loadTags(){try{const t=JSON.parse(localStorage.getItem('timelog:tags'));if(Array.isArray(t)&&t.length)return t.map(x=>({name:x.name,color:normColor(x.color),group:x.group||''}));}catch(e){}return DEFAULT_TAGS.slice();}
-function saveTags(){localStorage.setItem('timelog:tags',JSON.stringify(tags));scheduleSave();}
+function saveTags(){localStorage.setItem('timelog:tags',JSON.stringify(tags));scheduleSave();scheduleClean();}
 function loadBlocks(){try{const b=JSON.parse(localStorage.getItem('timelog:'+dkey(curDate)));return Array.isArray(b)?b:[];}catch(e){return [];}}
-function saveBlocks(){localStorage.setItem('timelog:'+dkey(curDate),JSON.stringify(blocks));scheduleSave();}
+function saveBlocks(){localStorage.setItem('timelog:'+dkey(curDate),JSON.stringify(blocks));scheduleSave();scheduleClean();}
 function blkAlpha(){return Math.min(blockOpacity,100)/100;}
 function boostHex(hex,amount){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);const mean=(r+g+b)/3;const f=1-amount*0.3;const s=1+amount*0.25;return '#'+[r,g,b].map(c=>Math.round(Math.max(0,Math.min(255,mean+(c-mean)*s))*f).toString(16).padStart(2,'0')).join('');}
 function hexA(hex,a){const h=hex.replace('#','');const n=h.length===3?h.split('').map(c=>c+c).join(''):h;const r=parseInt(n.slice(0,2),16)||0,g=parseInt(n.slice(2,4),16)||0,b=parseInt(n.slice(4,6),16)||0;return 'rgba('+r+','+g+','+b+','+a+')';}
@@ -619,8 +623,10 @@ async function rotateBackups(){const files=(await tList()).sort();while(files.le
 function restoreAllData(data){if(data&&data.tags&&Array.isArray(data.tags)){localStorage.setItem('timelog:tags',JSON.stringify(data.tags.map(t=>({name:t.name,color:normColor(t.color),group:t.group||''}))));tags=loadTags();}if(data&&data.days){Object.keys(data.days).forEach(d=>{if(Array.isArray(data.days[d])&&data.days[d].length)localStorage.setItem('timelog:'+d,JSON.stringify(data.days[d]));});}}
 function setBk(text,state){document.getElementById('bkStatus').textContent=text;const dot=document.getElementById('bkDot');dot.className='dot'+(state==='on'?' on':state==='warn'?' warn':'');}
 // (legacy File System Access helpers removed — Tauri fs helpers above)
-let saveTimer=null;
+let saveTimer=null,cleanTimer=null;
 function scheduleSave(){if(!TAURI||!backupOn)return;clearTimeout(saveTimer);saveTimer=setTimeout(doAutoSave,500);}
+function scheduleClean(){if(keepDays<=0)return;clearTimeout(cleanTimer);cleanTimer=setTimeout(()=>{const today=dkey(new Date());const last=localStorage.getItem('timelog:lastCleanDate');if(last===today)return;localStorage.setItem('timelog:lastCleanDate',today);cleanOldDays();},500);}
+function cleanOldDays(){if(keepDays<=0)return;const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(isDayKey(k))keys.push(k.slice(8));}keys.sort().reverse();if(keys.length<=keepDays)return;const toDel=keys.slice(keepDays);toDel.forEach(d=>localStorage.removeItem('timelog:'+d));}
 async function doAutoSave(){if(!TAURI)return;try{const today=dkey(new Date());const last=localStorage.getItem('timelog:lastBackupDate');if(last&&last!==today){const prev=await tRead(MAIN_NAME);if(prev){await tWrite('timelog-backup-'+last+'.json',prev);await rotateBackups();}}localStorage.setItem('timelog:lastBackupDate',today);await tWrite(MAIN_NAME,JSON.stringify(getAllData(),null,2));setBk('已备份 · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),'on');}catch(e){setBk('备份失败','warn');}}
 // (folder picker removed — Tauri writes to the app data dir automatically)
 document.getElementById('backupBtn').addEventListener('click',async()=>{if(!TAURI){alert('自动备份会在打包后的桌面应用（Tauri）中静默保存到应用数据目录。\n在浏览器中请用"导出备份"手动保存 JSON（数据仍存在本地，不会一关就丢）。');return;}await doAutoSave();const loc=bkCustomPath||'AppData';alert('已备份到 '+loc+' 的 '+DATA_DIR+' 文件夹。');});
@@ -636,6 +642,7 @@ let exportDialog=loadBool('exportDialog',false);
 let blockOpacity=loadNum('blockOpacity',15);
 let bkCustomPath=localStorage.getItem('timelog:bkCustomPath')||'';
 let borderless=loadBool('borderless',false);
+let keepDays=loadNum('keepDays',0);
 let _winMaxed=false;
 
 const setOverlay=document.getElementById('setOverlay');
@@ -648,6 +655,7 @@ const elOpV=document.getElementById('opacityVal');
 const elBk=document.getElementById('setBackup');
 const elBkIn=document.getElementById('bkPathInput');
 const elBL=document.getElementById('setBorderless');
+const elKD=document.getElementById('setKeepDays');
 
 document.getElementById('settingsBtn').addEventListener('click',()=>{
   elDur.value=defaultDuration;
@@ -658,6 +666,7 @@ document.getElementById('settingsBtn').addEventListener('click',()=>{
   elBkIn.value=bkCustomPath;elBkIn.title=bkCustomPath;
   elBL.checked=borderless;
   elBk.checked=backupOn;
+  elKD.value=keepDays;
   setOverlay.hidden=false;
 });
 document.getElementById('setClose').addEventListener('click',()=>setOverlay.hidden=true);
@@ -672,6 +681,7 @@ elDlg.addEventListener('change',()=>{exportDialog=elDlg.checked;localStorage.set
 elOp.addEventListener('input',()=>{blockOpacity=parseInt(elOp.value);elOpV.textContent=blockOpacity+'%';localStorage.setItem('timelog:blockOpacity',blockOpacity);render();});
 elBk.addEventListener('change',e=>{backupOn=e.target.checked;localStorage.setItem('timelog:backupOn',backupOn?'1':'0');if(TAURI)setBk(backupOn?'已连接 · 自动备份':'自动备份已关闭',backupOn?'on':'warn');if(backupOn)scheduleSave();});
 elBL.addEventListener('change',()=>{borderless=elBL.checked;localStorage.setItem('timelog:borderless',borderless?'1':'0');applyBorderless();});
+elKD.addEventListener('change',()=>{keepDays=Math.max(0,parseInt(elKD.value)||0);localStorage.setItem('timelog:keepDays',keepDays);elKD.value=keepDays;});
 
 function applyBorderless(){
   const ctrls=document.getElementById('winCtrls');
