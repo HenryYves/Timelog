@@ -670,10 +670,10 @@ elBL.addEventListener('change',()=>{borderless=elBL.checked;localStorage.setItem
 function applyBorderless(){
   const ctrls=document.getElementById('winCtrls');
   if(borderless){ctrls.classList.add('on');}else{ctrls.classList.remove('on');}
-  if(TAURI){console.log('__TAURI__ keys:',Object.keys(window.__TAURI__));try{window.__TAURI__.window.getCurrentWindow().setDecorations(!borderless);}catch(e){console.error('setDecorations failed:',e.message);}}
+  if(TAURI){try{window.__TAURI__.window.getCurrentWindow().setDecorations(!borderless);}catch(e){console.error('setDecorations failed:',e.message);}}
 }
 document.getElementById('winMin').addEventListener('click',()=>{if(TAURI)try{const w=window.__TAURI__.window.getCurrentWindow();w.minimize();}catch(e){console.error('minimize failed:',e.message);}});
-document.getElementById('winMax').addEventListener('click',()=>{if(TAURI)try{const w=window.__TAURI__.window.getCurrentWindow();if(_winMaxed){w.unmaximize();_winMaxed=false;document.getElementById('winMaxImg').src='icons/win-max.svg';document.getElementById('winMax').title='最大化';}else{w.maximize();_winMaxed=true;document.getElementById('winMaxImg').src='icons/win-restore.svg';document.getElementById('winMax').title='还原';}}catch(e){console.error('maximize failed:',e.message);}});
+document.getElementById('winMax').addEventListener('click',()=>{if(TAURI)try{window.__TAURI__.window.getCurrentWindow().toggleMaximize();_winMaxed=!_winMaxed;document.getElementById('winMaxImg').src=_winMaxed?'icons/win-restore.svg':'icons/win-max.svg';document.getElementById('winMax').title=_winMaxed?'还原':'最大化';}catch(e){console.error('toggleMaximize failed:',e.message);}});
 document.getElementById('winClose').addEventListener('click',()=>{if(TAURI)try{window.__TAURI__.window.getCurrentWindow().close();}catch(e){console.error('close failed:',e.message);}else window.close();});
 
 document.getElementById('bkPathSave').addEventListener('click',async()=>{
