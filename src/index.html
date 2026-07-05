@@ -365,6 +365,7 @@ kbd{font-family:Menlo,Consolas,monospace;font-size:11px;background:var(--soft2);
     <div class="divider"></div>
     <label>所有日期</label>
     <div id="mgDays"></div>
+    <div style="margin-top:12px;"><button class="del" id="mgDelAll">全部删除</button><span class="small" style="margin-left:8px;">删除所有日期和标签的全部记录，不可恢复。</span></div>
     <div class="actions"><span class="spacer"></span><button id="mgClose">关闭</button></div>
   </div>
 </div>
@@ -567,6 +568,7 @@ mgOverlay.addEventListener('mousedown',e=>{if(e.target===mgOverlay)mgOverlay.hid
 function openManage(){document.getElementById('mgFrom').value='';document.getElementById('mgTo').value='';renderDays();mgOverlay.hidden=false;}
 function renderDays(){const wrap=document.getElementById('mgDays');wrap.innerHTML='';const data=getAllData().days;const dates=Object.keys(data).sort().reverse();if(!dates.length){wrap.innerHTML='<div class="small">暂无数据</div>';return;}dates.forEach(d=>{const arr=data[d];let mins=0;arr.forEach(b=>mins+=(b.end-b.start));const row=document.createElement('div');row.className='dayrow';row.innerHTML='<div class="dinfo">'+d+' <span class="dmeta">'+arr.length+' 条 · '+Math.round(mins/60*10)/10+' 小时</span></div>';const btn=document.createElement('button');btn.className='del';btn.textContent='删除整天';btn.addEventListener('click',()=>{if(confirm('确定删除 '+d+' 的全部记录？')){localStorage.removeItem('timelog:'+d);renderDays();render();scheduleSave();}});row.appendChild(btn);wrap.appendChild(row);});}
 document.getElementById('mgDelRange').addEventListener('click',()=>{const a=document.getElementById('mgFrom').value,b=document.getElementById('mgTo').value;if(!a||!b){alert('请选择起止日期。');return;}const lo=a<=b?a:b,hi=a<=b?b:a;const data=getAllData().days;const hit=Object.keys(data).filter(d=>d>=lo&&d<=hi);if(!hit.length){alert('该日期范围内没有记录。');return;}let cnt=0;hit.forEach(d=>cnt+=data[d].length);if(confirm('将删除 '+hit.length+' 天、共 '+cnt+' 条记录，确定？')){hit.forEach(d=>localStorage.removeItem('timelog:'+d));selectedBlocks.clear();renderDays();render();scheduleSave();}});
+document.getElementById('mgDelAll').addEventListener('click',()=>{const data=getAllData().days;const dates=Object.keys(data);if(!dates.length){alert('没有任何记录。');return;}let cnt=0;dates.forEach(d=>cnt+=data[d].length);if(confirm('确定删除全部 '+dates.length+' 天、共 '+cnt+' 条记录？此操作不可恢复。')){dates.forEach(d=>localStorage.removeItem('timelog:'+d));selectedBlocks.clear();renderDays();render();scheduleSave();}});
 
 // ---------- date nav ----------
 document.getElementById('prevDay').addEventListener('click',()=>{curDate.setDate(curDate.getDate()-1);selectedBlocks.clear();render();});
