@@ -421,7 +421,7 @@ let tags=loadTags();
 let blocks=[];
 let editingId=null;
 let selectedTags=[];
-let tagDraft=[];
+let tagDraft=[],origTagNames=[],deletedTagNames=new Set();
 let pendingImport=null;
 let selectedBlocks=new Set();
 let clipboard=[];
@@ -521,12 +521,14 @@ function saveBlock(){let s=fromInput(document.getElementById('mStart').value),en
 // ---------- tag manager ----------
 const tagOverlay=document.getElementById('tagOverlay');
 document.getElementById('tagBtn').addEventListener('click',openTagMgr);
-function openTagMgr(){tagDraft=tags.map(t=>({name:t.name,color:normColor(t.color),group:t.group||''}));renderTagList();tagOverlay.hidden=false;}
-function renderTagList(){const box=document.getElementById('tagList');box.innerHTML='';tagDraft.forEach((t,i)=>{const row=document.createElement('div');row.className='tagrow';const ci=document.createElement('input');ci.type='color';ci.value=t.color||'#888888';const ni=document.createElement('input');ni.type='text';ni.className='tn';ni.placeholder='标签名称';ni.value=t.name;const gi=document.createElement('input');gi.type='text';gi.className='tg';gi.placeholder='分组';gi.value=t.group||'';const db=document.createElement('button');db.className='del';db.textContent='删除';ci.addEventListener('input',()=>tagDraft[i].color=ci.value);ni.addEventListener('input',()=>tagDraft[i].name=ni.value);gi.addEventListener('input',()=>tagDraft[i].group=gi.value);db.addEventListener('click',()=>{tagDraft.splice(i,1);renderTagList();});row.appendChild(ci);row.appendChild(ni);row.appendChild(gi);row.appendChild(db);box.appendChild(row);});}
+function openTagMgr(){tagDraft=tags.map(t=>({name:t.name,color:normColor(t.color),group:t.group||''}));origTagNames=tags.map(t=>t.name);deletedTagNames=new Set();renderTagList();tagOverlay.hidden=false;}
+function renderTagList(){const box=document.getElementById('tagList');box.innerHTML='';tagDraft.forEach((t,i)=>{const row=document.createElement('div');row.className='tagrow';const ci=document.createElement('input');ci.type='color';ci.value=t.color||'#888888';const ni=document.createElement('input');ni.type='text';ni.className='tn';ni.placeholder='标签名称';ni.value=t.name;const gi=document.createElement('input');gi.type='text';gi.className='tg';gi.placeholder='分组';gi.value=t.group||'';const db=document.createElement('button');db.className='del';db.textContent='删除';ci.addEventListener('input',()=>tagDraft[i].color=ci.value);ni.addEventListener('input',()=>tagDraft[i].name=ni.value);gi.addEventListener('input',()=>tagDraft[i].group=gi.value);db.addEventListener('click',()=>{if(!confirm('确定删除标签"'+t.name+'"，并从所有记录中移除此标签？'))return;deletedTagNames.add(t.name);tagDraft.splice(i,1);origTagNames.splice(i,1);renderTagList();});row.appendChild(ci);row.appendChild(ni);row.appendChild(gi);row.appendChild(db);box.appendChild(row);});}
 document.getElementById('tagAdd').addEventListener('click',()=>{tagDraft.push({name:'',color:'#4C9AE0',group:''});renderTagList();});
 document.getElementById('tagCancel').addEventListener('click',()=>tagOverlay.hidden=true);
 tagOverlay.addEventListener('mousedown',e=>{if(e.target===tagOverlay)tagOverlay.hidden=true;});
-document.getElementById('tagSave').addEventListener('click',()=>{const seen={};tags=tagDraft.filter(t=>t.name&&t.name.trim()&&!seen[t.name.trim()]&&(seen[t.name.trim()]=1)).map(t=>({name:t.name.trim(),color:normColor(t.color),group:(t.group||'').trim()}));saveTags();tagOverlay.hidden=true;renderTagChips();render();});
+function removeTagFromBlocks(tn){let c=false;for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!isDayKey(k))continue;try{const a=JSON.parse(localStorage.getItem(k));if(!Array.isArray(a))continue;let m=false;for(const b of a){if(b.tags&&b.tags.includes(tn)){b.tags=b.tags.filter(t=>t!==tn);m=true;}}if(m){localStorage.setItem(k,JSON.stringify(a));c=true;}}catch(e){}}return c;}
+function replaceTagInBlocks(ol,ne){for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!isDayKey(k))continue;try{const a=JSON.parse(localStorage.getItem(k));if(!Array.isArray(a))continue;let m=false;for(const b of a){if(b.tags){for(let j=0;j<b.tags.length;j++){if(b.tags[j]===ol){b.tags[j]=ne;m=true;}}}}if(m)localStorage.setItem(k,JSON.stringify(a));}catch(e){}}}
+document.getElementById('tagSave').addEventListener('click',()=>{const seen={};const nt=tagDraft.filter(t=>t.name&&t.name.trim()&&!seen[t.name.trim()]&&(seen[t.name.trim()]=1)).map(t=>({name:t.name.trim(),color:normColor(t.color),group:(t.group||'').trim()}));for(const tn of deletedTagNames){removeTagFromBlocks(tn);}for(let i=0;i<Math.min(tagDraft.length,origTagNames.length);i++){const on=origTagNames[i],nn=tagDraft[i].name.trim();if(on&&nn&&on!==nn){if(confirm('标签"'+on+'"已改名为"'+nn+'"，是否将已有记录中的"'+on+'"替换为"'+nn+'"？')){replaceTagInBlocks(on,nn);}}}tags=nt;saveTags();tagOverlay.hidden=true;renderTagChips();render();});
 
 // ---------- text export ----------
 function buildExport(){return loadBlocks().slice().sort((a,b)=>a.start-b.start).map(ev=>{const t=(ev.tags&&ev.tags.length)?':'+ev.tags.join(','):'';return '- ('+fmt(ev.start)+'-'+fmt(ev.end)+t+')'+(ev.title||'')+';'+(ev.note||'').replace(/\n/g,'\n ');}).join('\n');}
