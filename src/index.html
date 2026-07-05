@@ -20,6 +20,8 @@
   .datenav{display:flex;align-items:center;gap:4px;}
   .datenav .date{font-weight:600;min-width:150px;text-align:center;}
   .spacer{flex:1;}
+  header{cursor:grab;}
+  header button,header input,header .dropdown-item,header .more-btn,header .win-btn,.logo{cursor:pointer;}
   button{font-family:inherit;font-size:13.5px;border:1px solid var(--border);background:var(--canvas);
     color:var(--text);border-radius:8px;padding:6px 11px;cursor:pointer;transition:background .12s,border-color .12s;white-space:nowrap;}
   button:hover{background:var(--soft2);}
@@ -669,12 +671,13 @@ elBL.addEventListener('change',()=>{borderless=elBL.checked;localStorage.setItem
 
 function applyBorderless(){
   const ctrls=document.getElementById('winCtrls');
-  if(borderless){ctrls.classList.add('on');}else{ctrls.classList.remove('on');}
+  if(borderless){ctrls.classList.add('on');document.body.classList.add('borderless');}else{ctrls.classList.remove('on');document.body.classList.remove('borderless');}
   if(TAURI){try{window.__TAURI__.window.getCurrentWindow().setDecorations(!borderless);}catch(e){console.error('setDecorations failed:',e.message);}}
 }
 document.getElementById('winMin').addEventListener('click',()=>{if(TAURI)try{const w=window.__TAURI__.window.getCurrentWindow();w.minimize();}catch(e){console.error('minimize failed:',e.message);}});
 document.getElementById('winMax').addEventListener('click',()=>{if(TAURI)try{window.__TAURI__.window.getCurrentWindow().toggleMaximize();_winMaxed=!_winMaxed;document.getElementById('winMaxImg').src=_winMaxed?'icons/win-restore.svg':'icons/win-max.svg';document.getElementById('winMax').title=_winMaxed?'还原':'最大化';}catch(e){console.error('toggleMaximize failed:',e.message);}});
 document.getElementById('winClose').addEventListener('click',()=>{if(TAURI)try{window.__TAURI__.window.getCurrentWindow().close();}catch(e){console.error('close failed:',e.message);}else window.close();});
+document.querySelector('header').addEventListener('mousedown',(e)=>{if(!TAURI)return;const t=e.target;if(t.closest('button,input,select,textarea,.dropdown-item,.more-btn,.win-btn,.logo'))return;try{window.__TAURI__.window.getCurrentWindow().startDragging();}catch(e){console.error('startDragging failed:',e.message);}});
 
 document.getElementById('bkPathSave').addEventListener('click',async()=>{
   const np=elBkIn.value.trim();
@@ -698,7 +701,12 @@ document.addEventListener('click',e=>{if(!dropdown.contains(e.target)&&e.target!
 dropdown.querySelectorAll('.dropdown-item').forEach(el=>{el.addEventListener('click',()=>{dropdown.classList.remove('open');setTimeout(()=>el.focus(),10);});});
 
 // init
-buildGutter();buildDayLines();render();scrollToNow();initBackup();applyBorderless();
+(async function init(){
+  if(TAURI){
+    try{const ws=window.__TAURI__.windowState;if(ws)await ws.restoreStateCurrent(ws.StateFlags.ALL);}catch(e){console.error('restoreState failed:',e.message);}
+  }
+  buildGutter();buildDayLines();render();scrollToNow();initBackup();applyBorderless();
+})();
 </script>
 </body>
 </html>
