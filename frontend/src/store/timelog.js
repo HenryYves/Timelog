@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { KEY_PREFIX, PX_MIN, DAY_MIN, EDGE } from '../constants.js'
+import { logger } from '../utils/log.js'
 
 export function dkey(d) {
   return d.getFullYear() + '-' +
@@ -34,7 +35,7 @@ export const useTimelogStore = defineStore('timelog', () => {
     try {
       const raw = localStorage.getItem(KEY_PREFIX + dateKey.value)
       blocks.value = raw ? JSON.parse(raw) : []
-    } catch { blocks.value = [] }
+    } catch (e) { logger.error('timelog', 'loadBlocks failed', e); blocks.value = [] }
   }
 
   function saveBlocks() {
@@ -133,9 +134,7 @@ export const useTimelogStore = defineStore('timelog', () => {
       const t = tags.find(t => t.name === name)
       if (!t) return { hex: '#C4C3C0', bg: '#F0EFED' }
       return { hex: t.color, bg: t.color + '22' }
-    } catch {
-      return { hex: '#C4C3C0', bg: '#F0EFED' }
-    }
+    } catch (e) { logger.error('timelog', 'colorOf failed', e); return { hex: '#C4C3C0', bg: '#F0EFED' } }
   }
 
   loadBlocks()

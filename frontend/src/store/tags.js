@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { KEY_PREFIX } from '../constants.js'
 import { useTimelogStore } from './timelog.js'
+import { logger } from '../utils/log.js'
 
 const DEFAULT_TAGS = [
   { name: '专注', color: '#A1AFC9', group: '自我评价' },
@@ -19,7 +20,7 @@ export const useTagStore = defineStore('tags', () => {
     try {
       const raw = localStorage.getItem(KEY_PREFIX + 'tags')
       tags.value = raw ? JSON.parse(raw) : [...DEFAULT_TAGS]
-    } catch { tags.value = [...DEFAULT_TAGS] }
+    } catch (e) { logger.error('tags', 'loadTags failed', e); tags.value = [...DEFAULT_TAGS] }
   }
 
   function saveTags() {
@@ -74,7 +75,7 @@ export const useTagStore = defineStore('tags', () => {
           let changed2 = false
           data.forEach(b => { if (b.tags) { b.tags = b.tags.map(t => t === oldName ? newName : t); changed2 = true } })
           if (changed2) localStorage.setItem(k, JSON.stringify(data))
-        } catch {}
+        } catch (e) { logger.error('tags', 'replaceTagInBlocks failed', e) }
       }
     }
   }

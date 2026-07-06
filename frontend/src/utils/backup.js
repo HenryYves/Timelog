@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { isTauri, tRead, tWrite, tReadDir, tRemove } from './tauri.js'
 import { KEY_PREFIX, MAIN_NAME, DATA_DIR, MAX_BACKUP_COUNT } from '../constants.js'
+import { logger } from './log.js'
 
 // =============================================
 // Reactive state for the backup indicator dot
@@ -58,11 +59,11 @@ export function getAllData() {
       try {
         const a = JSON.parse(localStorage.getItem(k))
         if (Array.isArray(a) && a.length) days[k.slice(KEY_PREFIX.length)] = a
-      } catch { /* skip malformed entry */ }
+      } catch (e) { logger.error('backup', 'getAllData parse day failed', e) }
     }
   }
   let tags = []
-  try { tags = JSON.parse(localStorage.getItem(KEY_PREFIX + 'tags')) || [] } catch { /* ok */ }
+  try { tags = JSON.parse(localStorage.getItem(KEY_PREFIX + 'tags')) || [] } catch (e) { logger.error('backup', 'getAllData parse tags failed', e) }
   return {
     app: 'timelog',
     version: 2,
@@ -119,10 +120,11 @@ export async function initBackup() {
         restoreAllData(JSON.parse(raw))
         // Notify App.vue so it can reload stores
         window.dispatchEvent(new CustomEvent('backup:restored'))
-      } catch (e) { console.error('restore from backup error', e) }
+      } catch (e) { logger.error('backup', 'restore from backup error', e) }
     }
     setBk(_backupOn ? '备份可用 · 自动备份' : '自动备份已关闭', _backupOn ? 'on' : 'warn')
   } catch (e) {
+    logger.error('backup', 'initBackup failed', e)
     setBk('备份初始化失败', 'warn')
   }
 }
@@ -146,6 +148,7 @@ export async function doAutoSave() {
       'on',
     )
   } catch (e) {
+    logger.error('backup', 'doAutoSave failed', e)
     setBk('备份失败', 'warn')
   }
 }
@@ -235,6 +238,6 @@ export async function migrateBackups(oldPath, newPath) {
     }
     console.log('已迁移 ' + bks.length + ' 个备份文件')
   } catch (e) {
-    console.error('migrate error', e)
+    logger.error('backup', 'migrateBackups failed', e)
   }
 }

@@ -92,6 +92,7 @@
 
       <div class="actions">
         <span class="spacer"></span>
+        <button @click="exportLogs">导出日志</button>
         <button type="button" id="setClose" @click="emit('close')">关闭</button>
       </div>
     </div>
@@ -104,6 +105,7 @@ import { useSettingsStore } from '../store/settings.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { migrateBackups } from '../utils/backup.js'
 import { STR } from '../strings.js'
+import { exportLogs } from '../utils/log.js'
 
 const props = defineProps({
   show: Boolean,

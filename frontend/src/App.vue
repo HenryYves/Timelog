@@ -76,7 +76,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, onErrorCaptured } from 'vue'
 import { useTimelogStore, dkey } from './store/timelog.js'
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
@@ -95,6 +95,7 @@ import ConfirmDialog from './components/ConfirmDialog.vue'
 import HelpPanel from './components/HelpPanel.vue'
 import { useToast } from './composables/useToast.js'
 import { useConfirm } from './composables/useConfirm.js'
+import { logger } from './utils/log.js'
 
 const store = useTimelogStore()
 const settings = useSettingsStore()
@@ -270,6 +271,12 @@ function onBackupRestored() {
   store.loadBlocks()
   tagStore.loadTags()
 }
+
+onErrorCaptured((err, instance, info) => {
+  logger.error('vue', err.message || String(err), { info, component: instance?.$options?.name })
+  // Don't stop propagation — let Pinia/Vue handle it
+  return false
+})
 
 onMounted(async () => {
   window.addEventListener('keydown', onWindowKeyDown)
