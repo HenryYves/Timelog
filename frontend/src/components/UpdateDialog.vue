@@ -160,10 +160,6 @@ async function onExitUpdate() {
   const ok = await startDownload()
   if (!ok) return
 
-  // Mark as pending for crash recovery + Rust close handler
-  if (props.updateInfo?.version) {
-    localStorage.setItem('timelog:pendingDownload', props.updateInfo.version)
-  }
   emit('willInstallOnExit', props.updateInfo?.version)
   emit('close')
 }

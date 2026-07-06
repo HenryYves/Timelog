@@ -379,6 +379,7 @@ function onWindowKeyDown(e) {
   // Escape: close topmost visible overlay / clear selection
   if (e.key === 'Escape') {
     if (showModal.value) { e.preventDefault(); closeModal(); return }
+    if (showUpdate.value) { e.preventDefault(); showUpdate.value = false; return }
     if (showSettings.value) { e.preventDefault(); showSettings.value = false; return }
     if (showExport.value) { e.preventDefault(); showExport.value = false; jsonImportData.value = null; return }
     if (showHelp.value) { e.preventDefault(); showHelp.value = false; return }
@@ -397,7 +398,7 @@ function onWindowKeyDown(e) {
   }
 
   // If any modal is open, ignore the rest
-  if (showModal.value || showSettings.value || showExport.value || showHelp.value || showTagMgr.value || showDataMgr.value) return
+  if (showModal.value || showUpdate.value || showSettings.value || showExport.value || showHelp.value || showTagMgr.value || showDataMgr.value) return
 
   const tag = e.target.tagName
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
