@@ -552,7 +552,7 @@ function replaceTagInBlocks(ol,ne){for(let i=0;i<localStorage.length;i++){const 
 document.getElementById('tagSave').addEventListener('click',async()=>{const seen={};const nt=tagDraft.filter(t=>t.name&&t.name.trim()&&!seen[t.name.trim()]&&(seen[t.name.trim()]=1)).map(t=>({name:t.name.trim(),color:normColor(t.color),group:(t.group||'').trim()}));for(const tn of deletedTagNames){removeTagFromBlocks(tn);}for(let i=0;i<Math.min(tagDraft.length,origTagNames.length);i++){const on=origTagNames[i],nn=tagDraft[i].name.trim();if(on&&nn&&on!==nn){if(await showConfirm('标签"'+on+'"已改名为"'+nn+'"，是否将已有记录中的"'+on+'"替换为"'+nn+'"？')){replaceTagInBlocks(on,nn);}}}tags=nt;saveTags();tagOverlay.hidden=true;renderTagChips();render();});
 
 // ---------- text export ----------
-function buildExport(){return loadBlocks().slice().sort((a,b)=>a.start-b.start).map(ev=>{const t=(ev.tags&&ev.tags.length)?':'+ev.tags.join(','):'';return '- ('+fmt(ev.start)+'-'+fmt(ev.end)+t+')'+(ev.title||'')+';'+(ev.note||'').replace(/\n/g,'\n ');}).join('\n');}
+function buildExport(){return loadBlocks().slice().sort((a,b)=>a.start-b.start).map(ev=>{const t=(ev.tags&&ev.tags.length)?':'+ev.tags.join(','):'';return '- ('+fmt(ev.start)+'-'+fmt(ev.end)+t+')'+(ev.title||'')+';'+(ev.note||'').replace(/\n(.*)/g,(m,line)=>/\s*(?:[-*]|\d+\.)\s/.test(line)?'\n\t'+line:'\n '+line);}).join('\n');}
 const exOverlay=document.getElementById('exOverlay');
 document.getElementById('exportBtn').addEventListener('click',()=>{document.getElementById('exText').value=buildExport();document.getElementById('copiedMsg').style.visibility='hidden';exOverlay.hidden=false;setTimeout(()=>document.getElementById('exText').focus(),30);});
 document.getElementById('exClose').addEventListener('click',()=>exOverlay.hidden=true);
