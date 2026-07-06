@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import {
   KEY_PREFIX, DEFAULT_DURATION, DEFAULT_OPACITY, DEFAULT_KEEP_DAYS,
   DEFAULT_AUTO_SCROLL, DEFAULT_EXPORT_TIMESTAMP, DEFAULT_EXPORT_DIALOG,
-  DEFAULT_BORDERLESS, DEFAULT_BACKUP_ON,
+  DEFAULT_BORDERLESS, DEFAULT_BACKUP_ON, DEFAULT_AUTO_UPDATE,
 } from '../constants.js'
 
 function loadNum(k, d) {
@@ -26,6 +26,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const borderless = ref(loadBool('borderless', DEFAULT_BORDERLESS))
   const keepDays = ref(loadNum('keepDays', DEFAULT_KEEP_DAYS))
   const backupOn = ref(loadBool('backupOn', DEFAULT_BACKUP_ON))
+  const autoUpdate = ref(loadBool('autoUpdate', DEFAULT_AUTO_UPDATE))
 
   function saveNum(k, v) { localStorage.setItem(KEY_PREFIX + k, String(v)) }
   function saveBool(k, v) { localStorage.setItem(KEY_PREFIX + k, v ? '1' : '0') }
@@ -80,10 +81,15 @@ export const useSettingsStore = defineStore('settings', () => {
     saveBool('backupOn', v)
   }
 
+  function setAutoUpdate(v) {
+    autoUpdate.value = v
+    saveBool('autoUpdate', v)
+  }
+
   return {
     defaultDuration, autoScroll, exportTimestamp, exportDialog,
-    blockOpacity, bkCustomPath, borderless, keepDays, backupOn,
+    blockOpacity, bkCustomPath, borderless, keepDays, backupOn, autoUpdate,
     setDuration, setAutoScroll, setExportTimestamp, setExportDialog,
-    setBlockOpacity, setBkCustomPath, setBorderless, setKeepDays, setBackupOn,
+    setBlockOpacity, setBkCustomPath, setBorderless, setKeepDays, setBackupOn, setAutoUpdate,
   }
 })

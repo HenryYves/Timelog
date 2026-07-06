@@ -21,6 +21,7 @@ export const DEFAULT_EXPORT_TIMESTAMP = true
 export const DEFAULT_EXPORT_DIALOG = false
 export const DEFAULT_BORDERLESS = false
 export const DEFAULT_BACKUP_ON = true
+export const DEFAULT_AUTO_UPDATE = false
 export const DEFAULT_CURSOR_CENTER = true
 
 // ---------- UI ----------
