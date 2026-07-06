@@ -215,18 +215,16 @@ async function deleteBlock() {
   emit('close')
 }
 
-// Copy to clipboard + toast
+// Copy to clipboard + toast — reads live form values, not props.editingBlock
 function copyBlock() {
-  if (props.editingBlock) {
-    timelogStore.clipboard = [{
-      start: props.editingBlock.start,
-      end: props.editingBlock.end,
-      title: props.editingBlock.title,
-      note: props.editingBlock.note,
-      tags: [...(props.editingBlock.tags || [])],
-    }]
-    toast(STR.toast.copyBlock)
-  }
+  timelogStore.clipboard = [{
+    start: fromInput(mStart.value),
+    end: fromInput(mEnd.value),
+    title: mTitle.value.trim(),
+    note: mNote.value.trim(),
+    tags: selectedTags.value.slice(),
+  }]
+  toast(STR.toast.copyBlock)
 }
 
 // Focus trap

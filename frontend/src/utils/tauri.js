@@ -1,4 +1,5 @@
 import { logger } from './log.js'
+import { DATA_DIR } from '../constants.js'
 
 const TAURI = typeof window !== 'undefined' && window.__TAURI__
 
@@ -38,9 +39,21 @@ export async function tRead(name) {
   } catch (e) { logger.error('tauri', 'tRead failed', e); return null }
 }
 
+export async function tEnsureDir() {
+  if (!TAURI) return
+  try {
+    const { path, options } = resolvePath(DATA_DIR)
+    const exists = await TAURI.fs.exists(path, options)
+    if (!exists) {
+      await TAURI.fs.mkdir(path, { ...options, recursive: true })
+    }
+  } catch (e) { logger.error('tauri', 'tEnsureDir failed', e) }
+}
+
 export async function tWrite(name, text) {
   if (!TAURI) return
   try {
+    await tEnsureDir()
     const { path, options } = resolvePath(name)
     await TAURI.fs.writeTextFile(path, text, options)
   } catch (e) { logger.error('tauri', 'tWrite failed', e) }

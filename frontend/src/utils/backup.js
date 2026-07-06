@@ -2,6 +2,9 @@ import { ref } from 'vue'
 import { isTauri, tRead, tWrite, tReadDir, tRemove } from './tauri.js'
 import { KEY_PREFIX, MAIN_NAME, DATA_DIR, MAX_BACKUP_COUNT } from '../constants.js'
 import { logger } from './log.js'
+import { useToast } from '../composables/useToast.js'
+
+const { toast } = useToast()
 
 // =============================================
 // Reactive state for the backup indicator dot
@@ -236,7 +239,7 @@ export async function migrateBackups(oldPath, newPath) {
       }
       await T.core.invoke('plugin:fs|remove', { path: oldDir + '/' + f, options: {} })
     }
-    console.log('已迁移 ' + bks.length + ' 个备份文件')
+    toast('已迁移 ' + bks.length + ' 个备份文件')
   } catch (e) {
     logger.error('backup', 'migrateBackups failed', e)
   }
