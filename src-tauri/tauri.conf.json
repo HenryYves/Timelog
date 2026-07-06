@@ -4,6 +4,8 @@
   "version": "0.5.0",
   "identifier": "com.yves.timelog",
   "build": {
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "cd frontend && npm run dev",
     "frontendDist": "../frontend/dist"
   },
   "app": {
