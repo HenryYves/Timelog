@@ -253,13 +253,13 @@ function doImport() {
       const text = await file.text()
       const data = JSON.parse(text)
       if (!data.days) {
-        toast('文件格式不对，缺少 days 字段。')
+        toast(STR.confirm.importFileError)
         return
       }
       jsonImportData.value = data
       exportMode.value = 'json-import'
       showExport.value = true
-    } catch { toast('导入失败：格式不正确') }
+    } catch { toast(STR.toast.importFail) }
   }
   input.click()
 }
@@ -303,13 +303,13 @@ async function doBackupNow() {
   showMore.value = false
   const T = window.__TAURI__
   if (!T) {
-    toast('自动备份需桌面应用（Tauri）支持')
+    toast(STR.toast.backupTauriOnly)
     return
   }
   try {
     await doAutoSave()
-    toast('已备份')
-  } catch { toast('备份失败') }
+    toast(STR.toast.backupOk)
+  } catch { toast(STR.toast.backupFail) }
 }
 
 // Window controls

@@ -226,7 +226,7 @@ async function confirmImport() {
     timelogStore.loadBlocks()
   }
   scheduleSave()
-  toast('已导入 ' + recs.length + ' 条到 ' + date)
+  toast(STR.toast.importCountTo(recs.length, date))
 }
 
 // --- JSON Import ---

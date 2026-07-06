@@ -19,6 +19,9 @@ export const STR = {
     backupPathUpdated: '备份路径已更新',
     backupPathReset: '已恢复默认路径',
     importCount: (n) => `已导入 ${n} 条`,
+    backupTauriOnly: '自动备份需桌面应用（Tauri）支持',
+    backupMigrated: (n) => `已迁移 ${n} 个备份文件`,
+    importCountTo: (n, date) => `已导入 ${n} 条到 ${date}`,
   },
   confirm: {
     deleteBlock: '确定删除该时间块？',
