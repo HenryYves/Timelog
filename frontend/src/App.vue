@@ -9,7 +9,7 @@
         <button @click="store.goToday()">今天</button>
       </div>
       <span class="spacer"></span>
-      <span class="version">v0.5.0</span>
+      <span class="version">v0.5.1</span>
       <div class="more-wrap">
         <button class="more-btn" id="moreBtn" title="更多" @click.stop="showMore = !showMore"><img src="/icons/more.svg" alt="更多"></button>
         <div class="dropdown" :class="{ open: showMore }">
