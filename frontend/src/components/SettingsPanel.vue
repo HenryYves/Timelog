@@ -102,6 +102,7 @@
 import { ref, watch } from 'vue'
 import { useSettingsStore } from '../store/settings.js'
 import { useConfirm } from '../composables/useConfirm.js'
+import { migrateBackups } from '../utils/backup.js'
 import { STR } from '../strings.js'
 
 const props = defineProps({
@@ -160,41 +161,6 @@ function applyBorderless(val) {
     } catch (e) {
       console.error('setDecorations failed:', e.message)
     }
-  }
-}
-
-// Backup path helpers
-async function migrateBackups(oldPath, newPath) {
-  const T = window.__TAURI__
-  const TAURI = !!(T && T.core && T.core.invoke)
-  if (!TAURI || !oldPath || oldPath === newPath) return
-  try {
-    const oldDir = oldPath.replace(/\\/g, '/')
-    const files = await T.core.invoke('plugin:fs|read_dir', { path: oldDir, options: {} }).catch(() => [])
-    const bks = files.map(e => e.name).filter(n => /^timelog-backup-\d{4}-\d{2}-\d{2}\.json$/.test(n))
-    if (!bks.length) return
-    const nd = (newPath || '').replace(/\\/g, '/')
-    const enc = new TextEncoder()
-    const dec = new TextDecoder()
-    for (const f of bks) {
-      const arr = await T.core.invoke('plugin:fs|read_text_file', { path: oldDir + '/' + f, options: {} })
-      const text = dec.decode(arr instanceof ArrayBuffer ? new Uint8Array(arr) : Uint8Array.from(arr))
-      if (nd) {
-        await T.core.invoke('plugin:fs|mkdir', { path: nd, options: { recursive: true } })
-        await T.core.invoke('plugin:fs|write_text_file', enc.encode(text), {
-          headers: { path: encodeURIComponent(nd + '/' + f), options: '{}' },
-        })
-      } else {
-        const AD = 14
-        await T.core.invoke('plugin:fs|write_text_file', enc.encode(text), {
-          headers: { path: encodeURIComponent('timelog_data/' + f), options: JSON.stringify({ baseDir: AD }) },
-        })
-      }
-      await T.core.invoke('plugin:fs|remove', { path: oldDir + '/' + f, options: {} })
-    }
-    console.log('已迁移 ' + bks.length + ' 个备份文件')
-  } catch (e) {
-    console.error('migrate error', e)
   }
 }
 

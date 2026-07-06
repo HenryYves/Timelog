@@ -11,6 +11,10 @@
       </div>
       <span class="spacer"></span>
       <span class="version">v0.3.0</span>
+      <div class="backup" v-if="bkStatusText">
+        <span class="dot" :class="bkStatusClass"></span>
+        <span>{{ bkStatusText }}</span>
+      </div>
       <button class="primary" id="exportBtn" title="导出" @click="showExport = true">导出文本</button>
       <button class="icon" @click="showHelp = true" title="帮助">?</button>
       <button class="icon" title="标签" @click="showTagMgr = true">🏷</button>
@@ -72,9 +76,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useTimelogStore, dkey } from './store/timelog.js'
 import { useSettingsStore } from './store/settings.js'
+import { useTagStore } from './store/tags.js'
+import {
+  bkStatusText, bkStatusClass, setBackupPrefs,
+  initBackup, scheduleSave, scheduleClean,
+} from './utils/backup.js'
 import Timeline from './components/Timeline.vue'
 import EditModal from './components/EditModal.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
@@ -89,6 +98,7 @@ import { useConfirm } from './composables/useConfirm.js'
 
 const store = useTimelogStore()
 const settings = useSettingsStore()
+const tagStore = useTagStore()
 
 const { toast } = useToast()
 const { confirmVisible, confirmMessage, confirmType, resolveConfirm } = useConfirm()
@@ -249,12 +259,46 @@ function onWindowKeyDown(e) {
   }
 }
 
-onMounted(() => {
+// Called whenever blocks or tags change — debounced auto-save
+function onDataChanged() {
+  scheduleSave()
+  scheduleClean()
+}
+
+// When initBackup restores from file, reload stores
+function onBackupRestored() {
+  store.loadBlocks()
+  tagStore.loadTags()
+}
+
+onMounted(async () => {
   window.addEventListener('keydown', onWindowKeyDown)
+  window.addEventListener('backup:restored', onBackupRestored)
+
+  // Backup initialisation
+  setBackupPrefs({
+    backupOn: settings.backupOn,
+    bkCustomPath: settings.bkCustomPath,
+    keepDays: settings.keepDays,
+  })
+  await initBackup()
+
+  // Window decoration
   applyBorderless()
+
+  // Watch settings changes that affect backup
+  watch(() => settings.backupOn, (v) => setBackupPrefs({ backupOn: v }))
+  watch(() => settings.bkCustomPath, (v) => setBackupPrefs({ bkCustomPath: v }))
+  watch(() => settings.keepDays, (v) => setBackupPrefs({ keepDays: v }))
+  watch(() => settings.borderless, () => applyBorderless())
+
+  // Watch data changes → trigger auto-save / clean
+  watch(() => store.blocks, onDataChanged, { deep: true })
+  watch(() => tagStore.tags, onDataChanged, { deep: true })
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onWindowKeyDown)
+  window.removeEventListener('backup:restored', onBackupRestored)
 })
 </script>
