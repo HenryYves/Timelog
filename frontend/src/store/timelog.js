@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { KEY_PREFIX, PX_MIN, DAY_MIN, EDGE } from '../constants.js'
+import { useSettingsStore } from './settings.js'
 import { logger } from '../utils/log.js'
 
 export function dkey(d) {
@@ -149,8 +150,8 @@ export const useTimelogStore = defineStore('timelog', () => {
       const tags = raw ? JSON.parse(raw) : []
       const t = tags.find(t => t.name === name)
       const hex = t ? t.color : '#8A8A8A'
-      // Read blockOpacity from localStorage directly to avoid cross-store import
-      const blockOpacity = parseInt(localStorage.getItem(KEY_PREFIX + 'blockOpacity')) || 15
+      const { blockOpacity: opacityRef } = useSettingsStore()
+      const blockOpacity = opacityRef
       if (blockOpacity > 100) {
         const bh = boostHex(hex, (blockOpacity - 100) / 100)
         return { hex: hex, bg: bh }

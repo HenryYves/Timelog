@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import { defineStore, storeToRefs } from 'pinia'
 import { ref } from 'vue'
 import { KEY_PREFIX } from '../constants.js'
 import { useTimelogStore } from './timelog.js'
@@ -23,6 +23,7 @@ const DEFAULT_TAGS = [
 export const useTagStore = defineStore('tags', () => {
   const tags = ref([])
   const settings = useSettingsStore()
+  const { blockOpacity: blockOpacityRef } = storeToRefs(settings)
 
   function loadTags() {
     try {
@@ -136,7 +137,8 @@ export const useTagStore = defineStore('tags', () => {
     const t = tags.value.find(t => t.name === name)
     if (!t) return { hex: '#C4C3C0', bg: '#F0EFED' }
     const hex = t.color
-    const blockOpacity = settings.blockOpacity
+    const blockOpacity = blockOpacityRef.value
+    if (name === (tags.value[0]?.name)) console.log('[opacity] colorOf', name, 'blockOpacity=', blockOpacity)
     if (blockOpacity > 100) {
       const bg = boostHex(hex, (blockOpacity - 100) / 100)
       return { hex, bg }
