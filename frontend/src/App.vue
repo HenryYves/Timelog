@@ -338,7 +338,7 @@ function onWindowKeyDown(e) {
   // Delete/Backspace when modal is open and editing a block: delete the block
   if ((e.key === 'Delete' || e.key === 'Backspace') && showModal.value && editingBlock.value && document.activeElement && document.activeElement.id !== 'mNote') {
     e.preventDefault()
-    timelogStore.deleteBlock(editingBlock.value.id)
+    store.deleteBlock(editingBlock.value.id)
     closeModal()
     return
   }

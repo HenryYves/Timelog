@@ -85,19 +85,6 @@
         class="nowline"
         :style="{ top: nowMin * PX_MIN + 'px' }"
       />
-      <!-- Drag ghost indicator -->
-      <div
-        v-if="adrag && adrag.type === 'create'"
-        class="ghost"
-        :style="ghostStyle"
-      />
-      <div
-        v-if="dlabelTop !== null"
-        class="dlabel"
-        :style="{ top: dlabelTop + 'px' }"
-      >
-        {{ dlabelText }}
-      </div>
     </div>
   </div>
 </template>
@@ -125,15 +112,13 @@ const { showConfirm } = useConfirm()
 const dayRef = ref(null)
 const gutterRef = ref(null)
 
-// --- Drag state ---
-const adrag = ref(null)
+// --- Drag state (pure DOM — matches old code for per-frame drag precision) ---
+let adrag = null
+let ghost = null
+let dlabel = null
 // { type: 'create', anchor, cur }
-// { type: 'resize', id, edge, other, cur }
+// { type: 'resize', id, edge, other, cur, el }
 const suppressClick = ref(false)
-const ghostTop = ref(null)
-const ghostHeight = ref(null)
-const dlabelTop = ref(null)
-const dlabelText = ref('')
 
 // --- Hover tracking (for paste) ---
 const lastHoverMin = ref(0)
@@ -213,16 +198,6 @@ function blockTitle(ev) {
   return t
 }
 
-// --- Ghost style (create-drag visual) ---
-const ghostStyle = computed(() => {
-  if (ghostTop.value === null) return { display: 'none' }
-  return {
-    top: ghostTop.value + 'px',
-    height: ghostHeight.value + 'px',
-    left: '2px',
-    right: '2px',
-  }
-})
 
 // --- Mouse helpers ---
 function yToMin(y) {
@@ -231,68 +206,75 @@ function yToMin(y) {
 }
 
 function dragBounds() {
-  if (!adrag.value) return null
-  if (adrag.value.type === 'create') {
+  if (!adrag) return null
+  if (adrag.type === 'create') {
     return {
-      s: Math.min(adrag.value.anchor, adrag.value.cur),
-      en: Math.max(adrag.value.anchor, adrag.value.cur),
+      s: Math.min(adrag.anchor, adrag.cur),
+      en: Math.max(adrag.anchor, adrag.cur),
     }
   }
-  if (adrag.value.edge === 'start') {
-    let s = Math.min(adrag.value.cur, adrag.value.other - 1)
+  if (adrag.edge === 'start') {
+    let s = Math.min(adrag.cur, adrag.other - 1)
     if (s < 0) s = 0
-    return { s, en: adrag.value.other }
+    return { s, en: adrag.other }
   }
-  let en = Math.max(adrag.value.cur, adrag.value.other + 1)
+  let en = Math.max(adrag.cur, adrag.other + 1)
   if (en > DAY_MIN) en = DAY_MIN
-  return { s: adrag.value.other, en }
+  return { s: adrag.other, en }
 }
 
 function activeMin() {
-  if (!adrag.value) return 0
+  if (!adrag) return 0
   const b = dragBounds()
-  if (adrag.value.type === 'create') return adrag.value.cur
-  return adrag.value.edge === 'start' ? b.s : b.en
+  if (adrag.type === 'create') return adrag.cur
+  return adrag.edge === 'start' ? b.s : b.en
+}
+
+function showDLabel(min, text) {
+  if (!dlabel) {
+    dlabel = document.createElement('div')
+    dlabel.className = 'dlabel'
+    dayRef.value.appendChild(dlabel)
+  }
+  dlabel.style.top = min * PX_MIN + 'px'
+  dlabel.textContent = text
+}
+function hideDLabel() {
+  if (dlabel) { dlabel.remove(); dlabel = null }
 }
 
 function applyDrag() {
-  if (!adrag.value) return
+  if (!adrag) return
   const b = dragBounds()
-  if (adrag.value.type === 'create') {
-    // Direct DOM update for instant ghost feedback during key-repeat
-    const ghost = document.querySelector('.ghost')
-    if (ghost) {
-      ghost.style.top = b.s * PX_MIN + 'px'
-      ghost.style.height = Math.max((b.en - b.s) * PX_MIN, 2) + 'px'
+  if (adrag.type === 'create') {
+    if (!ghost) {
+      ghost = document.createElement('div')
+      ghost.className = 'ghost'
+      dayRef.value.appendChild(ghost)
     }
-    ghostTop.value = b.s * PX_MIN
-    ghostHeight.value = Math.max((b.en - b.s) * PX_MIN, 2)
-  } else if (adrag.value.el) {
-    adrag.value.el.style.top = b.s * PX_MIN + 'px'
-    adrag.value.el.style.height = Math.max((b.en - b.s) * PX_MIN, 2) + 'px'
-    adrag.value.el.classList.add('resizing')
+    ghost.style.top = b.s * PX_MIN + 'px'
+    ghost.style.height = Math.max((b.en - b.s) * PX_MIN, 2) + 'px'
+    ghost.style.left = '2px'
+    ghost.style.right = '2px'
+    ghost.textContent = fmt(b.s) + ' – ' + fmt(b.en)
+  } else if (adrag.el) {
+    adrag.el.style.top = b.s * PX_MIN + 'px'
+    adrag.el.style.height = Math.max((b.en - b.s) * PX_MIN, 2) + 'px'
+    adrag.el.classList.add('resizing')
   }
-  // Direct DOM update for instant dlabel feedback
-  const dl = document.querySelector('.dlabel')
-  if (dl) {
-    dl.style.top = activeMin() * PX_MIN + 'px'
-    dl.textContent = `${fmt(b.s)} – ${fmt(b.en)}（${b.en - b.s}m，↑↓微调）`
-  }
-  dlabelTop.value = activeMin() * PX_MIN
-  dlabelText.value = `${fmt(b.s)} – ${fmt(b.en)}（${b.en - b.s}m，↑↓微调）`
+  showDLabel(activeMin(), fmt(b.s) + ' – ' + fmt(b.en) + '（' + (b.en - b.s) + 'm，↑↓微调）')
 }
 
 function endDrag(commit) {
-  if (!adrag.value) return
+  if (!adrag) return
   const b = dragBounds()
-  const { type, id, el } = adrag.value
-  ghostTop.value = null
-  ghostHeight.value = null
-  dlabelTop.value = null
-  dlabelText.value = ''
+  const { type, id, el } = adrag
+  if (ghost) { ghost.remove(); ghost = null }
+  hideDLabel()
   if (el) el.classList.remove('resizing')
-  adrag.value = null
   document.body.style.cursor = ''
+  const drag = adrag
+  adrag = null
   if (!commit) return
   if (type === 'create') {
     if (b.en - b.s < 3) return
@@ -308,14 +290,14 @@ function endDrag(commit) {
 
 // --- Event handlers ---
 function onDayMouseDown(e) {
-  if (e.button !== 0 || adrag.value) return
+  if (e.button !== 0 || adrag) return
   const s = yToMin(e.clientY)
-  adrag.value = { type: 'create', anchor: s, cur: s }
+  adrag = { type: 'create', anchor: s, cur: s }
   applyDrag()
 }
 
 function onBlockMouseMove(e, _ev) {
-  if (adrag.value) return
+  if (adrag) return
   const r = e.currentTarget.getBoundingClientRect()
   const y = e.clientY - r.top
   const ez = Math.min(EDGE, r.height / 2)
@@ -336,7 +318,7 @@ function onBlockMouseDown(e, ev) {
     e.preventDefault()
     suppressClick.value = true
     document.body.style.cursor = 'ns-resize'
-    adrag.value = {
+    adrag = {
       type: 'resize',
       id: ev.id,
       edge,
@@ -348,20 +330,17 @@ function onBlockMouseDown(e, ev) {
   }
 }
 
-let _lastMouseY = 0
 function onMouseMove(e) {
-  const newCur = yToMin(e.clientY)
-  if (adrag.value && e.clientY !== _lastMouseY) {
-    adrag.value.cur = newCur
+  if (adrag) {
+    adrag.cur = yToMin(e.clientY)
     applyDrag()
   }
-  _lastMouseY = e.clientY
-  lastHoverMin.value = newCur
+  lastHoverMin.value = yToMin(e.clientY)
   overGrid.value = true
 }
 
 function onMouseUp() {
-  if (adrag.value) {
+  if (adrag) {
     endDrag(true)
   }
   overGrid.value = false
@@ -395,11 +374,11 @@ function onKeyDown(e) {
   if (props.modalOpen) return
 
   // During drag: arrow keys fine-tune, Escape cancels
-  if (adrag.value) {
+  if (adrag) {
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault()
-      adrag.value.cur = Math.max(0, Math.min(DAY_MIN,
-        adrag.value.cur + (e.key === 'ArrowUp' ? -1 : 1)))
+      adrag.cur = Math.max(0, Math.min(DAY_MIN,
+        adrag.cur + (e.key === 'ArrowUp' ? -1 : 1)))
       applyDrag()
       return
     }
@@ -514,13 +493,13 @@ onUnmounted(() => {
 
 // Window-level mouse events for drag (robust when mouse leaves .day)
 function onWindowMouseMove(e) {
-  if (!adrag.value) return
-  adrag.value.cur = yToMin(e.clientY)
+  if (!adrag) return
+  adrag.cur = yToMin(e.clientY)
   applyDrag()
 }
 
 function onWindowMouseUp() {
-  if (!adrag.value) return
+  if (!adrag) return
   endDrag(true)
 }
 
