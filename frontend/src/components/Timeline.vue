@@ -103,6 +103,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useTimelogStore, fmt, dkey, toInput, fromInput } from '../store/timelog.js'
+import { useSettingsStore } from '../store/settings.js'
 import { mdToHtml } from '../utils/markdown.js'
 import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
@@ -114,6 +115,7 @@ const props = defineProps({
 })
 const store = useTimelogStore()
 const { selectedBlocks, colorOf } = store
+const settingsStore = useSettingsStore()
 const emit = defineEmits(['edit-block', 'create-block'])
 const { toast } = useToast()
 const { showConfirm } = useConfirm()
@@ -188,6 +190,7 @@ const layoutBlocks = computed(() => layout(store.blocks))
 function computeBlockStyle(ev) {
   const has = ev.tags && ev.tags.length
   const c0 = colorOf(has ? ev.tags[0] : null)
+  const opacity = settingsStore.blockOpacity / 100
   const top = ev.start * PX_MIN
   const height = Math.max((ev.end - ev.start) * PX_MIN, 16)
   const w = 100 / (ev._cols || 1)
@@ -199,6 +202,7 @@ function computeBlockStyle(ev) {
     width: `calc(${w}% - 4px)`,
     background: has ? c0.bg : '#F2F1EF',
     color: '#2C2C2B',
+    opacity: opacity,
   }
 }
 

@@ -125,16 +125,38 @@ export const useTimelogStore = defineStore('timelog', () => {
     setDate(new Date())
   }
 
-  // Tag color lookup — reads directly from localStorage
-  // Will be replaced by tag store (Task 4)
+  // Color helpers
+  function hexA(hex, a) {
+    const h = hex.replace('#', '')
+    const n = h.length === 3 ? h.split('').map(c => c + c).join('') : h
+    const r = parseInt(n.slice(0, 2), 16) || 0
+    const g = parseInt(n.slice(2, 4), 16) || 0
+    const b = parseInt(n.slice(4, 6), 16) || 0
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')'
+  }
+  function boostHex(hex, amount) {
+    const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16)
+    const mean = (r + g + b) / 3
+    const f = 1 - amount * 0.3
+    const s = 1 + amount * 0.25
+    return '#' + [r, g, b].map(c => Math.round(Math.max(0, Math.min(255, mean + (c - mean) * s)) * f).toString(16).padStart(2, '0')).join('')
+  }
+
   function colorOf(name) {
     try {
       const raw = localStorage.getItem(KEY_PREFIX + 'tags')
       const tags = raw ? JSON.parse(raw) : []
       const t = tags.find(t => t.name === name)
-      if (!t) return { hex: '#C4C3C0', bg: '#F0EFED' }
-      return { hex: t.color, bg: t.color + '22' }
-    } catch (e) { logger.error('timelog', 'colorOf failed', e); return { hex: '#C4C3C0', bg: '#F0EFED' } }
+      const hex = t ? t.color : '#8A8A8A'
+      // Read blockOpacity from localStorage directly to avoid cross-store import
+      const blockOpacity = parseInt(localStorage.getItem(KEY_PREFIX + 'blockOpacity')) || 15
+      if (blockOpacity > 100) {
+        const bh = boostHex(hex, (blockOpacity - 100) / 100)
+        return { hex: hex, bg: bh }
+      }
+      const alpha = Math.min(blockOpacity, 100) / 100
+      return { hex: hex, bg: hexA(hex, alpha) }
+    } catch (e) { return { hex: '#C4C3C0', bg: '#F0EFED' } }
   }
 
   loadBlocks()
