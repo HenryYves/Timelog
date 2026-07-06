@@ -12,6 +12,9 @@
       <span class="spacer"></span>
       <span class="version">v0.3.0</span>
       <button class="primary" id="exportBtn" title="导出" @click="showExport = true">导出文本</button>
+      <button class="icon" @click="showHelp = true" title="帮助">?</button>
+      <button class="icon" title="标签" @click="showTagMgr = true">🏷</button>
+      <button class="icon" title="数据管理" @click="showDataMgr = true">📊</button>
       <button class="icon" id="settingsBtn" title="设置" @click="showSettings = true">⚙</button>
       <span class="win-ctrls" :class="{ on: winCtrlActive }" id="winCtrls">
         <button class="win-btn" id="winMin" title="最小化" @click="onWinMin">─</button>
@@ -41,6 +44,30 @@
       :show="showExport"
       @close="showExport = false"
     />
+    <TagManager
+      :show="showTagMgr"
+      @close="showTagMgr = false"
+      @saved="onTagMgrSaved"
+    />
+    <DataManager
+      :show="showDataMgr"
+      @close="showDataMgr = false"
+      @changed="onDataMgrChanged"
+    />
+
+    <!-- Global UI -->
+    <Toast />
+    <ConfirmDialog
+      :show="confirmVisible"
+      :message="confirmMessage"
+      :type="confirmType"
+      @close="resolveConfirm(false)"
+      @confirm="resolveConfirm(true)"
+    />
+    <HelpPanel
+      :show="showHelp"
+      @close="showHelp = false"
+    />
   </div>
 </template>
 
@@ -52,9 +79,19 @@ import Timeline from './components/Timeline.vue'
 import EditModal from './components/EditModal.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import ExportPanel from './components/ExportPanel.vue'
+import TagManager from './components/TagManager.vue'
+import DataManager from './components/DataManager.vue'
+import Toast from './components/Toast.vue'
+import ConfirmDialog from './components/ConfirmDialog.vue'
+import HelpPanel from './components/HelpPanel.vue'
+import { useToast } from './composables/useToast.js'
+import { useConfirm } from './composables/useConfirm.js'
 
 const store = useTimelogStore()
 const settings = useSettingsStore()
+
+const { toast } = useToast()
+const { confirmVisible, confirmMessage, confirmType, resolveConfirm } = useConfirm()
 
 const dateLabel = computed(() => {
   const d = store.curDate
@@ -86,7 +123,19 @@ function closeModal() {
 }
 
 function onManageTags() {
-  // Future: open tag manager modal
+  showTagMgr.value = true
+}
+
+// Tag manager state
+const showTagMgr = ref(false)
+function onTagMgrSaved() {
+  store.loadBlocks()
+}
+
+// Data manager state
+const showDataMgr = ref(false)
+function onDataMgrChanged() {
+  store.loadBlocks()
 }
 
 // Settings state
@@ -94,6 +143,9 @@ const showSettings = ref(false)
 
 // Export panel state
 const showExport = ref(false)
+
+// Help panel state
+const showHelp = ref(false)
 
 // Window controls
 const winCtrlActive = ref(settings.borderless)
@@ -172,11 +224,16 @@ function applyBorderless() {
   }
 }
 
-// T key: quick create at current time
+// T key: quick create at current time; ? key: help
 function onWindowKeyDown(e) {
-  if (showModal.value || showSettings.value || showExport.value) return
+  if (showModal.value || showSettings.value || showExport.value || showHelp.value || showTagMgr.value || showDataMgr.value) return
   const tag = e.target.tagName
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+  if (e.key === '?' && !showHelp.value) {
+    e.preventDefault()
+    showHelp.value = true
+    return
+  }
   if (e.key === 't' || e.key === 'T') {
     e.preventDefault()
     const now = new Date()
