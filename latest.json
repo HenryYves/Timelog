@@ -1,0 +1,12 @@
+{
+  "version": "v0.5.0",
+  "notes": "测试自动更新功能\n- 新增自动更新\n- 灰度发布\n- 崩溃恢复",
+  "pub_date": "2026-07-06T12:00:00Z",
+  "rollout": 100,
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "test-only-placeholder",
+      "url": "https://github.com/HenryYves/timelog/releases/download/v0.5.0/timelog_0.5.0_x64-setup.exe"
+    }
+  }
+}
