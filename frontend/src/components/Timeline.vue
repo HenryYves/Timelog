@@ -640,18 +640,6 @@ watch(() => store.dateKey, () => {
   color: inherit;
   text-decoration: underline;
 }
-.ghost {
-  position: absolute;
-  background: var(--blue-soft);
-  border: 1px solid var(--blue);
-  border-radius: 6px;
-  opacity: .85;
-  pointer-events: none;
-  font-size: 11px;
-  color: var(--blue);
-  padding: 2px 6px;
-  font-weight: 600;
-}
 .nowline {
   position: absolute;
   left: 0;
@@ -670,20 +658,5 @@ watch(() => store.dateKey, () => {
   height: 7px;
   border-radius: 50%;
   background: #E56458;
-}
-.dlabel {
-  position: absolute;
-  right: 6px;
-  transform: translateY(-50%);
-  background: #2C2C2B;
-  color: #fff;
-  font-size: 11px;
-  line-height: 1.4;
-  padding: 1px 7px;
-  border-radius: 5px;
-  z-index: 45;
-  pointer-events: none;
-  white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(0,0,0,.2);
 }
 </style>
