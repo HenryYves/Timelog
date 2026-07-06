@@ -315,18 +315,6 @@ watch(() => [props.mode, props.jsonImportData], ([mode, data]) => {
 </script>
 
 <style scoped>
-.timerow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.timerow input {
-  width: auto;
-  flex: 1;
-}
-.timerow span {
-  color: var(--text2);
-}
 .exportbox {
   width: 100%;
   min-height: 360px;

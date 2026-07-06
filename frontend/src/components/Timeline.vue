@@ -571,14 +571,6 @@ watch(() => store.dateKey, () => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.tdot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  margin-right: 3px;
-  vertical-align: middle;
-}
 .block .bnote {
   margin-top: 3px;
   font-size: 11px;

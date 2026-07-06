@@ -250,18 +250,6 @@ function trapFocus(e) {
 </script>
 
 <style scoped>
-.timerow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.timerow input {
-  width: auto;
-  flex: 1;
-}
-.timerow span {
-  color: var(--text2);
-}
 .grouplabel {
   font-size: 11px;
   color: var(--text2);
@@ -294,16 +282,7 @@ function trapFocus(e) {
 .chip:focus {
   outline: 2px solid var(--blue);
   outline-offset: 1px;
-}
-.tdot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  margin-right: 3px;
-  vertical-align: middle;
-}
-.mdhint {
+}.mdhint {
   font-size: 11px;
   color: var(--text2);
   margin-top: 5px;
