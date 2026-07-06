@@ -440,9 +440,7 @@ function doPaste() {
 
 // --- Scroll to now ---
 function scrollToNow() {
-  const autoScrollRaw = localStorage.getItem('timelog:autoScroll')
-  const autoScroll = autoScrollRaw !== null ? (autoScrollRaw === '1') : true
-  if (!autoScroll) return
+  if (!settingsStore.autoScroll) return
   const now = new Date()
   const min = dkey(now) === store.dateKey
     ? (now.getHours() * 60 + now.getMinutes())

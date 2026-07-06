@@ -206,11 +206,26 @@ async function doExportJson() {
       try { data.days[k.slice(7)] = JSON.parse(localStorage.getItem(k)) } catch {}
     }
   }
+  let filename = 'timelog-backup-' + dkey(new Date())
+  if (settings.exportTimestamp) {
+    const now = new Date()
+    filename += '-' + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0')
+  }
+  filename += '.json'
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  if (settings.exportDialog && typeof window.showSaveFilePicker === 'function') {
+    try {
+      const h = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] })
+      const w = await h.createWritable()
+      await w.write(blob)
+      await w.close()
+      return
+    } catch (e) { if (e.name === 'AbortError') return }
+  }
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'timelog-backup-' + dkey(new Date()) + '.json'
+  a.download = filename
   a.click()
   URL.revokeObjectURL(url)
 }
