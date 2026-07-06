@@ -1,0 +1,11 @@
+{
+  "version": "v0.5.1",
+  "notes": "- 新增自动更新功能\n- 支持灰度发布\n- 崩溃恢复\n- 透明度滑条响应式修复\n- 无标签块也受透明度影响\n- Toast 时长延长到 3 秒",
+  "pub_date": "2026-07-06T14:30:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbU5VenNRa3R5QmFMcW5Ebyt4YjdwUzg5cEg1Q1RNNFVyck11Snh4djV2MGZnM1V6NmtZNEV0M2VYeU90MjRxWURtd3AzbmFDZjQxODdiOEd6aWRCdmdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzMzUxNjUyCWZpbGU6dGltZWxvZ18wLjUuMV94NjQtc2V0dXAuZXhlCisxZU1SNmtvcmNlVklTWSthemR4SzhkSy9hYlRwRVpkREl0SUZValQ2QXEzTHpBNHRQbGV3cG5LSEp1dnU4c3N2VjZaOW1pbHlDQlB3ZmU0M0VMRkFRPT0K",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.5.1/timelog_0.5.1_x64-setup.exe"
+    }
+  }
+}
