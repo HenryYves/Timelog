@@ -9,7 +9,7 @@
         <button @click="store.goToday()">今天</button>
       </div>
       <span class="spacer"></span>
-      <span class="version">v0.5.1</span>
+      <span class="version">{{ APP_VERSION }}</span>
       <div class="more-wrap">
         <button class="more-btn" id="moreBtn" title="更多" @click.stop="showMore = !showMore"><img src="/icons/more.svg" alt="更多"></button>
         <div class="dropdown" :class="{ open: showMore }">
@@ -95,6 +95,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { useTimelogStore, dkey } from './store/timelog.js'
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
+import { APP_VERSION } from './constants.js'
 import {
   bkStatusText, bkStatusClass, setBackupPrefs,
   initBackup, scheduleSave, scheduleClean, doAutoSave,
