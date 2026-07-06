@@ -28,3 +28,7 @@ src-tauri/target/
 *.njsproj
 *.sln
 *.sw?
+
+# Updater artifacts (generated per release, not committed)
+latest.json
+*.sig
