@@ -48,6 +48,7 @@
     <SettingsPanel
       :show="showSettings"
       @close="showSettings = false"
+      @check-update-result="onCheckUpdateResult"
     />
     <ExportPanel
       :show="showExport"
@@ -79,11 +80,18 @@
       :show="showHelp"
       @close="showHelp = false"
     />
+    <UpdateDialog
+      :show="showUpdate"
+      :update-info="updateInfo"
+      @close="showUpdate = false"
+      @will-install-on-exit="onWillInstallOnExit"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, onErrorCaptured } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
 import { useTimelogStore, dkey } from './store/timelog.js'
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
@@ -100,6 +108,7 @@ import DataManager from './components/DataManager.vue'
 import Toast from './components/Toast.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import HelpPanel from './components/HelpPanel.vue'
+import UpdateDialog from './components/UpdateDialog.vue'
 import { useToast } from './composables/useToast.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { logger } from './utils/log.js'
@@ -117,6 +126,48 @@ const exportMode = ref('export')
 const showMore = ref(false)
 
 function closeMore(e) { if (!e.target.closest('.more-wrap')) showMore.value = false }
+
+// ── Rollout gate ──
+const UPDATE_ENDPOINTS = [
+  'https://gitee.com/Henry_Yves/timelog/raw/main/latest.json',
+  'https://github.com/HenryYves/timelog/releases/latest/download/latest.json',
+]
+
+async function fetchRollout() {
+  for (const url of UPDATE_ENDPOINTS) {
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(5000) })
+      if (r.ok) {
+        const json = await r.json()
+        return typeof json.rollout === 'number' ? json.rollout : null
+      }
+    } catch {}
+  }
+  return null // both endpoints failed → default to full rollout
+}
+
+function isRolloutAllowed(version, rollout) {
+  // null/undefined/>=100 → full push
+  if (rollout == null || rollout >= 100) {
+    localStorage.removeItem('timelog:rolloutCache')
+    return true
+  }
+
+  let cache
+  try { cache = JSON.parse(localStorage.getItem('timelog:rolloutCache')) } catch {}
+
+  // Recompute if version or threshold changed
+  if (!cache || cache.version !== version || cache.threshold !== rollout) {
+    cache = {
+      version,
+      threshold: rollout,
+      roll: Math.floor(Math.random() * 100), // 0~99
+    }
+    localStorage.setItem('timelog:rolloutCache', JSON.stringify(cache))
+  }
+
+  return cache.roll < rollout
+}
 
 const dateLabel = computed(() => {
   const d = store.curDate
@@ -172,6 +223,8 @@ const jsonImportData = ref(null)
 
 // Help panel state
 const showHelp = ref(false)
+const showUpdate = ref(false)
+const updateInfo = ref(null)
 
 // More dropdown actions
 function doImport() {
@@ -386,6 +439,51 @@ onErrorCaptured((err, instance, info) => {
   return false
 })
 
+// ── Auto-update ──
+async function checkForUpdate(isManual) {
+  try {
+    const metadata = await invoke('check_update')
+    if (!metadata) {
+      if (isManual) toast('已是最新版本')
+      return
+    }
+
+    // Skip if user skipped this version
+    const skipped = localStorage.getItem('timelog:skipVersion')
+    if (skipped === metadata.version && !isManual) return
+
+    // Pending download from previous session (crash recovery) → always show
+    const pending = localStorage.getItem('timelog:pendingDownload')
+    if (pending === metadata.version) {
+      updateInfo.value = metadata
+      showUpdate.value = true
+      return
+    }
+
+    // Rollout gate (skip for manual check)
+    if (!isManual) {
+      const rollout = await fetchRollout()
+      if (!isRolloutAllowed(metadata.version, rollout)) return
+    }
+
+    updateInfo.value = metadata
+    showUpdate.value = true
+  } catch {
+    if (isManual) toast('检查更新失败，请检查网络')
+    // silent fail on startup check
+  }
+}
+
+function onCheckUpdateResult(metadata) {
+  updateInfo.value = metadata
+  showUpdate.value = true
+}
+
+function onWillInstallOnExit(version) {
+  localStorage.setItem('timelog:pendingDownload', version)
+  toast('将在退出时安装更新')
+}
+
 onMounted(async () => {
   window.addEventListener('keydown', onWindowKeyDown)
   window.addEventListener('backup:restored', onBackupRestored)
@@ -401,6 +499,25 @@ onMounted(async () => {
 
   // Window decoration
   applyBorderless()
+
+  // Crash recovery: check for pending download
+  const pendingVer = localStorage.getItem('timelog:pendingDownload')
+  if (pendingVer) {
+    // Check if the pending version is still the latest
+    try {
+      const metadata = await invoke('check_update')
+      if (metadata && metadata.version === pendingVer) {
+        updateInfo.value = metadata
+        showUpdate.value = true
+      } else {
+        localStorage.removeItem('timelog:pendingDownload')
+      }
+    } catch {}
+  }
+
+  if (settings.autoUpdate) {
+    checkForUpdate(false)
+  }
 
   // Watch settings changes that affect backup
   watch(() => settings.backupOn, (v) => setBackupPrefs({ backupOn: v }))
