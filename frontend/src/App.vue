@@ -16,7 +16,7 @@
         <div class="dropdown" :class="{ open: showMore }">
           <div class="dropdown-item" @click="showSettings = true; showMore = false"><img src="/icons/settings.svg" alt="">设置</div>
           <div class="dropdown-item" @click="showTagMgr = true; showMore = false"><img src="/icons/tag.svg" alt="">标签</div>
-          <div class="dropdown-item" @click="showExport = true; showMore = false"><img src="/icons/text-import.svg" alt="">文本导入</div>
+          <div class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><img src="/icons/text-import.svg" alt="">文本导入</div>
           <div class="dropdown-item" @click="doImport"><img src="/icons/import.svg" alt="">导入</div>
           <div class="dropdown-item" @click="doExportJson"><img src="/icons/export.svg" alt="">导出备份</div>
           <div class="dropdown-item" @click="showDataMgr = true; showMore = false"><img src="/icons/data.svg" alt="">管理数据</div>
@@ -24,10 +24,10 @@
           <div style="font-size:11px;color:var(--text2);padding:4px 12px 2px;">{{ bkStatusText }}</div>
         </div>
       </div>
-      <button id="exportBtn" class="primary" @click="showExport = true">导出文本</button>
+      <button id="exportBtn" class="primary" @click="showExport = true; exportMode = 'export'">导出文本</button>
       <span class="win-ctrls" :class="{ on: winCtrlActive }" id="winCtrls">
         <button class="win-btn" id="winMin" title="最小化" @click="onWinMin"><img src="/icons/win-min.svg" alt=""></button>
-        <button class="win-btn" id="winMax" :title="isMaximized ? '还原' : '最大化'" @click="onWinMax"><img src="/icons/win-max.svg" alt=""></button>
+        <button class="win-btn" id="winMax" :title="isMaximized ? '还原' : '最大化'" @click="onWinMax"><img :src="isMaximized ? '/icons/win-restore.svg' : '/icons/win-max.svg'" alt=""></button>
         <button class="win-btn close" id="winClose" title="关闭" @click="onWinClose"><img src="/icons/win-close.svg" alt=""></button>
       </span>
     </header>
@@ -52,7 +52,9 @@
     />
     <ExportPanel
       :show="showExport"
-      @close="showExport = false"
+      :mode="exportMode"
+      :json-import-data="jsonImportData"
+      @close="showExport = false; jsonImportData = null"
     />
     <TagManager
       :show="showTagMgr"
@@ -110,6 +112,8 @@ const tagStore = useTagStore()
 const { toast } = useToast()
 const { confirmVisible, confirmMessage, confirmType, resolveConfirm } = useConfirm()
 
+const exportMode = ref('export')
+
 // More dropdown
 const showMore = ref(false)
 
@@ -165,6 +169,7 @@ const showSettings = ref(false)
 
 // Export panel state
 const showExport = ref(false)
+const jsonImportData = ref(null)
 
 // Help panel state
 const showHelp = ref(false)
@@ -180,20 +185,13 @@ function doImport() {
     try {
       const text = await file.text()
       const data = JSON.parse(text)
-      if (data.days) {
-        Object.entries(data.days).forEach(([k, v]) => localStorage.setItem('timelog:' + k, JSON.stringify(v)))
-      } else if (data.blocks) {
-        const byDate = {}
-        data.blocks.forEach(b => {
-          const d = new Date(b.start * 60000)
-          const key = dkey(d)
-          if (!byDate[key]) byDate[key] = []
-          byDate[key].push(b)
-        })
-        Object.entries(byDate).forEach(([k, v]) => localStorage.setItem('timelog:' + k, JSON.stringify(v)))
+      if (!data.days) {
+        toast('文件格式不对，缺少 days 字段。')
+        return
       }
-      store.loadBlocks()
-      toast('导入成功')
+      jsonImportData.value = data
+      exportMode.value = 'json-import'
+      showExport.value = true
     } catch { toast('导入失败：格式不正确') }
   }
   input.click()
@@ -307,9 +305,31 @@ function applyBorderless() {
   }
 }
 
-// T key: quick create at current time; ? key: help
+// Global keyboard shortcuts (overlay close, modal delete, T, ?)
 function onWindowKeyDown(e) {
+  // Escape: close topmost visible overlay / clear selection
+  if (e.key === 'Escape') {
+    if (showModal.value) { e.preventDefault(); closeModal(); return }
+    if (showSettings.value) { e.preventDefault(); showSettings.value = false; return }
+    if (showExport.value) { e.preventDefault(); showExport.value = false; jsonImportData.value = null; return }
+    if (showHelp.value) { e.preventDefault(); showHelp.value = false; return }
+    if (showTagMgr.value) { e.preventDefault(); showTagMgr.value = false; return }
+    if (showDataMgr.value) { e.preventDefault(); showDataMgr.value = false; return }
+    // Not in a modal — let Timeline's handler clear selection
+    return
+  }
+
+  // Delete/Backspace when modal is open and editing a block: delete the block
+  if ((e.key === 'Delete' || e.key === 'Backspace') && showModal.value && editingBlock.value && document.activeElement && document.activeElement.id !== 'mNote') {
+    e.preventDefault()
+    timelogStore.deleteBlock(editingBlock.value.id)
+    closeModal()
+    return
+  }
+
+  // If any modal is open, ignore the rest
   if (showModal.value || showSettings.value || showExport.value || showHelp.value || showTagMgr.value || showDataMgr.value) return
+
   const tag = e.target.tagName
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
   if (e.key === '?' && !showHelp.value) {

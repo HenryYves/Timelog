@@ -1,57 +1,105 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="emit('close')">
     <div class="modal">
-      <h2>导出 / 导入</h2>
 
-      <label>导出文本</label>
-      <textarea class="exportbox" readonly :value="exText"></textarea>
-      <div class="actions">
-        <span class="copied" v-if="copiedMsg">已复制 ✓</span>
-        <span class="spacer"></span>
-        <button type="button" @click="copyText">复制</button>
-        <button type="button" class="primary" @click="downloadJson">下载 JSON</button>
-      </div>
+      <!-- ======================== TEXT EXPORT VIEW ======================== -->
+      <template v-if="mode === 'export'">
+        <h2>导出文本（当天）</h2>
+        <textarea class="exportbox" readonly :value="exText"></textarea>
+        <div class="actions">
+          <span class="copied" v-if="copiedMsg">已复制 ✓</span>
+          <span class="spacer"></span>
+          <button type="button" @click="emit('close')">关闭</button>
+          <button type="button" class="primary" @click="copyText">复制到剪贴板</button>
+        </div>
+      </template>
 
-      <div class="divider"></div>
+      <!-- ======================== TEXT IMPORT VIEW ======================== -->
+      <template v-if="mode === 'import'">
+        <h2>从文本导入</h2>
+        <div class="sub">粘贴"导出文本"格式的内容，解析为记录导入到指定日期。</div>
 
-      <label>导入</label>
-      <div class="actions">
-        <button type="button" @click="triggerFileInput">导入 JSON</button>
-        <input type="file" ref="fileInput" accept="application/json,.json" hidden @change="importJson">
-        <button type="button" @click="pasteImport">粘贴导入</button>
-      </div>
+        <label>粘贴文本</label>
+        <textarea class="exportbox import-area" v-model="importText"
+          placeholder="- (9:00-10:30:工作)写周报;记得同步进度"
+          @input="onImportTextChange"></textarea>
 
-      <div class="small" v-if="importMsg" style="margin-top:8px;">{{ importMsg }}</div>
+        <label>导入到日期</label>
+        <input type="date" v-model="importDate">
 
-      <div class="actions">
-        <span class="spacer"></span>
-        <button type="button" @click="emit('close')">关闭</button>
-      </div>
+        <label>导入方式</label>
+        <div class="radio">
+          <label><input type="radio" name="txMode" value="merge" v-model="importMode" checked> 合并到该天</label>
+          <label><input type="radio" name="txMode" value="replace" v-model="importMode"> 覆盖该天</label>
+        </div>
+
+        <div class="small" v-if="importPreview !== null">{{ importPreview }}</div>
+
+        <div class="actions">
+          <span class="spacer"></span>
+          <button type="button" @click="emit('close')">取消</button>
+          <button type="button" class="primary" @click="confirmImport">确认导入</button>
+        </div>
+      </template>
+
+      <!-- ======================== JSON IMPORT VIEW ======================== -->
+      <template v-if="mode === 'json-import' && jsonImportData">
+        <h2>导入备份</h2>
+        <div class="sub">{{ jsonImportSummary }}</div>
+
+        <label>导入方式</label>
+        <div class="radio">
+          <label><input type="radio" name="jimMode" value="merge" v-model="jsonImportMode"> 合并（保留现有）</label>
+          <label><input type="radio" name="jimMode" value="replace" v-model="jsonImportMode"> 覆盖（清空后导入）</label>
+        </div>
+
+        <label>只导入日期范围（可选，留空=全部）</label>
+        <div class="timerow">
+          <input type="date" v-model="jsonDateFrom"><span>—</span><input type="date" v-model="jsonDateTo">
+        </div>
+
+        <label>只导入每日时间段（可选，留空=整天）</label>
+        <div class="timerow">
+          <input type="time" v-model="jsonTimeFrom" step="60"><span>—</span><input type="time" v-model="jsonTimeTo" step="60">
+        </div>
+
+        <div class="actions">
+          <span class="spacer"></span>
+          <button type="button" @click="cancelJsonImport">取消</button>
+          <button type="button" class="primary" @click="confirmJsonImport">确认导入</button>
+        </div>
+      </template>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import { useTimelogStore, fmt } from '../store/timelog.js'
+import { ref, watch, nextTick } from 'vue'
+import { useTimelogStore, fmt, dkey, fromInput } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { KEY_PREFIX } from '../constants.js'
 import { useConfirm } from '../composables/useConfirm.js'
+import { useToast } from '../composables/useToast.js'
 import { STR } from '../strings.js'
+import { scheduleSave } from '../utils/backup.js'
 
-const props = defineProps({ show: Boolean })
+const props = defineProps({
+  show: Boolean,
+  mode: { type: String, default: 'export' }, // 'export' | 'import' | 'json-import'
+  jsonImportData: { type: Object, default: null },
+})
 const emit = defineEmits(['close'])
 
 const timelogStore = useTimelogStore()
 const tagStore = useTagStore()
 const { showAlert } = useConfirm()
+const { toast } = useToast()
 
+// --- Export ---
 const exText = ref('')
 const copiedMsg = ref(false)
-const importMsg = ref('')
-const fileInput = ref(null)
 
-// --- Build export text ---
 function buildExport() {
   return timelogStore.blocks.slice().sort((a, b) => a.start - b.start).map(ev => {
     const t = (ev.tags && ev.tags.length) ? ':' + ev.tags.join(',') : ''
@@ -61,21 +109,23 @@ function buildExport() {
   }).join('\n')
 }
 
-// When panel opens, build export text
 watch(() => props.show, (val) => {
-  if (val) {
+  if (val && props.mode === 'export') {
     exText.value = buildExport()
     copiedMsg.value = false
-    importMsg.value = ''
+  }
+  if (val && props.mode === 'import') {
+    importText.value = ''
+    importDate.value = dkey(new Date())
+    importMode.value = 'merge'
+    importPreview.value = null
   }
 })
 
-// --- Copy to clipboard ---
 async function copyText() {
   try {
     await navigator.clipboard.writeText(exText.value)
   } catch {
-    // Fallback for older browsers
     const ta = document.createElement('textarea')
     ta.value = exText.value
     document.body.appendChild(ta)
@@ -86,83 +136,12 @@ async function copyText() {
   copiedMsg.value = true
 }
 
-// --- Download JSON backup (all dates) ---
-function downloadJson() {
-  const days = {}
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i)
-    if (k.startsWith(KEY_PREFIX) && k !== KEY_PREFIX + 'tags') {
-      try {
-        const data = JSON.parse(localStorage.getItem(k))
-        if (Array.isArray(data) && data.length) {
-          days[k.slice(KEY_PREFIX.length)] = data
-        }
-      } catch { /* skip corrupt keys */ }
-    }
-  }
-  const data = { version: 1, exported: new Date().toISOString(), days }
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  const d = new Date()
-  const name = 'timelog-backup-' +
-    d.getFullYear() + '-' +
-    String(d.getMonth() + 1).padStart(2, '0') + '-' +
-    String(d.getDate()).padStart(2, '0') + '.json'
-  a.download = name
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
+// --- Import ---
+const importText = ref('')
+const importDate = ref('')
+const importMode = ref('merge') // 'merge' | 'replace'
+const importPreview = ref(null)
 
-// --- Import JSON ---
-function triggerFileInput() {
-  fileInput.value?.click()
-}
-
-async function importJson(e) {
-  const file = e.target.files[0]
-  if (!file) return
-  const reader = new FileReader()
-  reader.onload = async () => {
-    try {
-      const data = JSON.parse(reader.result)
-      let count = 0
-      if (data.days && typeof data.days === 'object') {
-        Object.entries(data.days).forEach(([date, blocks]) => {
-          if (Array.isArray(blocks) && blocks.length) {
-            localStorage.setItem(KEY_PREFIX + date, JSON.stringify(blocks))
-            count += blocks.length
-          }
-        })
-      } else if (data.blocks && Array.isArray(data.blocks)) {
-        const byDate = {}
-        data.blocks.forEach(b => {
-          const date = b._date
-          if (date) {
-            if (!byDate[date]) byDate[date] = []
-            byDate[date].push(b)
-          }
-        })
-        Object.entries(byDate).forEach(([date, blocks]) => {
-          localStorage.setItem(KEY_PREFIX + date, JSON.stringify(blocks))
-        })
-        count = data.blocks.length
-      }
-      timelogStore.loadBlocks()
-      importMsg.value = STR.toast.imported + ' ' + count + ' 条'
-      setTimeout(() => { importMsg.value = ''; emit('close') }, 1500)
-    } catch {
-      await showAlert(STR.toast.importFail)
-    }
-  }
-  reader.readAsText(file)
-  e.target.value = ''
-}
-
-// --- Parse exported text (inverse of buildExport) ---
 function parseImportText(text) {
   const lines = (text || '').replace(/\r/g, '').split('\n')
   const recs = []
@@ -194,40 +173,145 @@ function parseImportText(text) {
   }))
 }
 
-// --- Paste import (read clipboard as exported text) ---
-async function pasteImport() {
-  let text
-  try {
-    text = await navigator.clipboard.readText()
-  } catch {
-    await showAlert('无法读取剪贴板，请检查权限')
-    return
-  }
-  const recs = parseImportText(text)
+function onImportTextChange() {
+  const n = parseImportText(importText.value).length
+  importPreview.value = n ? '可解析 ' + n + ' 条记录' : '未解析到有效记录'
+}
+
+async function confirmImport() {
+  const recs = parseImportText(importText.value)
   if (!recs.length) {
-    await showAlert(STR.confirm.importNoRecords)
+    await showAlert('未解析到有效记录，请检查文本格式。')
     return
   }
-  // Import to current day (merge)
-  const date = timelogStore.dateKey
+  const date = importDate.value || dkey(new Date())
+  const mode = importMode.value
   const key = KEY_PREFIX + date
+
   let existing = []
   try { existing = JSON.parse(localStorage.getItem(key)) || [] } catch { /* empty */ }
-  const merged = existing.concat(recs)
-  localStorage.setItem(key, JSON.stringify(merged))
-  // Add any tags that don't exist yet
+  existing = (mode === 'merge') ? existing.concat(recs) : recs
+  localStorage.setItem(key, JSON.stringify(existing))
+
+  // Auto-add unknown tags
+  let added = false
   recs.forEach(r => (r.tags || []).forEach(tn => {
     if (tn && !tagStore.tags.find(t => t.name === tn)) {
       tagStore.addTag({ name: tn, color: '#8A8A8A', group: '' })
+      added = true
     }
   }))
-  timelogStore.loadBlocks()
-  importMsg.value = '已粘贴导入 ' + recs.length + ' 条记录到 ' + date
-  setTimeout(() => {
-    importMsg.value = ''
-    emit('close')
-  }, 2000)
+  if (added) tagStore.saveTags()
+
+  emit('close')
+  if (date === dkey(new Date())) {
+    timelogStore.loadBlocks()
+  }
+  scheduleSave()
+  toast('已导入 ' + recs.length + ' 条到 ' + date)
 }
+
+// --- JSON Import ---
+const jsonImportMode = ref('merge')
+const jsonDateFrom = ref('')
+const jsonDateTo = ref('')
+const jsonTimeFrom = ref('')
+const jsonTimeTo = ref('')
+const jsonImportSummary = ref('')
+
+function buildJsonImportSummary(data) {
+  if (!data || !data.days) return ''
+  const dates = Object.keys(data.days)
+  let cnt = 0
+  dates.forEach(d => cnt += data.days[d].length)
+  const sorted = dates.slice().sort()
+  return '共 ' + dates.length + ' 天、' + cnt + ' 条记录' +
+    (dates.length ? '（' + sorted[0] + ' → ' + sorted[sorted.length - 1] + '）' : '')
+}
+
+function isDayKey(k) {
+  if (!k.startsWith(KEY_PREFIX)) return false
+  const datePortion = k.slice(KEY_PREFIX.length)
+  return /^\d{4}-\d{2}-\d{2}$/.test(datePortion)
+}
+
+function cancelJsonImport() {
+  emit('close')
+}
+
+async function confirmJsonImport() {
+  const data = props.jsonImportData
+  if (!data || !data.days) return
+
+  const mode = jsonImportMode.value
+  const df = jsonDateFrom.value
+  const dt = jsonDateTo.value
+  const tf = jsonTimeFrom.value
+  const tt = jsonTimeTo.value
+  const tfm = tf ? fromInput(tf) : null
+  const ttm = tt ? fromInput(tt) : null
+
+  // Replace mode: clear all existing day keys
+  if (mode === 'replace') {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i)
+      if (isDayKey(k)) localStorage.removeItem(k)
+    }
+  }
+
+  // Import tags from backup
+  if (data.tags) {
+    data.tags.forEach(t => {
+      if (t && t.name && !tagStore.tags.find(x => x.name === t.name)) {
+        tagStore.addTag({ name: t.name, color: t.color || '#8A8A8A', group: t.group || '' })
+      }
+    })
+  }
+
+  // Import filtered days
+  Object.keys(data.days).forEach(d => {
+    if (df && d < df) return
+    if (dt && d > dt) return
+    let incoming = data.days[d].filter(b => {
+      if (tfm != null && b.start < tfm) return false
+      if (ttm != null && b.start > ttm) return false
+      return true
+    })
+    if (!incoming.length) return
+
+    const key = KEY_PREFIX + d
+    let existing = []
+    try { existing = JSON.parse(localStorage.getItem(key)) || [] } catch { /* empty */ }
+    if (mode === 'merge') {
+      const map = {}
+      existing.concat(incoming).forEach(b => {
+        map[b.id || ('b' + b.start + '-' + b.end + Math.random())] = b
+      })
+      existing = Object.values(map)
+    } else {
+      existing = incoming
+    }
+    localStorage.setItem(key, JSON.stringify(existing))
+  })
+
+  emit('close')
+  timelogStore.loadBlocks()
+  tagStore.loadTags()
+  scheduleSave()
+  showAlert('导入完成。')
+}
+
+// Watch mode changes to initialize JSON import state
+watch(() => [props.mode, props.jsonImportData], ([mode, data]) => {
+  if (mode === 'json-import' && data && data.days) {
+    jsonImportMode.value = 'merge'
+    jsonDateFrom.value = ''
+    jsonDateTo.value = ''
+    jsonTimeFrom.value = ''
+    jsonTimeTo.value = ''
+    jsonImportSummary.value = buildJsonImportSummary(data)
+  }
+})
 </script>
 
 <style scoped>
@@ -256,6 +340,11 @@ async function pasteImport() {
   margin: 0 0 6px;
   font-weight: 650;
 }
+.modal .sub {
+  color: var(--text2);
+  font-size: 12.5px;
+  margin-bottom: 10px;
+}
 .modal label {
   display: block;
   font-size: 12px;
@@ -263,10 +352,39 @@ async function pasteImport() {
   margin: 12px 0 5px;
   font-weight: 600;
 }
+.modal input[type=date],
+.modal input[type=time],
+.modal input[type=text] {
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 10px;
+  color: var(--text);
+  background: var(--soft);
+}
+.modal input:focus {
+  outline: none;
+  border-color: var(--blue);
+  background: var(--canvas);
+}
+.timerow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.timerow input {
+  width: auto;
+  flex: 1;
+}
+.timerow span {
+  color: var(--text2);
+}
 .exportbox {
   width: 100%;
-  min-height: 280px;
-  height: 40vh;
+  min-height: 360px;
+  height: 56vh;
   font-family: Menlo, Consolas, monospace;
   font-size: 12.5px;
   white-space: pre;
@@ -278,10 +396,28 @@ async function pasteImport() {
   color: var(--text);
   resize: vertical;
 }
+.exportbox.import-area {
+  min-height: 180px;
+  height: 34vh;
+}
 .copied {
   color: var(--green);
   font-size: 13px;
   font-weight: 600;
+}
+.radio {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 13.5px;
+}
+.radio label {
+  margin: 0;
+  color: var(--text);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 .actions {
   display: flex;
@@ -290,11 +426,6 @@ async function pasteImport() {
   margin-top: 20px;
 }
 .spacer { flex: 1; }
-.divider {
-  height: 1px;
-  background: var(--border);
-  margin: 16px 0;
-}
 .small {
   font-size: 12px;
   color: var(--text2);

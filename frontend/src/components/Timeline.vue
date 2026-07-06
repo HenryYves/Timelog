@@ -113,6 +113,7 @@ const props = defineProps({
   modalOpen: { type: Boolean, default: false },
 })
 const store = useTimelogStore()
+const { selectedBlocks, colorOf } = store
 const emit = defineEmits(['edit-block', 'create-block'])
 const { toast } = useToast()
 const { showConfirm } = useConfirm()
@@ -186,7 +187,7 @@ const layoutBlocks = computed(() => layout(store.blocks))
 
 function computeBlockStyle(ev) {
   const has = ev.tags && ev.tags.length
-  const c0 = store.colorOf(has ? ev.tags[0] : null)
+  const c0 = colorOf(has ? ev.tags[0] : null)
   const top = ev.start * PX_MIN
   const height = Math.max((ev.end - ev.start) * PX_MIN, 16)
   const w = 100 / (ev._cols || 1)

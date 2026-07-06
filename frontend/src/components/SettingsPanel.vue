@@ -90,11 +90,7 @@
         @change="onKeepDaysChange">
       <div class="small">0 = 保留全部；设 7 则每天首次操作时自动删掉第 8 个及更早有数据的天，仅保留最近 7 个有数据的天。</div>
 
-      <div class="actions">
-        <span class="spacer"></span>
-        <button @click="exportLogs">导出日志</button>
-        <button type="button" id="setClose" @click="emit('close')">关闭</button>
-      </div>
+      <div class="actions"><span class="spacer"></span><button type="button" id="setClose" @click="emit('close')">关闭</button></div>
     </div>
   </div>
 </template>
@@ -105,7 +101,6 @@ import { useSettingsStore } from '../store/settings.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { migrateBackups } from '../utils/backup.js'
 import { STR } from '../strings.js'
-import { exportLogs } from '../utils/log.js'
 
 const props = defineProps({
   show: Boolean,

@@ -2,7 +2,7 @@
   <div v-if="show" class="overlay" @mousedown.self="emit('close')">
     <div class="modal">
       <h2>管理标签</h2>
-      <div class="sub">点左侧色块自定义颜色；相同"分组"的标签会归类显示。</div>
+      <div class="sub">点左侧色块自定义颜色；相同"分组"的标签会归类显示（如"很自律"与"自律"放同一组）。</div>
 
       <div id="tagList">
         <div v-for="(tag, i) in tagDraft" :key="i" class="tagrow">
