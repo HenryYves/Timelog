@@ -106,6 +106,9 @@ import { useTimelogStore, fmt, dkey, toInput, fromInput } from '../store/timelog
 import { mdToHtml } from '../utils/markdown.js'
 import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH } from '../constants.js'
 
+const props = defineProps({
+  modalOpen: { type: Boolean, default: false },
+})
 const store = useTimelogStore()
 const emit = defineEmits(['edit-block', 'create-block'])
 
@@ -334,6 +337,9 @@ function onBlockContextMenu(ev) {
 
 // --- Keyboard ---
 function onKeyDown(e) {
+  // Don't handle keyboard when modal is open
+  if (props.modalOpen) return
+
   // During drag: arrow keys fine-tune, Escape cancels
   if (adrag.value) {
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
