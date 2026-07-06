@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import { defineStore, storeToRefs } from 'pinia'
 import { ref, computed } from 'vue'
 import { KEY_PREFIX, PX_MIN, DAY_MIN, EDGE } from '../constants.js'
 import { useSettingsStore } from './settings.js'
@@ -31,6 +31,8 @@ export const useTimelogStore = defineStore('timelog', () => {
   const selectedBlocks = ref(new Set())
   const clipboard = ref([])
   const dateKey = computed(() => dkey(curDate.value))
+  const settingsStore = useSettingsStore()
+  const { blockOpacity: opacityRef } = storeToRefs(settingsStore)
 
   function loadBlocks() {
     try {
@@ -150,8 +152,8 @@ export const useTimelogStore = defineStore('timelog', () => {
       const tags = raw ? JSON.parse(raw) : []
       const t = tags.find(t => t.name === name)
       const hex = t ? t.color : '#8A8A8A'
-      const { blockOpacity: opacityRef } = useSettingsStore()
-      const blockOpacity = opacityRef
+      const blockOpacity = opacityRef.value
+      console.log('[opacity] timelog.colorOf called, blockOpacity=', blockOpacity)
       if (blockOpacity > 100) {
         const bh = boostHex(hex, (blockOpacity - 100) / 100)
         return { hex: hex, bg: bh }
