@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { KEY_PREFIX } from '../constants.js'
 import { useTimelogStore } from './timelog.js'
+import { useSettingsStore } from './settings.js'
 import { logger } from '../utils/log.js'
 
 const PALETTE = {
@@ -134,8 +135,7 @@ export const useTagStore = defineStore('tags', () => {
     const t = tags.value.find(t => t.name === name)
     if (!t) return { hex: '#C4C3C0', bg: '#F0EFED' }
     const hex = t.color
-    // Read blockOpacity from localStorage directly to avoid circular deps
-    const blockOpacity = parseInt(localStorage.getItem(KEY_PREFIX + 'blockOpacity')) || 15
+    const { blockOpacity } = useSettingsStore()
     if (blockOpacity > 100) {
       const bg = boostHex(hex, (blockOpacity - 100) / 100)
       return { hex, bg }
