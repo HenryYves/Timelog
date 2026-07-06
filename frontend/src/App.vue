@@ -11,6 +11,7 @@
       </div>
       <span class="spacer"></span>
       <span class="version">v0.3.0</span>
+      <button class="primary" id="exportBtn" title="导出" @click="showExport = true">导出文本</button>
       <button class="icon" id="settingsBtn" title="设置" @click="showSettings = true">⚙</button>
       <span class="win-ctrls" :class="{ on: winCtrlActive }" id="winCtrls">
         <button class="win-btn" id="winMin" title="最小化" @click="onWinMin">─</button>
@@ -36,6 +37,10 @@
       :show="showSettings"
       @close="showSettings = false"
     />
+    <ExportPanel
+      :show="showExport"
+      @close="showExport = false"
+    />
   </div>
 </template>
 
@@ -46,6 +51,7 @@ import { useSettingsStore } from './store/settings.js'
 import Timeline from './components/Timeline.vue'
 import EditModal from './components/EditModal.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
+import ExportPanel from './components/ExportPanel.vue'
 
 const store = useTimelogStore()
 const settings = useSettingsStore()
@@ -85,6 +91,9 @@ function onManageTags() {
 
 // Settings state
 const showSettings = ref(false)
+
+// Export panel state
+const showExport = ref(false)
 
 // Window controls
 const winCtrlActive = ref(settings.borderless)
@@ -165,7 +174,7 @@ function applyBorderless() {
 
 // T key: quick create at current time
 function onWindowKeyDown(e) {
-  if (showModal.value || showSettings.value) return
+  if (showModal.value || showSettings.value || showExport.value) return
   const tag = e.target.tagName
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
   if (e.key === 't' || e.key === 'T') {
