@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Tauri
+src-tauri/target/
+
+# SDD working files
+.superpowers/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

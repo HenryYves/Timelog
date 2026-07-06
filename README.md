@@ -79,21 +79,27 @@
 
 | 层 | 技术 |
 |---|---|
-| 前端 | Vanilla HTML/CSS/JS（单文件 `src/index.html`） |
+| 前端 | Vue 3 (Composition API) + Vite + Pinia |
 | 后端 | Rust (Tauri v2) |
-| 桌面 API | Tauri fs plugin（文件读写）、Tauri window-state plugin（窗口状态）、Tauri window API（窗口控制） |
+| 桌面 API | Tauri fs plugin + window-state plugin + window API |
 | 存储 | localStorage（运行时）+ AppData JSON 备份（桌面） |
 
 ## 快速开始
 
 ### 浏览器预览
 
-直接用浏览器打开 `src/index.html`，所有功能可用（备份功能仅桌面模式支持）。
+```bash
+cd frontend && npm install && npm run dev
+```
+浏览器打开 `http://localhost:1420`，所有功能可用（备份功能仅桌面模式支持）。
 
 ### 桌面开发
 
 ```bash
-# 安装依赖
+# 安装前端依赖
+cd frontend && npm install && cd ..
+
+# 安装 Tauri 依赖
 npm install
 
 # 开发模式（热重载）
@@ -119,17 +125,26 @@ npm run tauri build
 
 ```
 Timelog/
-├── src/
-│   ├── index.html          # 主文件（单文件应用，CSS + HTML + JS）
-│   └── icons/              # SVG 图标集
+├── frontend/               ← Vue 3 前端
+│   ├── src/
+│   │   ├── App.vue         ← 壳组件
+│   │   ├── style.css       ← 全局 CSS
+│   │   ├── constants.js    ← 所有常量
+│   │   ├── strings.js      ← 界面文案（预留 i18n）
+│   │   ├── components/     ← Vue 组件
+│   │   ├── store/          ← Pinia store
+│   │   └── utils/          ← 工具函数
+│   └── package.json
+├── src/                    ← 旧版单文件（保留参考）
+│   └── index.html
 ├── src-tauri/
-│   ├── Cargo.toml          # Rust 依赖
-│   ├── tauri.conf.json     # Tauri 配置
-│   ├── capabilities/       # 权限配置
+│   ├── Cargo.toml
+│   ├── tauri.conf.json
+│   ├── capabilities/
 │   └── src/
-│       ├── lib.rs          # 插件注册
-│       └── main.rs         # 入口
-├── package.json            # npm 脚本
+│       ├── lib.rs
+│       └── main.rs
+├── package.json
 └── README.md
 ```
 
