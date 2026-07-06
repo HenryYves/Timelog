@@ -45,6 +45,7 @@
         :class="{ bsel: selectedBlocks.has(ev.id) }"
         :style="computeBlockStyle(ev)"
         :title="blockTitle(ev)"
+        @mousemove="onBlockMouseMove($event, ev)"
         @mousedown.left="onBlockMouseDown($event, ev)"
         @click="onBlockClick($event, ev)"
         @contextmenu.prevent="onBlockContextMenu(ev)"
@@ -293,6 +294,14 @@ function onDayMouseDown(e) {
   const s = yToMin(e.clientY)
   adrag.value = { type: 'create', anchor: s, cur: s }
   applyDrag()
+}
+
+function onBlockMouseMove(e, _ev) {
+  if (adrag.value) return
+  const r = e.currentTarget.getBoundingClientRect()
+  const y = e.clientY - r.top
+  const ez = Math.min(EDGE, r.height / 2)
+  e.currentTarget.style.cursor = (y <= ez || y >= r.height - ez) ? 'ns-resize' : 'pointer'
 }
 
 function onBlockMouseDown(e, ev) {
