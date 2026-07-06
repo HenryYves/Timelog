@@ -234,16 +234,16 @@ async function onCheckUpdate() {
         const local = APP_VERSION.replace(/^v/, '').split('.').map(Number)
         const remote = (json.version || '0').replace(/^v/, '').split('.').map(Number)
         if (local[0] > remote[0] || (local[0] === remote[0] && local[1] > remote[1]) || (local[0] === remote[0] && local[1] === remote[1] && local[2] > remote[2])) {
-          toast('你的版本已经高于云端了，你还想怎么样嘛')
+          toast(STR.update.versionAhead)
         } else {
-          toast('已是最新版本')
+          toast(STR.update.noUpdate)
         }
       } else {
-        toast('已是最新版本')
+        toast(STR.update.noUpdate)
       }
     }
   } catch (e) {
-    toast('检查更新失败，请检查网络')
+    toast(STR.update.checkFailed)
   } finally {
     checkingUpdate.value = false
   }

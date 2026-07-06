@@ -76,5 +76,6 @@ export const STR = {
     pendingDesc: '是否现在安装？',
     pendingInstall: '现在安装',
     pendingDismiss: '忽略',
+    versionAhead: '你的版本已经高于云端了，你还想怎么样嘛',
   },
 }

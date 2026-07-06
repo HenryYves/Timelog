@@ -96,6 +96,7 @@ import { useTimelogStore, dkey } from './store/timelog.js'
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
 import { APP_VERSION } from './constants.js'
+import { STR } from './strings.js'
 import {
   bkStatusText, bkStatusClass, setBackupPrefs,
   initBackup, scheduleSave, scheduleClean, doAutoSave,
@@ -465,12 +466,12 @@ async function checkForUpdate(isManual) {
       if (latest?.version) {
         const cmp = compareSemver(APP_VERSION, latest.version)
         if (cmp > 0) {
-          toast('你的版本已经高于云端了，你还想怎么样嘛')
+          toast(STR.update.versionAhead)
         } else {
-          toast('已是最新版本')
+          toast(STR.update.noUpdate)
         }
       } else {
-        toast('已是最新版本')
+        toast(STR.update.noUpdate)
       }
       return
     }
@@ -496,7 +497,7 @@ async function checkForUpdate(isManual) {
     updateInfo.value = metadata
     showUpdate.value = true
   } catch {
-    if (isManual) toast('检查更新失败，请检查网络')
+    if (isManual) toast(STR.update.checkFailed)
     // silent fail on startup check
   }
 }
@@ -508,7 +509,7 @@ function onCheckUpdateResult(metadata) {
 
 function onWillInstallOnExit(version) {
   localStorage.setItem('timelog:pendingDownload', version)
-  toast('将在退出时安装更新')
+  toast(STR.update.willInstallOnExit)
 }
 
 onMounted(async () => {
