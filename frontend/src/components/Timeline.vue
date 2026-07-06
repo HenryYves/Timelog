@@ -348,14 +348,14 @@ function onBlockMouseDown(e, ev) {
   }
 }
 
+let _lastMouseY = 0
 function onMouseMove(e) {
   const newCur = yToMin(e.clientY)
-  if (adrag.value) {
-    if (newCur !== adrag.value.cur) {
-      adrag.value.cur = newCur
-      applyDrag()
-    }
+  if (adrag.value && e.clientY !== _lastMouseY) {
+    adrag.value.cur = newCur
+    applyDrag()
   }
+  _lastMouseY = e.clientY
   lastHoverMin.value = newCur
   overGrid.value = true
 }
