@@ -22,6 +22,7 @@ const DEFAULT_TAGS = [
 
 export const useTagStore = defineStore('tags', () => {
   const tags = ref([])
+  const settings = useSettingsStore()
 
   function loadTags() {
     try {
@@ -135,7 +136,7 @@ export const useTagStore = defineStore('tags', () => {
     const t = tags.value.find(t => t.name === name)
     if (!t) return { hex: '#C4C3C0', bg: '#F0EFED' }
     const hex = t.color
-    const { blockOpacity } = useSettingsStore()
+    const blockOpacity = settings.blockOpacity
     if (blockOpacity > 100) {
       const bg = boostHex(hex, (blockOpacity - 100) / 100)
       return { hex, bg }
