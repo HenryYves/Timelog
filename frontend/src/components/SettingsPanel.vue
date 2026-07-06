@@ -101,6 +101,8 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useSettingsStore } from '../store/settings.js'
+import { useConfirm } from '../composables/useConfirm.js'
+import { STR } from '../strings.js'
 
 const props = defineProps({
   show: Boolean,
@@ -108,6 +110,7 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 
 const settings = useSettingsStore()
+const { showConfirm } = useConfirm()
 
 const bkPathDraft = ref(settings.bkCustomPath)
 
@@ -206,7 +209,7 @@ async function onBkPathSave() {
 
 async function onBkPathReset() {
   if (!settings.bkCustomPath) return
-  const ok = confirm('将备份位置恢复为默认（AppData），并迁移已有备份文件？')
+  const ok = await showConfirm(STR.confirm.backupPathReset)
   if (!ok) return
   const old = settings.bkCustomPath
   settings.setBkCustomPath('')

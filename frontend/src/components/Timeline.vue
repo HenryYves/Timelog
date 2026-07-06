@@ -105,12 +105,17 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useTimelogStore, fmt, dkey, toInput, fromInput } from '../store/timelog.js'
 import { mdToHtml } from '../utils/markdown.js'
 import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH } from '../constants.js'
+import { useToast } from '../composables/useToast.js'
+import { useConfirm } from '../composables/useConfirm.js'
+import { STR } from '../strings.js'
 
 const props = defineProps({
   modalOpen: { type: Boolean, default: false },
 })
 const store = useTimelogStore()
 const emit = defineEmits(['edit-block', 'create-block'])
+const { toast } = useToast()
+const { showConfirm } = useConfirm()
 
 const dayRef = ref(null)
 const gutterRef = ref(null)
@@ -330,8 +335,12 @@ function onBlockClick(e, ev) {
 function onBlockContextMenu(ev) {
   if (store.selectedBlocks.has(ev.id)) {
     store.selectedBlocks.delete(ev.id)
+    if (store.selectedBlocks.size === 0) {
+      toast(STR.toast.unselected)
+    }
   } else {
     store.selectedBlocks.add(ev.id)
+    toast(STR.toast.contextSelected(store.selectedBlocks.size))
   }
 }
 
@@ -374,7 +383,7 @@ function onKeyDown(e) {
   if (e.key === 'Delete' || e.key === 'Backspace') {
     if (store.selectedBlocks.size) {
       e.preventDefault()
-      store.deleteSelectedBlocks()
+      onDeleteSelected()
     }
     return
   }
@@ -382,8 +391,17 @@ function onKeyDown(e) {
   // Escape clears selection
   if (e.key === 'Escape' && store.selectedBlocks.size) {
     store.selectedBlocks.clear()
+    toast(STR.toast.unselected)
     return
   }
+}
+
+async function onDeleteSelected() {
+  const n = store.selectedBlocks.size
+  const ok = await showConfirm(STR.confirm.deleteSelected(n))
+  if (!ok) return
+  store.deleteSelectedBlocks()
+  toast(STR.toast.deleted)
 }
 
 function doPaste() {

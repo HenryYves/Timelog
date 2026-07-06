@@ -76,6 +76,9 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { useTimelogStore, fmt, toInput, fromInput } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { mdToHtml, esc } from '../utils/markdown.js'
+import { useToast } from '../composables/useToast.js'
+import { useConfirm } from '../composables/useConfirm.js'
+import { STR } from '../strings.js'
 
 const props = defineProps({
   show: Boolean,
@@ -86,6 +89,8 @@ const emit = defineEmits(['close', 'manage-tags'])
 
 const timelogStore = useTimelogStore()
 const tagStore = useTagStore()
+const { toast } = useToast()
+const { showConfirm } = useConfirm()
 
 // Form fields
 const mTitle = ref('')
@@ -201,15 +206,16 @@ function save() {
   emit('close')
 }
 
-// Delete
-function deleteBlock() {
-  if (props.editingBlock) {
-    timelogStore.deleteBlock(props.editingBlock.id)
-  }
+// Delete with confirmation
+async function deleteBlock() {
+  if (!props.editingBlock) return
+  const confirmed = await showConfirm(STR.confirm.deleteBlock)
+  if (!confirmed) return
+  timelogStore.deleteBlock(props.editingBlock.id)
   emit('close')
 }
 
-// Copy to clipboard
+// Copy to clipboard + toast
 function copyBlock() {
   if (props.editingBlock) {
     timelogStore.clipboard = [{
@@ -219,6 +225,7 @@ function copyBlock() {
       note: props.editingBlock.note,
       tags: [...(props.editingBlock.tags || [])],
     }]
+    toast(STR.toast.copyBlock)
   }
 }
 

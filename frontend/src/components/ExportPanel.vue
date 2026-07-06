@@ -36,12 +36,15 @@ import { ref, watch } from 'vue'
 import { useTimelogStore, fmt } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { KEY_PREFIX } from '../constants.js'
+import { useConfirm } from '../composables/useConfirm.js'
+import { STR } from '../strings.js'
 
 const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close'])
 
 const timelogStore = useTimelogStore()
 const tagStore = useTagStore()
+const { showAlert } = useConfirm()
 
 const exText = ref('')
 const copiedMsg = ref(false)
@@ -119,11 +122,11 @@ function triggerFileInput() {
   fileInput.value?.click()
 }
 
-function importJson(e) {
+async function importJson(e) {
   const file = e.target.files[0]
   if (!file) return
   const reader = new FileReader()
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
       const data = JSON.parse(reader.result)
       let count = 0
@@ -135,7 +138,6 @@ function importJson(e) {
           }
         })
       } else if (data.blocks && Array.isArray(data.blocks)) {
-        // Flat format with _date field on each block
         const byDate = {}
         data.blocks.forEach(b => {
           const date = b._date
@@ -150,14 +152,13 @@ function importJson(e) {
         count = data.blocks.length
       }
       timelogStore.loadBlocks()
-      importMsg.value = '已导入 ' + count + ' 条记录'
+      importMsg.value = STR.toast.imported + ' ' + count + ' 条'
       setTimeout(() => { importMsg.value = ''; emit('close') }, 1500)
     } catch {
-      alert('导入失败：文件格式不正确')
+      await showAlert(STR.toast.importFail)
     }
   }
   reader.readAsText(file)
-  // Reset so the same file can be re-imported
   e.target.value = ''
 }
 
@@ -199,12 +200,12 @@ async function pasteImport() {
   try {
     text = await navigator.clipboard.readText()
   } catch {
-    alert('无法读取剪贴板，请检查权限')
+    await showAlert('无法读取剪贴板，请检查权限')
     return
   }
   const recs = parseImportText(text)
   if (!recs.length) {
-    alert('未解析到有效记录，请检查文本格式')
+    await showAlert(STR.confirm.importNoRecords)
     return
   }
   // Import to current day (merge)
