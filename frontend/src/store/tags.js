@@ -138,7 +138,6 @@ export const useTagStore = defineStore('tags', () => {
     if (!t) return { hex: '#C4C3C0', bg: '#F0EFED' }
     const hex = t.color
     const blockOpacity = blockOpacityRef.value
-    if (name === (tags.value[0]?.name)) console.log('[opacity] colorOf', name, 'blockOpacity=', blockOpacity)
     if (blockOpacity > 100) {
       const bg = boostHex(hex, (blockOpacity - 100) / 100)
       return { hex, bg }
