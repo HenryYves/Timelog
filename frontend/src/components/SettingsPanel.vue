@@ -90,6 +90,22 @@
         @change="onKeepDaysChange">
       <div class="small">0 = 保留全部；设 7 则每天首次操作时自动删掉第 8 个及更早有数据的天，仅保留最近 7 个有数据的天。</div>
 
+      <div class="divider"></div>
+
+      <label class="switchrow">
+        <input type="checkbox" id="setAutoUpdate"
+          :checked="settings.autoUpdate"
+          @change="settings.setAutoUpdate(($event.target).checked)">
+        <span>自动更新</span>
+      </label>
+      <div class="small">启动时自动检查更新（默认关闭）</div>
+
+      <div style="margin-top:8px;">
+        <button type="button" id="checkUpdateBtn" @click="onCheckUpdate" :disabled="checkingUpdate">
+          {{ checkingUpdate ? '检查中...' : '检查更新' }}
+        </button>
+      </div>
+
       <div class="actions"><span class="spacer"></span><button type="button" id="setClose" @click="emit('close')">关闭</button></div>
     </div>
   </div>
@@ -97,18 +113,23 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
 import { useSettingsStore } from '../store/settings.js'
 import { useConfirm } from '../composables/useConfirm.js'
+import { useToast } from '../composables/useToast.js'
 import { migrateBackups } from '../utils/backup.js'
 import { STR } from '../strings.js'
 
 const props = defineProps({
   show: Boolean,
 })
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'checkUpdateResult'])
 
 const settings = useSettingsStore()
 const { showConfirm } = useConfirm()
+const { toast } = useToast()
+
+const checkingUpdate = ref(false)
 
 const bkPathDraft = ref(settings.bkCustomPath)
 
@@ -196,5 +217,21 @@ async function onBkPathReset() {
   settings.setBkCustomPath('')
   bkPathDraft.value = ''
   await migrateBackups(old, '')
+}
+
+async function onCheckUpdate() {
+  checkingUpdate.value = true
+  try {
+    const metadata = await invoke('check_update')
+    if (metadata) {
+      emit('checkUpdateResult', metadata)
+    } else {
+      toast('已是最新版本')
+    }
+  } catch (e) {
+    toast('检查更新失败，请检查网络')
+  } finally {
+    checkingUpdate.value = false
+  }
 }
 </script>
