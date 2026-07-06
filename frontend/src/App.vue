@@ -1,8 +1,7 @@
 <template>
   <div id="app-container">
     <header @mousedown="onHeaderMouseDown">
-      <img src="/icons/logo.svg" class="logo" alt="">
-      <h1>Timelog</h1>
+      <h1><img src="/icons/icon.svg" class="logo" alt="">时间块记录</h1>
       <div class="datenav">
         <button class="icon" @click="store.goPrevDay()">‹</button>
         <span class="date">{{ dateLabel }}</span>
@@ -199,7 +198,9 @@ function doImport() {
 
 async function doExportJson() {
   showMore.value = false
-  const data = { version: 1, exported: new Date().toISOString(), days: {} }
+  let tags = []
+  try { tags = JSON.parse(localStorage.getItem('timelog:tags')) || [] } catch {}
+  const data = { version: 2, exported: new Date().toISOString(), tags, days: {} }
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i)
     if (k.startsWith('timelog:') && /^\d{4}-\d{2}-\d{2}$/.test(k.slice(7))) {

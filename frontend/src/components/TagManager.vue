@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="emit('close')">
-    <div class="modal">
+    <div class="modal" @keydown="trapFocus">
       <h2>管理标签</h2>
       <div class="sub">点左侧色块自定义颜色；相同"分组"的标签会归类显示（如"很自律"与"自律"放同一组）。</div>
 
@@ -40,6 +40,24 @@ const { showConfirm } = useConfirm()
 const tagDraft = ref([])
 const origNames = ref([])
 const deletedNames = ref(new Set())
+
+function trapFocus(e) {
+  if (e.key !== 'Tab') return
+  const modal = e.currentTarget
+  const focusable = modal.querySelectorAll(
+    'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
+  )
+  const visible = [...focusable].filter(el => el.offsetParent !== null)
+  if (!visible.length) { e.preventDefault(); return }
+  const idx = visible.indexOf(document.activeElement)
+  if (e.shiftKey) {
+    e.preventDefault()
+    visible[idx <= 0 ? visible.length - 1 : idx - 1].focus()
+  } else {
+    e.preventDefault()
+    visible[idx === -1 || idx >= visible.length - 1 ? 0 : idx + 1].focus()
+  }
+}
 
 watch(() => props.show, (val) => {
   if (!val) return

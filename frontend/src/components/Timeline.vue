@@ -44,6 +44,7 @@
         class="block"
         :class="{ bsel: selectedBlocks.has(ev.id) }"
         :style="computeBlockStyle(ev)"
+        :title="blockTitle(ev)"
         @mousedown.left="onBlockMouseDown($event, ev)"
         @click="onBlockClick($event, ev)"
         @contextmenu.prevent="onBlockContextMenu(ev)"
@@ -204,12 +205,21 @@ function computeBlockStyle(ev) {
   }
 }
 
+function blockTitle(ev) {
+  let t = fmt(ev.start) + '–' + fmt(ev.end) + '  ' + (ev.title || '')
+  if (ev.tags?.length) t += '  [' + ev.tags.join(',') + ']'
+  if (ev.note) t += '\n' + ev.note
+  return t
+}
+
 // --- Ghost style (create-drag visual) ---
 const ghostStyle = computed(() => {
   if (ghostTop.value === null) return { display: 'none' }
   return {
     top: ghostTop.value + 'px',
     height: ghostHeight.value + 'px',
+    left: '2px',
+    right: '2px',
   }
 })
 
@@ -371,7 +381,10 @@ function onKeyDown(e) {
 
   // Ctrl+C / Ctrl+V
   if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
-    if (store.copySelected()) e.preventDefault()
+    if (store.copySelected()) {
+      e.preventDefault()
+      toast(STR.toast.copied(store.clipboard.length))
+    }
     return
   }
   if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
@@ -382,8 +395,9 @@ function onKeyDown(e) {
     return
   }
 
-  // Delete / Backspace
+  // Delete / Backspace — only when no overlay is visible
   if (e.key === 'Delete' || e.key === 'Backspace') {
+    if (document.querySelector('.overlay')) return
     if (store.selectedBlocks.size) {
       e.preventDefault()
       onDeleteSelected()
@@ -411,7 +425,8 @@ function doPaste() {
   if (!store.clipboard.length) return
   const minStart = Math.min(...store.clipboard.map(c => c.start))
   let offset = 0
-  if (overGrid.value) {
+  const anchored = overGrid.value
+  if (anchored) {
     const anchor = Math.round(lastHoverMin.value / 5) * 5
     offset = anchor - minStart
   }
@@ -434,6 +449,7 @@ function doPaste() {
   })
   newBlocks.forEach(nb => store.addBlock(nb))
   store.selectedBlocks = new Set(newBlocks.map(n => n.id))
+  toast(STR.toast.pasteResult(newBlocks.length, anchored))
 }
 
 // --- Scroll to now ---

@@ -10,7 +10,7 @@ export function dkey(d) {
 }
 
 export function fmt(min) {
-  return String(Math.floor(min / 60)).padStart(2, '0') + ':' +
+  return String(Math.floor(min / 60)) + ':' +
     String(min % 60).padStart(2, '0')
 }
 
@@ -106,6 +106,7 @@ export const useTimelogStore = defineStore('timelog', () => {
 
   function setDate(d) {
     curDate.value = d
+    selectedBlocks.value.clear()
     loadBlocks()
   }
 

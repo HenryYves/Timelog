@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="emit('close')">
-    <div class="modal">
+    <div class="modal" @keydown="trapFocus">
       <h2>设置</h2>
 
       <label>默认时长（分钟）</label>
@@ -111,6 +111,24 @@ const settings = useSettingsStore()
 const { showConfirm } = useConfirm()
 
 const bkPathDraft = ref(settings.bkCustomPath)
+
+function trapFocus(e) {
+  if (e.key !== 'Tab') return
+  const modal = e.currentTarget
+  const focusable = modal.querySelectorAll(
+    'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
+  )
+  const visible = [...focusable].filter(el => el.offsetParent !== null)
+  if (!visible.length) { e.preventDefault(); return }
+  const idx = visible.indexOf(document.activeElement)
+  if (e.shiftKey) {
+    e.preventDefault()
+    visible[idx <= 0 ? visible.length - 1 : idx - 1].focus()
+  } else {
+    e.preventDefault()
+    visible[idx === -1 || idx >= visible.length - 1 ? 0 : idx + 1].focus()
+  }
+}
 
 watch(() => props.show, (val) => {
   if (val) {
