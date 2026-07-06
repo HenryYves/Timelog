@@ -151,9 +151,8 @@ export const useTimelogStore = defineStore('timelog', () => {
       const raw = localStorage.getItem(KEY_PREFIX + 'tags')
       const tags = raw ? JSON.parse(raw) : []
       const t = tags.find(t => t.name === name)
-      const hex = t ? t.color : '#8A8A8A'
+      const hex = t ? t.color : '#C4C3C0'
       const blockOpacity = opacityRef.value
-      console.log('[opacity] timelog.colorOf called, blockOpacity=', blockOpacity)
       if (blockOpacity > 100) {
         const bh = boostHex(hex, (blockOpacity - 100) / 100)
         return { hex: hex, bg: bh }

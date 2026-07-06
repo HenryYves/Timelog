@@ -186,7 +186,7 @@ function computeBlockStyle(ev) {
     height: height + 'px',
     left: `calc(${left}% + 2px)`,
     width: `calc(${w}% - 4px)`,
-    background: has ? c0.bg : '#F2F1EF',
+    background: c0.bg,
     color: '#2C2C2B',
   }
 }
