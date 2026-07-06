@@ -653,7 +653,7 @@ function cleanOldDays(){if(keepDays<=0)return;const keys=[];for(let i=0;i<localS
 async function doAutoSave(){if(!TAURI)return;try{const today=dkey(new Date());const last=localStorage.getItem('timelog:lastBackupDate');if(last&&last!==today){const prev=await tRead(MAIN_NAME);if(prev){await tWrite('timelog-backup-'+last+'.json',prev);await rotateBackups();}}localStorage.setItem('timelog:lastBackupDate',today);await tWrite(MAIN_NAME,JSON.stringify(getAllData(),null,2));setBk('已备份 · '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),'on');}catch(e){setBk('备份失败','warn');}}
 // (folder picker removed — Tauri writes to the app data dir automatically)
 document.getElementById('backupBtn').addEventListener('click',async()=>{if(!TAURI){showAlert('自动备份会在打包后的桌面应用（Tauri）中静默保存到应用数据目录。\n在浏览器中请用"导出备份"手动保存 JSON（数据仍存在本地，不会一关就丢）。');return;}await doAutoSave();const loc=bkCustomPath||'AppData';showAlert('已备份到 '+loc+' 的 '+DATA_DIR+' 文件夹。');});
-async function initBackup(){if(!TAURI){setBk('浏览器模式 · 仅本地','warn');return;}try{const raw=await tRead(MAIN_NAME);let has=false;for(let i=0;i<localStorage.length;i++){if(isDayKey(localStorage.key(i))){has=true;break;}}if(raw&&!has){try{restoreAllData(JSON.parse(raw));render();if(typeof renderTagChips==='function')renderTagChips();}catch(e){}}setBk(backupOn?'已连接 · 自动备份':'自动备份已关闭',backupOn?'on':'warn');}catch(e){setBk('备份初始化失败','warn');}}
+async function initBackup(){if(!TAURI){setBk('浏览器模式 · 仅本地','warn');return;}try{const raw=await tRead(MAIN_NAME);let has=false;for(let i=0;i<localStorage.length;i++){if(isDayKey(localStorage.key(i))){has=true;break;}}if(raw&&!has){try{restoreAllData(JSON.parse(raw));render();if(typeof renderTagChips==='function')renderTagChips();}catch(e){}}setBk(backupOn?'备份可用 · 自动备份':'自动备份已关闭',backupOn?'on':'warn');}catch(e){setBk('备份初始化失败','warn');}}
 
 // ---------- settings ----------
 function loadNum(k,d){const v=localStorage.getItem('timelog:'+k);return v!=null?parseInt(v):d;}
@@ -702,7 +702,7 @@ elScroll.addEventListener('change',()=>{autoScroll=elScroll.checked;localStorage
 elTs.addEventListener('change',()=>{exportTimestamp=elTs.checked;localStorage.setItem('timelog:exportTimestamp',exportTimestamp?'1':'0');});
 elDlg.addEventListener('change',()=>{exportDialog=elDlg.checked;localStorage.setItem('timelog:exportDialog',exportDialog?'1':'0');});
 elOp.addEventListener('input',()=>{blockOpacity=parseInt(elOp.value);elOpV.textContent=blockOpacity+'%';localStorage.setItem('timelog:blockOpacity',blockOpacity);render();});
-elBk.addEventListener('change',e=>{backupOn=e.target.checked;localStorage.setItem('timelog:backupOn',backupOn?'1':'0');if(TAURI)setBk(backupOn?'已连接 · 自动备份':'自动备份已关闭',backupOn?'on':'warn');if(backupOn)scheduleSave();});
+elBk.addEventListener('change',e=>{backupOn=e.target.checked;localStorage.setItem('timelog:backupOn',backupOn?'1':'0');if(TAURI)setBk(backupOn?'备份可用 · 自动备份':'自动备份已关闭',backupOn?'on':'warn');if(backupOn)scheduleSave();});
 elBL.addEventListener('change',()=>{borderless=elBL.checked;localStorage.setItem('timelog:borderless',borderless?'1':'0');applyBorderless();});
 elKD.addEventListener('change',()=>{keepDays=Math.max(0,parseInt(elKD.value)||0);localStorage.setItem('timelog:keepDays',keepDays);elKD.value=keepDays;});
 
