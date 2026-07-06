@@ -83,31 +83,6 @@ function trapFocus(e) {
 </script>
 
 <style scoped>
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(20,20,20,.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 16px;
-}
-.modal {
-  background: var(--canvas);
-  border-radius: 12px;
-  width: 460px;
-  max-width: 100%;
-  padding: 20px;
-  box-shadow: 0 8px 40px rgba(0,0,0,.18);
-  max-height: 90vh;
-  overflow: auto;
-}
-.modal h2 {
-  font-size: 15px;
-  margin: 0 0 6px;
-  font-weight: 650;
-}
 .help-section {
   margin: 12px 0;
   position: relative;

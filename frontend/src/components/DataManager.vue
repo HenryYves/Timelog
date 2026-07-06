@@ -183,57 +183,6 @@ async function onFileSelected(e) {
 </script>
 
 <style scoped>
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(20,20,20,.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 16px;
-}
-.modal {
-  background: var(--canvas);
-  border-radius: 12px;
-  width: 480px;
-  max-width: 100%;
-  padding: 20px;
-  box-shadow: 0 8px 40px rgba(0,0,0,.18);
-  max-height: 90vh;
-  overflow: auto;
-}
-.modal h2 {
-  font-size: 15px;
-  margin: 0 0 6px;
-  font-weight: 650;
-}
-.modal .sub {
-  color: var(--text2);
-  font-size: 12.5px;
-  margin-bottom: 10px;
-}
-.modal label {
-  display: block;
-  font-size: 12px;
-  color: var(--text2);
-  margin: 12px 0 5px;
-  font-weight: 600;
-}
-.modal input[type=date] {
-  font-family: inherit;
-  font-size: 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 9px 10px;
-  color: var(--text);
-  background: var(--soft);
-}
-.modal input:focus {
-  outline: none;
-  border-color: var(--blue);
-  background: var(--canvas);
-}
 .timerow {
   display: flex;
   align-items: center;
@@ -267,12 +216,6 @@ async function onFileSelected(e) {
   height: 1px;
   background: var(--border);
   margin: 16px 0;
-}
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 20px;
 }
 .spacer { flex: 1; }
 .small {

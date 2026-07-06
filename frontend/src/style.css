@@ -88,3 +88,54 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
 .small { font-size: 12px; color: var(--text2); }
 .divider { height: 1px; background: var(--border); margin: 16px 0; }
 .actions { display: flex; align-items: center; gap: 8px; margin-top: 20px; }
+
+/* Overlay & modal (shared across settings, tag manager, data manager, help, export) */
+.overlay {
+  position: fixed; inset: 0; background: rgba(20,20,20,.35);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50; padding: 16px;
+}
+.overlay[hidden] { display: none; }
+.modal {
+  background: var(--canvas); border-radius: 12px; width: 460px;
+  max-width: 100%; padding: 20px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.18); max-height: 90vh; overflow: auto;
+}
+.modal h2 { font-size: 15px; margin: 0 0 6px; font-weight: 650; }
+.modal .sub { color: var(--text2); font-size: 12.5px; margin-bottom: 10px; }
+.modal label { display: block; font-size: 12px; color: var(--text2); margin: 12px 0 5px; font-weight: 600; }
+.modal input[type=text], .modal textarea, .modal input[type=time], .modal input[type=date] {
+  width: 100%; font-family: inherit; font-size: 14px;
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 9px 10px; color: var(--text); background: var(--soft);
+}
+.modal textarea { min-height: 60px; resize: vertical; }
+.modal input:focus, .modal textarea:focus { outline: none; border-color: var(--blue); background: var(--canvas); }
+
+/* Tag row (tag manager, edit modal) */
+.tagrow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.tagrow input[type=color] {
+  width: 38px;
+  height: 34px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--canvas);
+  cursor: pointer;
+  flex: none;
+}
+.tagrow input[type=text] {
+  width: auto;
+}
+.tagrow .tn {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.tagrow .tg {
+  flex: 0 0 116px;
+}
