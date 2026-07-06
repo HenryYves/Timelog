@@ -259,12 +259,24 @@ function applyDrag() {
   if (!adrag.value) return
   const b = dragBounds()
   if (adrag.value.type === 'create') {
+    // Direct DOM update for instant ghost feedback during key-repeat
+    const ghost = document.querySelector('.ghost')
+    if (ghost) {
+      ghost.style.top = b.s * PX_MIN + 'px'
+      ghost.style.height = Math.max((b.en - b.s) * PX_MIN, 2) + 'px'
+    }
     ghostTop.value = b.s * PX_MIN
     ghostHeight.value = Math.max((b.en - b.s) * PX_MIN, 2)
   } else if (adrag.value.el) {
     adrag.value.el.style.top = b.s * PX_MIN + 'px'
     adrag.value.el.style.height = Math.max((b.en - b.s) * PX_MIN, 2) + 'px'
     adrag.value.el.classList.add('resizing')
+  }
+  // Direct DOM update for instant dlabel feedback
+  const dl = document.querySelector('.dlabel')
+  if (dl) {
+    dl.style.top = activeMin() * PX_MIN + 'px'
+    dl.textContent = `${fmt(b.s)} – ${fmt(b.en)}（${b.en - b.s}m，↑↓微调）`
   }
   dlabelTop.value = activeMin() * PX_MIN
   dlabelText.value = `${fmt(b.s)} – ${fmt(b.en)}（${b.en - b.s}m，↑↓微调）`
@@ -337,11 +349,14 @@ function onBlockMouseDown(e, ev) {
 }
 
 function onMouseMove(e) {
+  const newCur = yToMin(e.clientY)
   if (adrag.value) {
-    adrag.value.cur = yToMin(e.clientY)
-    applyDrag()
+    if (newCur !== adrag.value.cur) {
+      adrag.value.cur = newCur
+      applyDrag()
+    }
   }
-  lastHoverMin.value = yToMin(e.clientY)
+  lastHoverMin.value = newCur
   overGrid.value = true
 }
 
