@@ -134,17 +134,30 @@ const UPDATE_ENDPOINTS = [
   'https://github.com/HenryYves/timelog/releases/latest/download/latest.json',
 ]
 
-async function fetchRollout() {
+async function fetchLatestJson() {
   for (const url of UPDATE_ENDPOINTS) {
     try {
       const r = await fetch(url, { signal: AbortSignal.timeout(5000) })
       if (r.ok) {
         const json = await r.json()
-        return typeof json.rollout === 'number' ? json.rollout : null
+        return {
+          version: json.version || null,
+          rollout: typeof json.rollout === 'number' ? json.rollout : null,
+        }
       }
     } catch {}
   }
-  return null // both endpoints failed → default to full rollout
+  return null
+}
+
+function compareSemver(a, b) {
+  const pa = a.replace(/^v/, '').split('.').map(Number)
+  const pb = b.replace(/^v/, '').split('.').map(Number)
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) > (pb[i] || 0)) return 1
+    if ((pa[i] || 0) < (pb[i] || 0)) return -1
+  }
+  return 0
 }
 
 function isRolloutAllowed(version, rollout) {
@@ -446,7 +459,19 @@ async function checkForUpdate(isManual) {
   try {
     const metadata = await invoke('check_update')
     if (!metadata) {
-      if (isManual) toast('已是最新版本')
+      if (!isManual) return
+      // Manual check: try to tell user why
+      const latest = await fetchLatestJson()
+      if (latest?.version) {
+        const cmp = compareSemver(APP_VERSION, latest.version)
+        if (cmp > 0) {
+          toast('你的版本已经高于云端了，你还想怎么样嘛')
+        } else {
+          toast('已是最新版本')
+        }
+      } else {
+        toast('已是最新版本')
+      }
       return
     }
 
@@ -464,8 +489,8 @@ async function checkForUpdate(isManual) {
 
     // Rollout gate (skip for manual check)
     if (!isManual) {
-      const rollout = await fetchRollout()
-      if (!isRolloutAllowed(metadata.version, rollout)) return
+      const latest = await fetchLatestJson()
+      if (!isRolloutAllowed(metadata.version, latest?.rollout)) return
     }
 
     updateInfo.value = metadata
