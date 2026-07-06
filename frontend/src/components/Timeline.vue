@@ -261,6 +261,10 @@ function applyDrag() {
   if (adrag.value.type === 'create') {
     ghostTop.value = b.s * PX_MIN
     ghostHeight.value = Math.max((b.en - b.s) * PX_MIN, 2)
+  } else if (adrag.value.el) {
+    adrag.value.el.style.top = b.s * PX_MIN + 'px'
+    adrag.value.el.style.height = Math.max((b.en - b.s) * PX_MIN, 2) + 'px'
+    adrag.value.el.classList.add('resizing')
   }
   dlabelTop.value = activeMin() * PX_MIN
   dlabelText.value = `${fmt(b.s)} – ${fmt(b.en)}（${b.en - b.s}m，↑↓微调）`
@@ -269,12 +273,14 @@ function applyDrag() {
 function endDrag(commit) {
   if (!adrag.value) return
   const b = dragBounds()
-  const { type, id } = adrag.value
+  const { type, id, el } = adrag.value
   ghostTop.value = null
   ghostHeight.value = null
   dlabelTop.value = null
   dlabelText.value = ''
+  if (el) el.classList.remove('resizing')
   adrag.value = null
+  document.body.style.cursor = ''
   if (!commit) return
   if (type === 'create') {
     if (b.en - b.s < 3) return
@@ -317,12 +323,14 @@ function onBlockMouseDown(e, ev) {
   if (edge) {
     e.preventDefault()
     suppressClick.value = true
+    document.body.style.cursor = 'ns-resize'
     adrag.value = {
       type: 'resize',
       id: ev.id,
       edge,
       other: edge === 'start' ? ev.end : ev.start,
       cur: edge === 'start' ? ev.start : ev.end,
+      el: e.currentTarget,
     }
     applyDrag()
   }

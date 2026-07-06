@@ -1,5 +1,5 @@
 // ---------- Timeline ----------
-export const PX_MIN = 1.33
+export const PX_MIN = 1
 export const DAY_MIN = 1440
 export const EDGE = 6
 
