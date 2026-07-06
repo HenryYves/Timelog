@@ -12,7 +12,7 @@
 
       <!-- Idle: 4 buttons -->
       <div v-if="phase === 'idle'" class="update-actions">
-        <button class="primary" @click="onUpdateNow">{{ STR.update.now }}</button>
+        <button ref="nowBtn" class="primary" @click="onUpdateNow">{{ STR.update.now }}</button>
         <button @click="onExitUpdate">{{ STR.update.onExit }}</button>
         <button @click="onSkip">{{ STR.update.skip }}</button>
         <button @click="emit('close')">{{ STR.update.dismiss }}</button>
@@ -40,6 +40,7 @@
       <!-- Done -->
       <div v-if="phase === 'done'" class="update-done">
         <p>{{ STR.update.done }}</p>
+        <button @click="emit('close')" style="margin-top: 12px">{{ STR.btn.close }}</button>
       </div>
 
       <!-- Error -->
@@ -52,7 +53,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { Channel } from '@tauri-apps/api/core'
 import { STR } from '../strings.js'
@@ -67,7 +68,9 @@ const phase = ref('idle') // 'idle' | 'downloading' | 'installing' | 'done' | 'e
 const downloaded = ref(0)
 const contentLength = ref(null)
 const errorMessage = ref('')
+const nowBtn = ref(null)
 let cancelFlag = false
+let isDownloading = false
 
 const progressPct = computed(() => {
   if (!contentLength.value || contentLength.value === 0) return 0
@@ -79,6 +82,10 @@ function formatBytes(n) {
   if (n >= 1024) return (n / 1024).toFixed(0) + ' KB'
   return n + ' B'
 }
+
+watch(() => props.show, (val) => {
+  if (val) { setTimeout(() => nowBtn.value?.focus(), 50) }
+})
 
 function trapFocus(e) {
   if (e.key !== 'Tab') return
@@ -97,10 +104,12 @@ function trapFocus(e) {
 }
 
 async function startDownload() {
+  if (isDownloading) return false
   phase.value = 'downloading'
   downloaded.value = 0
   contentLength.value = null
   cancelFlag = false
+  isDownloading = true
 
   try {
     const channel = new Channel()
@@ -124,8 +133,10 @@ async function startDownload() {
   } catch (e) {
     if (cancelFlag) return false
     phase.value = 'error'
-    errorMessage.value = STR.update.downloadFailed + '：' + (e?.message || String(e))
+    errorMessage.value = `${STR.update.downloadFailed}：${e?.message || String(e)}`
     return false
+  } finally {
+    isDownloading = false
   }
 }
 
@@ -141,7 +152,7 @@ async function onUpdateNow() {
     phase.value = 'done'
   } catch (e) {
     phase.value = 'error'
-    errorMessage.value = STR.update.installFailed + '：' + (e?.message || String(e))
+    errorMessage.value = `${STR.update.installFailed}：${e?.message || String(e)}`
   }
 }
 
