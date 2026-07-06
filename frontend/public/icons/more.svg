@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="200" height="200">
+  <!-- 三组抽象时针-分针 · 配色 B: #69D2E7 / #E0E4CC / #FA6900 -->
+
+  <!-- 第1组 · 青 -->
+  <g transform="translate(171,512) scale(1.75)">
+    <circle cx="0" cy="0" r="28" fill="#69D2E7"/>
+    <rect x="-13" y="-100" width="26" height="100" rx="13" fill="#69D2E7" transform="rotate(-40)"/>
+    <rect x="-10" y="-155" width="20" height="155" rx="10" fill="#69D2E7" transform="rotate(35)"/>
+  </g>
+
+  <!-- 第2组 · 米 -->
+  <g transform="translate(512,512) scale(1.75)">
+    <circle cx="0" cy="0" r="28" fill="#E0E4CC"/>
+    <rect x="-13" y="-105" width="26" height="105" rx="13" fill="#E0E4CC" transform="rotate(-5)"/>
+    <rect x="-10" y="-160" width="20" height="160" rx="10" fill="#E0E4CC" transform="rotate(80)"/>
+  </g>
+
+  <!-- 第3组 · 橙 -->
+  <g transform="translate(853,512) scale(1.75)">
+    <circle cx="0" cy="0" r="28" fill="#FA6900"/>
+    <rect x="-13" y="-95" width="26" height="95" rx="13" fill="#FA6900" transform="rotate(30)"/>
+    <rect x="-10" y="-150" width="20" height="150" rx="10" fill="#FA6900" transform="rotate(-50)"/>
+  </g>
+</svg>

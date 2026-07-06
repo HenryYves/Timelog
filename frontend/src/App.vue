@@ -4,29 +4,35 @@
       <img src="/icons/logo.svg" class="logo" alt="">
       <h1>Timelog</h1>
       <div class="datenav">
-        <button @click="store.goPrevDay()">‹</button>
+        <button class="icon" @click="store.goPrevDay()">‹</button>
         <span class="date">{{ dateLabel }}</span>
-        <button @click="store.goNextDay()">›</button>
+        <button class="icon" @click="store.goNextDay()">›</button>
         <button @click="store.goToday()">今天</button>
       </div>
       <span class="spacer"></span>
       <span class="version">v0.3.0</span>
-      <div class="backup" v-if="bkStatusText">
-        <span class="dot" :class="bkStatusClass"></span>
-        <span>{{ bkStatusText }}</span>
+      <div class="more-wrap">
+        <button class="more-btn" id="moreBtn" title="更多" @click.stop="showMore = !showMore"><img src="/icons/more.svg" alt="更多"></button>
+        <div class="dropdown" :class="{ open: showMore }">
+          <div class="dropdown-item" @click="showSettings = true; showMore = false"><img src="/icons/settings.svg" alt="">设置</div>
+          <div class="dropdown-item" @click="showTagMgr = true; showMore = false"><img src="/icons/tag.svg" alt="">标签</div>
+          <div class="dropdown-item" @click="showExport = true; showMore = false"><img src="/icons/text-import.svg" alt="">文本导入</div>
+          <div class="dropdown-item" @click="doImport"><img src="/icons/import.svg" alt="">导入</div>
+          <div class="dropdown-item" @click="doExportJson"><img src="/icons/export.svg" alt="">导出备份</div>
+          <div class="dropdown-item" @click="showDataMgr = true; showMore = false"><img src="/icons/data.svg" alt="">管理数据</div>
+          <div class="dropdown-item" @click="doBackupNow"><img src="/icons/backup.svg" alt="">立即备份<span class="dot" :class="bkStatusClass"></span></div>
+          <div style="font-size:11px;color:var(--text2);padding:4px 12px 2px;">{{ bkStatusText }}</div>
+        </div>
       </div>
-      <button class="primary" id="exportBtn" title="导出" @click="showExport = true">导出文本</button>
-      <button class="icon" @click="showHelp = true" title="帮助">?</button>
-      <button class="icon" title="标签" @click="showTagMgr = true">🏷</button>
-      <button class="icon" title="数据管理" @click="showDataMgr = true">📊</button>
-      <button class="icon" id="settingsBtn" title="设置" @click="showSettings = true">⚙</button>
+      <button id="exportBtn" class="primary" @click="showExport = true">导出文本</button>
       <span class="win-ctrls" :class="{ on: winCtrlActive }" id="winCtrls">
-        <button class="win-btn" id="winMin" title="最小化" @click="onWinMin">─</button>
-        <button class="win-btn" id="winMax" :title="isMaximized ? '还原' : '最大化'" @click="onWinMax">{{ isMaximized ? '❐' : '□' }}</button>
-        <button class="win-btn close" id="winClose" title="关闭" @click="onWinClose">✕</button>
+        <button class="win-btn" id="winMin" title="最小化" @click="onWinMin"><img src="/icons/win-min.svg" alt=""></button>
+        <button class="win-btn" id="winMax" :title="isMaximized ? '还原' : '最大化'" @click="onWinMax"><img src="/icons/win-max.svg" alt=""></button>
+        <button class="win-btn close" id="winClose" title="关闭" @click="onWinClose"><img src="/icons/win-close.svg" alt=""></button>
       </span>
     </header>
-    <main>
+    <div class="hint">拖动时间轴创建记录，右键多选，<kbd>?</kbd> 查看操作指南</div>
+    <main id="scroller">
       <Timeline
         :modal-open="showModal"
         @edit-block="onEditBlock"
@@ -82,7 +88,7 @@ import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
 import {
   bkStatusText, bkStatusClass, setBackupPrefs,
-  initBackup, scheduleSave, scheduleClean,
+  initBackup, scheduleSave, scheduleClean, doAutoSave,
 } from './utils/backup.js'
 import Timeline from './components/Timeline.vue'
 import EditModal from './components/EditModal.vue'
@@ -103,6 +109,11 @@ const tagStore = useTagStore()
 
 const { toast } = useToast()
 const { confirmVisible, confirmMessage, confirmType, resolveConfirm } = useConfirm()
+
+// More dropdown
+const showMore = ref(false)
+
+function closeMore(e) { if (!e.target.closest('.more-wrap')) showMore.value = false }
 
 const dateLabel = computed(() => {
   const d = store.curDate
@@ -157,6 +168,67 @@ const showExport = ref(false)
 
 // Help panel state
 const showHelp = ref(false)
+
+// More dropdown actions
+function doImport() {
+  showMore.value = false
+  const input = document.createElement('input')
+  input.type = 'file'; input.accept = 'application/json,.json'
+  input.onchange = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+      if (data.days) {
+        Object.entries(data.days).forEach(([k, v]) => localStorage.setItem('timelog:' + k, JSON.stringify(v)))
+      } else if (data.blocks) {
+        const byDate = {}
+        data.blocks.forEach(b => {
+          const d = new Date(b.start * 60000)
+          const key = dkey(d)
+          if (!byDate[key]) byDate[key] = []
+          byDate[key].push(b)
+        })
+        Object.entries(byDate).forEach(([k, v]) => localStorage.setItem('timelog:' + k, JSON.stringify(v)))
+      }
+      store.loadBlocks()
+      toast('导入成功')
+    } catch { toast('导入失败：格式不正确') }
+  }
+  input.click()
+}
+
+async function doExportJson() {
+  showMore.value = false
+  const data = { version: 1, exported: new Date().toISOString(), days: {} }
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i)
+    if (k.startsWith('timelog:') && /^\d{4}-\d{2}-\d{2}$/.test(k.slice(7))) {
+      try { data.days[k.slice(7)] = JSON.parse(localStorage.getItem(k)) } catch {}
+    }
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'timelog-backup-' + dkey(new Date()) + '.json'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+async function doBackupNow() {
+  showMore.value = false
+  const T = window.__TAURI__
+  if (!T) {
+    toast('自动备份需桌面应用（Tauri）支持')
+    return
+  }
+  try {
+    await doAutoSave()
+    toast('已备份')
+  } catch { toast('备份失败') }
+}
 
 // Window controls
 const winCtrlActive = ref(settings.borderless)
@@ -281,6 +353,7 @@ onErrorCaptured((err, instance, info) => {
 onMounted(async () => {
   window.addEventListener('keydown', onWindowKeyDown)
   window.addEventListener('backup:restored', onBackupRestored)
+  document.addEventListener('click', closeMore)
 
   // Backup initialisation
   setBackupPrefs({
@@ -307,5 +380,6 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('keydown', onWindowKeyDown)
   window.removeEventListener('backup:restored', onBackupRestored)
+  document.removeEventListener('click', closeMore)
 })
 </script>
