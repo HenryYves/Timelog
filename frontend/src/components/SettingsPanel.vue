@@ -1,0 +1,216 @@
+<template>
+  <div v-if="show" class="overlay" @mousedown.self="emit('close')">
+    <div class="modal">
+      <h2>设置</h2>
+
+      <label>默认时长（分钟）</label>
+      <input type="number" id="setDuration" min="1" max="1440" style="width:80px;"
+        :value="settings.defaultDuration"
+        @change="onDurationChange">
+      <div class="small">按 <kbd>T</kbd> 键快速创建时默认时间块长度</div>
+
+      <div class="divider"></div>
+
+      <label class="switchrow">
+        <input type="checkbox" id="setAutoScroll"
+          :checked="settings.autoScroll"
+          @change="settings.setAutoScroll(($event.target).checked)">
+        <span>打开时滚到当前时间</span>
+      </label>
+
+      <div class="divider"></div>
+      <label style="margin-bottom:4px;">导出</label>
+
+      <label class="switchrow">
+        <input type="checkbox" id="setExportTimestamp"
+          :checked="settings.exportTimestamp"
+          @change="settings.setExportTimestamp(($event.target).checked)">
+        <span>文件名加时间戳</span>
+      </label>
+      <div class="small">例：timelog-backup-2026-07-04-1730.json</div>
+
+      <label class="switchrow">
+        <input type="checkbox" id="setExportDialog"
+          :checked="settings.exportDialog"
+          @change="settings.setExportDialog(($event.target).checked)">
+        <span>导出时弹出保存对话框</span>
+      </label>
+
+      <div class="divider"></div>
+
+      <label>
+        时间块透明度
+        <span style="font-weight:400;color:var(--text2);">{{ settings.blockOpacity }}%</span>
+      </label>
+      <input type="range" id="setOpacity" min="5" max="200"
+        :value="settings.blockOpacity"
+        @input="onOpacityInput"
+        style="width:100%;margin-top:4px;">
+
+      <label>备份路径</label>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+        <input type="text" id="bkPathInput"
+          :value="bkPathDraft"
+          @input="bkPathDraft = $event.target.value"
+          placeholder="默认（AppData）"
+          style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;"
+          :title="bkPathDraft">
+        <button type="button" style="flex:none;font-size:12px;" @click="onBkPathSave">保存</button>
+        <button type="button" style="flex:none;font-size:12px;" @click="onBkPathReset">恢复默认</button>
+      </div>
+      <div class="small">输入绝对路径，留空则使用 AppData</div>
+
+      <div class="divider"></div>
+
+      <label class="switchrow">
+        <input type="checkbox" id="setBorderless"
+          :checked="settings.borderless"
+          @change="onBorderlessChange">
+        <span>无边框窗口</span>
+      </label>
+      <div class="small">启用后隐藏原生标题栏，顶部右侧显示窗口控制按钮</div>
+
+      <div class="divider"></div>
+
+      <label class="switchrow">
+        <input type="checkbox" id="setBackup"
+          :checked="settings.backupOn"
+          @change="settings.setBackupOn(($event.target).checked)">
+        <span>启用自动备份（Tauri）</span>
+      </label>
+      <div class="small">关闭后不再自动写入备份文件，避免数据量大时影响性能；你仍可随时点「立即备份」手动保存。</div>
+
+      <div class="divider"></div>
+      <label>备份策略</label>
+      <div class="small">每天首次操作时，会把当前数据快照存为上一次日期的备份（timelog-backup-日期.json）；最多保留 4 个，超出自动删除最早的。</div>
+      <div class="divider"></div>
+      <label>只保留最近 N 天数据</label>
+      <input type="number" id="setKeepDays" min="0" max="3650" style="width:80px;" placeholder="0"
+        :value="settings.keepDays"
+        @change="onKeepDaysChange">
+      <div class="small">0 = 保留全部；设 7 则每天首次操作时自动删掉第 8 个及更早有数据的天，仅保留最近 7 个有数据的天。</div>
+
+      <div class="actions">
+        <span class="spacer"></span>
+        <button type="button" id="setClose" @click="emit('close')">关闭</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, watch } from 'vue'
+import { useSettingsStore } from '../store/settings.js'
+
+const props = defineProps({
+  show: Boolean,
+})
+const emit = defineEmits(['close'])
+
+const settings = useSettingsStore()
+
+const bkPathDraft = ref(settings.bkCustomPath)
+
+watch(() => props.show, (val) => {
+  if (val) {
+    bkPathDraft.value = settings.bkCustomPath
+  }
+})
+
+// Track maximize state for restore/maximize toggle
+let winMaxed = false
+
+function onDurationChange(e) {
+  settings.setDuration(e.target.value)
+  e.target.value = settings.defaultDuration
+}
+
+function onOpacityInput(e) {
+  settings.setBlockOpacity(e.target.value)
+}
+
+function onBorderlessChange(e) {
+  settings.setBorderless(e.target.checked)
+  applyBorderless(e.target.checked)
+}
+
+function onKeepDaysChange(e) {
+  settings.setKeepDays(e.target.value)
+  e.target.value = settings.keepDays
+}
+
+function applyBorderless(val) {
+  const el = document.getElementById('winCtrls')
+  if (el) {
+    if (val) {
+      el.classList.add('on')
+      document.body.classList.add('borderless')
+    } else {
+      el.classList.remove('on')
+      document.body.classList.remove('borderless')
+    }
+  }
+  const T = window.__TAURI__
+  if (T && T.window && T.window.getCurrentWindow) {
+    try {
+      T.window.getCurrentWindow().setDecorations(!val)
+    } catch (e) {
+      console.error('setDecorations failed:', e.message)
+    }
+  }
+}
+
+// Backup path helpers
+async function migrateBackups(oldPath, newPath) {
+  const T = window.__TAURI__
+  const TAURI = !!(T && T.core && T.core.invoke)
+  if (!TAURI || !oldPath || oldPath === newPath) return
+  try {
+    const oldDir = oldPath.replace(/\\/g, '/')
+    const files = await T.core.invoke('plugin:fs|read_dir', { path: oldDir, options: {} }).catch(() => [])
+    const bks = files.map(e => e.name).filter(n => /^timelog-backup-\d{4}-\d{2}-\d{2}\.json$/.test(n))
+    if (!bks.length) return
+    const nd = (newPath || '').replace(/\\/g, '/')
+    const enc = new TextEncoder()
+    const dec = new TextDecoder()
+    for (const f of bks) {
+      const arr = await T.core.invoke('plugin:fs|read_text_file', { path: oldDir + '/' + f, options: {} })
+      const text = dec.decode(arr instanceof ArrayBuffer ? new Uint8Array(arr) : Uint8Array.from(arr))
+      if (nd) {
+        await T.core.invoke('plugin:fs|mkdir', { path: nd, options: { recursive: true } })
+        await T.core.invoke('plugin:fs|write_text_file', enc.encode(text), {
+          headers: { path: encodeURIComponent(nd + '/' + f), options: '{}' },
+        })
+      } else {
+        const AD = 14
+        await T.core.invoke('plugin:fs|write_text_file', enc.encode(text), {
+          headers: { path: encodeURIComponent('timelog_data/' + f), options: JSON.stringify({ baseDir: AD }) },
+        })
+      }
+      await T.core.invoke('plugin:fs|remove', { path: oldDir + '/' + f, options: {} })
+    }
+    console.log('已迁移 ' + bks.length + ' 个备份文件')
+  } catch (e) {
+    console.error('migrate error', e)
+  }
+}
+
+async function onBkPathSave() {
+  const np = bkPathDraft.value.trim()
+  if (np === settings.bkCustomPath) return
+  const old = settings.bkCustomPath
+  settings.setBkCustomPath(np)
+  bkPathDraft.value = settings.bkCustomPath
+  await migrateBackups(old, np)
+}
+
+async function onBkPathReset() {
+  if (!settings.bkCustomPath) return
+  const ok = confirm('将备份位置恢复为默认（AppData），并迁移已有备份文件？')
+  if (!ok) return
+  const old = settings.bkCustomPath
+  settings.setBkCustomPath('')
+  bkPathDraft.value = ''
+  await migrateBackups(old, '')
+}
+</script>
