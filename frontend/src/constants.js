@@ -26,5 +26,5 @@ export const DEFAULT_CURSOR_CENTER = true
 
 // ---------- UI ----------
 export const APP_VERSION = 'v0.5.1'
-export const TOAST_DURATION = 1800
+export const TOAST_DURATION = 3000
 export const GUTTER_WIDTH = 56
