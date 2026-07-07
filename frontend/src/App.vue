@@ -11,15 +11,15 @@
       <span class="spacer"></span>
       <span class="version">{{ APP_VERSION }}</span>
       <div class="more-wrap">
-        <button class="more-btn" id="moreBtn" title="更多" @click.stop="showMore = !showMore"><img src="/icons/more.svg" alt="更多"></button>
-        <div class="dropdown" :class="{ open: showMore }">
-          <div class="dropdown-item" @click="showSettings = true; showMore = false"><img src="/icons/settings.svg" alt="">设置</div>
-          <div class="dropdown-item" @click="showTagMgr = true; showMore = false"><img src="/icons/tag.svg" alt="">标签</div>
-          <div class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><img src="/icons/text-import.svg" alt="">文本导入</div>
-          <div class="dropdown-item" @click="doImport"><img src="/icons/import.svg" alt="">导入</div>
-          <div class="dropdown-item" @click="doExportJson"><img src="/icons/export.svg" alt="">导出备份</div>
-          <div class="dropdown-item" @click="showDataMgr = true; showMore = false"><img src="/icons/data.svg" alt="">管理数据</div>
-          <div class="dropdown-item" @click="doBackupNow"><img src="/icons/backup.svg" alt="">立即备份<span class="dot" :class="bkStatusClass"></span></div>
+        <button class="more-btn" id="moreBtn" title="更多" @click="showMore = !showMore"><img src="/icons/more.svg" alt="更多"></button>
+        <div class="dropdown" :class="{ open: showMore }" @keydown.escape.stop="showMore = false">
+          <button class="dropdown-item" @click="showSettings = true; showMore = false"><img src="/icons/settings.svg" alt="">设置</button>
+          <button class="dropdown-item" @click="showTagMgr = true; showMore = false"><img src="/icons/tag.svg" alt="">标签</button>
+          <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><img src="/icons/text-import.svg" alt="">文本导入</button>
+          <button class="dropdown-item" @click="doImport; showMore = false"><img src="/icons/import.svg" alt="">导入</button>
+          <button class="dropdown-item" @click="doExportJson; showMore = false"><img src="/icons/export.svg" alt="">导出备份</button>
+          <button class="dropdown-item" @click="showDataMgr = true; showMore = false"><img src="/icons/data.svg" alt="">管理数据</button>
+          <button class="dropdown-item" @click="doBackupNow; showMore = false"><img src="/icons/backup.svg" alt="">立即备份<span class="dot" :class="bkStatusClass"></span></button>
           <div style="font-size:11px;color:var(--text2);padding:4px 12px 2px;">{{ bkStatusText }}</div>
         </div>
       </div>
@@ -133,6 +133,7 @@ const exportMode = ref('export')
 
 // More dropdown
 const showMore = ref(false)
+const showMoreClose = useModal(showMore)
 
 function closeMore(e) { if (!e.target.closest('.more-wrap')) showMore.value = false }
 
@@ -188,7 +189,6 @@ function focusTopModal() {
 }
 
 function pushModal(close) {
-  showMore.value = false
   modalStack.value.push(close)
   focusTopModal()
 }
@@ -250,7 +250,6 @@ const batchCreateClose = useModal(showBatchCreate)
 
 // More dropdown actions
 function doImport() {
-  showMore.value = false
   const input = document.createElement('input')
   input.type = 'file'; input.accept = 'application/json,.json'
   input.onchange = async (e) => {
@@ -272,7 +271,6 @@ function doImport() {
 }
 
 async function doExportJson() {
-  showMore.value = false
   let tags = []
   try { tags = JSON.parse(localStorage.getItem('timelog:tags')) || [] } catch {}
   const data = { version: 2, exported: new Date().toISOString(), tags, days: {} }
@@ -307,7 +305,6 @@ async function doExportJson() {
 }
 
 async function doBackupNow() {
-  showMore.value = false
   const T = window.__TAURI__
   if (!T) {
     toast(STR.toast.backupTauriOnly)
@@ -400,8 +397,7 @@ function applyBorderless() {
 function onWindowKeyDown(e) {
   // Escape: close topmost visible overlay / clear selection
   if (e.key === 'Escape') {
-    if (confirmVisible) { e.preventDefault(); resolveConfirm(false); return }
-    if (showMore.value) { e.preventDefault(); showMore.value = false; return }
+    if (confirmVisible.value) { e.preventDefault(); resolveConfirm(false); return }
     if (modalStack.value.length > 0) { e.preventDefault(); modalStack.value.pop()(); return }
     return
   }
@@ -435,7 +431,6 @@ function onWindowKeyDown(e) {
     const duration = settings.defaultDuration
     editingBlock.value = null
     createTimes.value = { start: s, end: Math.min(s + duration, 1440) }
-    showMore.value = false
     showModal.value = true
   }
   if (e.key === 'n' || e.key === 'N') {
@@ -511,7 +506,6 @@ async function checkForUpdate(isManual) {
 
 function onCheckUpdateResult(metadata) {
   updateInfo.value = metadata
-  showMore.value = false
   showUpdate.value = true
 }
 
