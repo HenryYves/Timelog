@@ -13,9 +13,15 @@ Tauri v2 桌面应用，Vue 3 + Vite + Pinia 前端，Rust 后端。
 
 ## 发布
 
-1. 版本号同步：`frontend/src/constants.js`（APP_VERSION）、`src-tauri/tauri.conf.json`（version）、`src-tauri/Cargo.toml`（version）
+1. 版本号同步 5 个文件：`frontend/src/constants.js`、`frontend/package.json`、`package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`
 2. 设置签名：`$env:TAURI_SIGNING_PRIVATE_KEY` + `$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
 3. `npm run tauri build`
-4. 读 `src-tauri/target/release/bundle/nsis/timelog_x.x.x_x64-setup.exe.sig`，更新 `latest.json` 签名
-5. Gitee + GitHub Release 各传 `.exe`
-6. `git add -f latest.json && git commit -m "release: vX.X.X" && git push`
+4. 读 `src-tauri/target/release/bundle/msi/timelog_x.x.x_x64_en-US.msi.sig`，更新 `latest.json` 签名，url 用 `.msi`
+5. Gitee + GitHub Release 各传 `.msi`
+6. `git add -f latest.json && git commit -m "发布 vX.X.X" && git push`
+
+## 行为约束
+
+- **改前必问** — 任何 Write / Edit / Bash 改文件 / git checkout / git revert 都必须先说方案、等用户明确同意（"行"/"OK"/"可以"）
+- 永远用中文 commit message
+- 遇到 bug → 先拿用户输入 trace 代码 → 诊断 → 讨论方案 → 再改
