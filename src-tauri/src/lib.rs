@@ -97,8 +97,8 @@ async fn download_update(
     let version = update.version.clone();
 
     let urls = [
-        format!("https://gitee.com/Henry_Yves/timelog/releases/download/v{0}/timelog_{0}_x64-setup.exe", version),
-        format!("https://github.com/HenryYves/Timelog/releases/download/v{0}/timelog_{0}_x64-setup.exe", version),
+        format!("https://gitee.com/Henry_Yves/timelog/releases/download/v{0}/timelog_{0}_x64_en-US.msi", version),
+        format!("https://github.com/HenryYves/Timelog/releases/download/v{0}/timelog_{0}_x64_en-US.msi", version),
     ];
 
     let mut last_err = String::new();
