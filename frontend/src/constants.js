@@ -25,7 +25,7 @@ export const DEFAULT_AUTO_UPDATE = false
 export const DEFAULT_CURSOR_CENTER = true
 
 // ---------- UI ----------
-export const APP_VERSION = 'v0.5.1'
+export const APP_VERSION = 'v0.5.2'
 export const TOAST_DURATION = 3000
 
 export function compareSemver(a, b) {
