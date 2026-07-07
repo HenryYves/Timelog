@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useTimelogStore, dkey } from '../store/timelog.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
@@ -34,6 +34,7 @@ const { showConfirm } = useConfirm()
 const { toast } = useToast()
 
 const text = ref('')
+watch(() => props.show, (v) => { if (v) text.value = '' })
 const ta = ref(null)
 const modalEl = ref(null)
 
