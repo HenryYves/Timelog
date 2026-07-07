@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="emit('close')">
-    <div class="modal" @keydown="trapFocus">
+    <div class="modal" ref="modalEl" @keydown="trapFocus">
       <h2>{{ editingBlock ? '编辑时间块' : '记录时间块' }}</h2>
 
       <label>做了什么</label>
@@ -100,6 +100,7 @@ const mEnd = ref('')
 const selectedTags = ref([])
 const notePreview = ref('')
 const mTagsRef = ref(null)
+const modalEl = ref(null)
 
 // Populate form when modal opens
 watch(
@@ -208,7 +209,13 @@ function save() {
 
 async function onCancel() {
   const confirmed = await showConfirm(STR.confirm.discardEdit)
-  if (confirmed) emit('close')
+  if (confirmed) {
+    emit('close')
+  } else {
+    await nextTick()
+    const first = modalEl.value?.querySelector('button, input:not([disabled])')
+    if (first) first.focus()
+  }
 }
 
 // Delete with confirmation
