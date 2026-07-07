@@ -174,68 +174,52 @@ const dateLabel = computed(() => {
 // ── Modal stack ──
 const modalStack = ref([])
 function pushModal(close) { showMore.value = false; modalStack.value.push(close) }
-function popModal(close) { const i = modalStack.value.lastIndexOf(close); if (i !== -1) modalStack.value.splice(i, 1) }
+function useModal(showRef, onClose) {
+  const close = () => { showRef.value = false; if (onClose) onClose() }
+  watch(showRef, (v) => {
+    if (v) pushModal(close)
+    else { const i = modalStack.value.lastIndexOf(close); if (i !== -1) modalStack.value.splice(i, 1) }
+  })
+  return close
+}
 
-// EditModal state
+// EditModal
 const showModal = ref(false)
 const editingBlock = ref(null)
 const createTimes = ref(null)
+const editClose = useModal(showModal, () => { editingBlock.value = null; createTimes.value = null })
+function onEditBlock(block) { editingBlock.value = block; createTimes.value = null; showModal.value = true }
+function onCreateBlock(start, end) { editingBlock.value = null; createTimes.value = { start, end }; showModal.value = true }
+function closeModal() { editClose() }
+function onManageTags() { showTagMgr.value = true }
 
-watch(showModal, (v) => { if (v) pushModal(closeModal); else popModal(closeModal) })
-
-function onEditBlock(block) {
-  editingBlock.value = block
-  createTimes.value = null
-  showModal.value = true
-}
-
-function onCreateBlock(start, end) {
-  editingBlock.value = null
-  createTimes.value = { start, end }
-  showModal.value = true
-}
-
-function closeModal() {
-  showModal.value = false
-  editingBlock.value = null
-  createTimes.value = null
-}
-
-function onManageTags() {
-  showTagMgr.value = true
-}
-
-// Tag manager state
+// Tag manager
 const showTagMgr = ref(false)
-function onTagMgrSaved() {
-  store.loadBlocks()
-}
-watch(showTagMgr, (v) => { if (v) pushModal(() => showTagMgr.value = false); else popModal(() => showTagMgr.value = false) })
+const tagMgrClose = useModal(showTagMgr)
+function onTagMgrSaved() { store.loadBlocks() }
 
-// Data manager state
+// Data manager
 const showDataMgr = ref(false)
-function onDataMgrChanged() {
-  store.loadBlocks()
-}
-watch(showDataMgr, (v) => { if (v) pushModal(() => showDataMgr.value = false); else popModal(() => showDataMgr.value = false) })
+const dataMgrClose = useModal(showDataMgr)
+function onDataMgrChanged() { store.loadBlocks() }
 
-// Settings state
+// Settings
 const showSettings = ref(false)
-watch(showSettings, (v) => { if (v) pushModal(() => showSettings.value = false); else popModal(() => showSettings.value = false) })
+const settingsClose = useModal(showSettings)
 
-// Export panel state
+// Export
 const showExport = ref(false)
 const jsonImportData = ref(null)
-watch(showExport, (v) => { if (v) pushModal(() => { showExport.value = false; jsonImportData.value = null }); else popModal(() => { showExport.value = false; jsonImportData.value = null }) })
+const exportClose = useModal(showExport, () => { jsonImportData.value = null })
 
-// Help panel state
+// Help
 const showHelp = ref(false)
-watch(showHelp, (v) => { if (v) pushModal(() => showHelp.value = false); else popModal(() => showHelp.value = false) })
+const helpClose = useModal(showHelp)
 
-// Update dialog state
+// Update dialog
 const showUpdate = ref(false)
 const updateInfo = ref(null)
-watch(showUpdate, (v) => { if (v) pushModal(() => showUpdate.value = false); else popModal(() => showUpdate.value = false) })
+const updateClose = useModal(showUpdate)
 
 // More dropdown actions
 function doImport() {
