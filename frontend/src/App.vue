@@ -93,6 +93,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, onErrorCaptured } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { tExport } from './utils/tauri.js'
+import { save } from '@tauri-apps/plugin-dialog'
 import { useTimelogStore, dkey } from './store/timelog.js'
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
@@ -262,6 +263,18 @@ async function doExportJson() {
   }
   filename += '.json'
   const json = JSON.stringify(data, null, 2)
+  if (settings.exportDialog) {
+    const filePath = await save({
+      defaultPath: filename,
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    })
+    if (!filePath) return // user cancelled
+    try {
+      await window.__TAURI__.fs.writeTextFile(filePath, json)
+      toast('已导出到：' + filePath)
+    } catch { toast(STR.toast.backupFail) }
+    return
+  }
   const ok = await tExport(filename, json)
   if (ok) toast('已导出到下载目录：' + filename)
   else toast(STR.toast.backupFail)
