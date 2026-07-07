@@ -174,6 +174,13 @@ const dateLabel = computed(() => {
 // ── Modal stack ──
 const modalStack = ref([])
 function pushModal(close) { showMore.value = false; modalStack.value.push(close) }
+watch(() => modalStack.value.length, () => {
+  nextTick(() => {
+    const modals = [...document.querySelectorAll('.overlay .modal')].filter(m => m.offsetParent !== null)
+    const top = modals[modals.length - 1]
+    if (top) { const el = top.querySelector('button, input:not([disabled])'); if (el) el.focus() }
+  })
+})
 function useModal(showRef, onClose) {
   const close = () => { showRef.value = false; if (onClose) onClose() }
   watch(showRef, (v) => {
