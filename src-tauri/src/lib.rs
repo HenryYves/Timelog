@@ -110,7 +110,7 @@ async fn download_update(
                 let total = resp.content_length();
                 let _ = on_event.send(DownloadEvent::Started { content_length: total });
 
-                let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
+                let bytes = resp.bytes().await.map_err(|e| e.to_string())?.to_vec();
                 let _ = on_event.send(DownloadEvent::Progress { chunk_length: bytes.len() });
                 let _ = on_event.send(DownloadEvent::Finished);
 
