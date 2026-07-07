@@ -155,6 +155,8 @@ pub fn run() {
             // Handle exit-time install
             let handle = app.handle().clone();
             if let Some(window) = app.get_webview_window("main") {
+                // Show window after state restoration to avoid flash
+                let _ = window.show();
                 window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                         let pending = handle.state::<PendingUpdate>();
