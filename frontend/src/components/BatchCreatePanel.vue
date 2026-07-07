@@ -34,7 +34,7 @@ const { showConfirm } = useConfirm()
 const { toast } = useToast()
 
 const text = ref('')
-watch(() => props.show, (v) => { if (v) text.value = '' }, { immediate: true })
+watch(() => props.show, (v) => { if (v) text.value = '' })
 const ta = ref(null)
 const modalEl = ref(null)
 
@@ -43,43 +43,21 @@ const parsed = computed(() => {
   const raw = text.value
   if (!raw.trim()) return []
 
-  // Split by --- lines (standalone, with optional surrounding whitespace)
-  const chunks = raw.split(/\n\s*---\s*(?:\n|$)/)
+  // Split by --- lines; trailing blank lines are consumed by the separator
+  const chunks = raw.split(/\n[ \t]*---[ \t]*\n/)
   return chunks.map(parseChunk).filter(b => b)
 })
-
-const RE_TIME = /^(\d{2})(\d{2})\s+(\d{2})(\d{2})$/
 
 function parseChunk(chunk) {
   const lines = chunk.split('\n')
   if (!lines.length) return null
 
-  // Content-based detection: each non-empty line is classified by pattern.
-  //   time pattern → time, comma → tags, first otherwise → title.
-  // Note starts after the last recognised metadata line.
-  let title = STR.batchCreate.defaultTitle
-  let tags = []
-  let timeStr = ''
-  let metaEnd = -1
-
-  for (let i = 0; i < lines.length; i++) {
-    const s = lines[i].trim()
-    if (!s) continue
-    if (!timeStr && RE_TIME.test(s)) {
-      timeStr = s
-      metaEnd = i
-    } else if (s.includes(',')) {
-      const parts = s.split(',').map(t => t.trim()).filter(Boolean)
-      if (parts.length) { tags = parts; metaEnd = i }
-    } else if (title === STR.batchCreate.defaultTitle) {
-      title = s
-      metaEnd = i
-    }
-  }
-
-  const note = metaEnd >= 0
-    ? lines.slice(metaEnd + 1).join('\n').trimEnd()
-    : ''
+  const title = (lines[0] || '').trim() || STR.batchCreate.defaultTitle
+  const tags = lines.length > 1
+    ? lines[1].split(',').map(t => t.trim()).filter(Boolean)
+    : []
+  const timeStr = lines.length > 2 ? (lines[2] || '').trim() : ''
+  const note = lines.length > 3 ? lines.slice(3).join('\n').trimEnd() : ''
 
   let start, end
   if (timeStr) {
