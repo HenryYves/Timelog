@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="onCancel">
+  <div v-if="show" class="overlay" @mousedown.self="emit('close')">
     <div class="modal" ref="modalEl" @keydown="trapFocus">
       <h2>管理标签</h2>
       <div class="sub">点左侧色块自定义颜色；相同"分组"的标签会归类显示（如"很自律"与"自律"放同一组）。</div>

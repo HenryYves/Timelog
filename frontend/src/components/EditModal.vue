@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="onCancel">
+  <div v-if="show" class="overlay" @mousedown.self="emit('close')">
     <div class="modal" ref="modalEl" @keydown="trapFocus">
       <h2>{{ editingBlock ? '编辑时间块' : '记录时间块' }}</h2>
 
