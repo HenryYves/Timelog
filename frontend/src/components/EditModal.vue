@@ -64,7 +64,7 @@
         <button v-show="!!editingBlock" class="del" @click="deleteBlock">删除</button>
         <button v-show="!!editingBlock" @click="copyBlock">复制</button>
         <span class="spacer"></span>
-        <button @click="emit('close')">取消</button>
+        <button @click="onCancel">取消</button>
         <button class="primary" @click="save">保存</button>
       </div>
     </div>
@@ -204,6 +204,11 @@ function save() {
   if (props.editingBlock) timelogStore.updateBlock(rec)
   else timelogStore.addBlock(rec)
   emit('close')
+}
+
+async function onCancel() {
+  const confirmed = await showConfirm(STR.confirm.discardEdit)
+  if (confirmed) emit('close')
 }
 
 // Delete with confirmation
