@@ -92,6 +92,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, onErrorCaptured } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { tExport, isTauri } from './utils/tauri.js'
 import { useTimelogStore, dkey } from './store/timelog.js'
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
@@ -260,7 +261,14 @@ async function doExportJson() {
     filename += '-' + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0')
   }
   filename += '.json'
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const json = JSON.stringify(data, null, 2)
+  if (isTauri()) {
+    const ok = await tExport(filename, json)
+    if (ok) toast('已导出到下载目录：' + filename)
+    else toast(STR.toast.backupFail)
+    return
+  }
+  const blob = new Blob([json], { type: 'application/json' })
   if (settings.exportDialog && typeof window.showSaveFilePicker === 'function') {
     try {
       const h = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] })

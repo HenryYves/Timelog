@@ -68,6 +68,14 @@ export async function tReadDir(dir) {
   } catch (e) { logger.error('tauri', 'tReadDir failed', e); return [] }
 }
 
+export async function tExport(name, text) {
+  if (!TAURI) return false
+  try {
+    await TAURI.fs.writeTextFile(name, text, { baseDir: TAURI.fs.BaseDirectory.Download })
+    return true
+  } catch (e) { logger.error('tauri', 'tExport failed', e); return false }
+}
+
 export async function tRemove(name) {
   if (!TAURI) return
   try {
