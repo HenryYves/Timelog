@@ -171,10 +171,17 @@ const dateLabel = computed(() => {
   return d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日 ' + wd
 })
 
+// ── Modal stack ──
+const modalStack = ref([])
+function pushModal(close) { showMore.value = false; modalStack.value.push(close) }
+function popModal(close) { const i = modalStack.value.lastIndexOf(close); if (i !== -1) modalStack.value.splice(i, 1) }
+
 // EditModal state
 const showModal = ref(false)
 const editingBlock = ref(null)
 const createTimes = ref(null)
+
+watch(showModal, (v) => { if (v) pushModal(closeModal); else popModal(closeModal) })
 
 function onEditBlock(block) {
   editingBlock.value = block
@@ -203,24 +210,32 @@ const showTagMgr = ref(false)
 function onTagMgrSaved() {
   store.loadBlocks()
 }
+watch(showTagMgr, (v) => { if (v) pushModal(() => showTagMgr.value = false); else popModal(() => showTagMgr.value = false) })
 
 // Data manager state
 const showDataMgr = ref(false)
 function onDataMgrChanged() {
   store.loadBlocks()
 }
+watch(showDataMgr, (v) => { if (v) pushModal(() => showDataMgr.value = false); else popModal(() => showDataMgr.value = false) })
 
 // Settings state
 const showSettings = ref(false)
+watch(showSettings, (v) => { if (v) pushModal(() => showSettings.value = false); else popModal(() => showSettings.value = false) })
 
 // Export panel state
 const showExport = ref(false)
 const jsonImportData = ref(null)
+watch(showExport, (v) => { if (v) pushModal(() => { showExport.value = false; jsonImportData.value = null }); else popModal(() => { showExport.value = false; jsonImportData.value = null }) })
 
 // Help panel state
 const showHelp = ref(false)
+watch(showHelp, (v) => { if (v) pushModal(() => showHelp.value = false); else popModal(() => showHelp.value = false) })
+
+// Update dialog state
 const showUpdate = ref(false)
 const updateInfo = ref(null)
+watch(showUpdate, (v) => { if (v) pushModal(() => showUpdate.value = false); else popModal(() => showUpdate.value = false) })
 
 // More dropdown actions
 function doImport() {
@@ -376,14 +391,7 @@ function onWindowKeyDown(e) {
   if (e.key === 'Escape') {
     if (confirmVisible) { e.preventDefault(); resolveConfirm(false); return }
     if (showMore.value) { e.preventDefault(); showMore.value = false; return }
-    if (showModal.value) { e.preventDefault(); closeModal(); return }
-    if (showUpdate.value) { e.preventDefault(); showUpdate.value = false; return }
-    if (showSettings.value) { e.preventDefault(); showSettings.value = false; return }
-    if (showExport.value) { e.preventDefault(); showExport.value = false; jsonImportData.value = null; return }
-    if (showHelp.value) { e.preventDefault(); showHelp.value = false; return }
-    if (showTagMgr.value) { e.preventDefault(); showTagMgr.value = false; return }
-    if (showDataMgr.value) { e.preventDefault(); showDataMgr.value = false; return }
-    // Not in a modal — let Timeline's handler clear selection
+    if (modalStack.value.length > 0) { e.preventDefault(); modalStack.value.pop()(); return }
     return
   }
 
@@ -396,7 +404,7 @@ function onWindowKeyDown(e) {
   }
 
   // If any modal is open, ignore the rest
-  if (showModal.value || showUpdate.value || showSettings.value || showExport.value || showHelp.value || showTagMgr.value || showDataMgr.value) return
+  if (modalStack.value.length > 0) return
 
   const tag = e.target.tagName
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
