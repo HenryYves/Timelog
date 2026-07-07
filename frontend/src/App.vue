@@ -183,7 +183,7 @@ function focusTopModal() {
   nextTick(() => {
     const m = document.querySelectorAll('.overlay .modal')
     const top = [...m].filter(el => el.offsetParent !== null).pop()
-    top?.querySelector('button, input:not([disabled])')?.focus()
+    top?.querySelector('button:not([disabled]), input:not([disabled]), textarea:not([disabled])')?.focus()
   })
 }
 
