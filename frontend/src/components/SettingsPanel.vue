@@ -157,7 +157,7 @@ watch(() => props.show, (val) => {
   if (val) {
     bkPathDraft.value = settings.bkCustomPath
   }
-})
+}, { immediate: true })
 
 // Track maximize state for restore/maximize toggle
 let winMaxed = false

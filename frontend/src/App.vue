@@ -39,6 +39,7 @@
       />
     </main>
     <EditModal
+      v-if="showModal"
       :show="showModal"
       :editing-block="editingBlock"
       :create-times="createTimes"
@@ -46,22 +47,26 @@
       @manage-tags="onManageTags"
     />
     <SettingsPanel
+      v-if="showSettings"
       :show="showSettings"
       @close="showSettings = false"
       @check-update-result="onCheckUpdateResult"
     />
     <ExportPanel
+      v-if="showExport"
       :show="showExport"
       :mode="exportMode"
       :json-import-data="jsonImportData"
       @close="showExport = false; jsonImportData = null"
     />
     <TagManager
+      v-if="showTagMgr"
       :show="showTagMgr"
       @close="showTagMgr = false"
       @saved="onTagMgrSaved"
     />
     <DataManager
+      v-if="showDataMgr"
       :show="showDataMgr"
       @close="showDataMgr = false"
       @changed="onDataMgrChanged"
@@ -77,16 +82,19 @@
       @confirm="resolveConfirm(true)"
     />
     <HelpPanel
+      v-if="showHelp"
       :show="showHelp"
       @close="showHelp = false"
     />
     <UpdateDialog
+      v-if="showUpdate"
       :show="showUpdate"
       :update-info="updateInfo"
       @close="showUpdate = false"
       @will-install-on-exit="onWillInstallOnExit"
     />
     <BatchCreatePanel
+      v-if="showBatchCreate"
       :show="showBatchCreate"
       @close="showBatchCreate = false"
     />

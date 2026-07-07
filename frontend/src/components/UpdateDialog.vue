@@ -85,7 +85,7 @@ function formatBytes(n) {
 
 watch(() => props.show, (val) => {
   if (val) { setTimeout(() => nowBtn.value?.focus(), 50) }
-})
+}, { immediate: true })
 
 function trapFocus(e) {
   if (e.key !== 'Tab') return

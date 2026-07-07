@@ -113,7 +113,7 @@ watch(() => props.show, (val) => {
     toDate.value = ''
     loadDays()
   }
-})
+}, { immediate: true })
 
 function refocusModal() { modalEl.value?.querySelector('button')?.focus() }
 

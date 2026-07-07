@@ -34,7 +34,7 @@ const { showConfirm } = useConfirm()
 const { toast } = useToast()
 
 const text = ref('')
-watch(() => props.show, (v) => { if (v) text.value = '' })
+watch(() => props.show, (v) => { if (v) text.value = '' }, { immediate: true })
 const ta = ref(null)
 const modalEl = ref(null)
 

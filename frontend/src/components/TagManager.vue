@@ -65,7 +65,7 @@ watch(() => props.show, (val) => {
   tagDraft.value = tagStore.tags.map(t => ({ ...t }))
   origNames.value = tagStore.tags.map(t => t.name)
   deletedNames.value = new Set()
-})
+}, { immediate: true })
 
 function onAddTag() {
   tagDraft.value.push({ name: '', color: '#4C9AE0', group: '' })

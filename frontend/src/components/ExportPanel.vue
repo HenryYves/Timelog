@@ -138,7 +138,7 @@ watch(() => props.show, (val) => {
     importMode.value = 'merge'
     importPreview.value = null
   }
-})
+}, { immediate: true })
 
 async function copyText() {
   try {
@@ -329,7 +329,7 @@ watch(() => [props.mode, props.jsonImportData], ([mode, data]) => {
     jsonTimeTo.value = ''
     jsonImportSummary.value = buildJsonImportSummary(data)
   }
-})
+}, { immediate: true })
 </script>
 
 <style scoped>

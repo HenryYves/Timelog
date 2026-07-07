@@ -126,6 +126,7 @@ watch(
       if (el) el.focus()
     })
   },
+  { immediate: true },
 )
 
 // Tag grouping
