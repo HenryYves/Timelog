@@ -173,19 +173,30 @@ const dateLabel = computed(() => {
 
 // ── Modal stack ──
 const modalStack = ref([])
-function pushModal(close) { showMore.value = false; modalStack.value.push(close) }
-watch(() => modalStack.value.length, () => {
+
+function focusTopModal() {
   nextTick(() => {
-    const modals = [...document.querySelectorAll('.overlay .modal')].filter(m => m.offsetParent !== null)
-    const top = modals[modals.length - 1]
-    if (top) { const el = top.querySelector('button, input:not([disabled])'); if (el) el.focus() }
+    const m = document.querySelectorAll('.overlay .modal')
+    const top = [...m].filter(el => el.offsetParent !== null).pop()
+    top?.querySelector('button, input:not([disabled])')?.focus()
   })
-})
+}
+
+function pushModal(close) {
+  showMore.value = false
+  modalStack.value.push(close)
+  focusTopModal()
+}
+
 function useModal(showRef, onClose) {
   const close = () => { showRef.value = false; if (onClose) onClose() }
   watch(showRef, (v) => {
-    if (v) pushModal(close)
-    else { const i = modalStack.value.lastIndexOf(close); if (i !== -1) modalStack.value.splice(i, 1) }
+    if (v) { pushModal(close) }
+    else {
+      const i = modalStack.value.lastIndexOf(close)
+      if (i !== -1) modalStack.value.splice(i, 1)
+      focusTopModal()
+    }
   })
   return close
 }
