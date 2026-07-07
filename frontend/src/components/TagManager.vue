@@ -17,8 +17,8 @@
 
       <div class="actions">
         <span class="spacer"></span>
-        <button @click="onCancel">取消</button>
         <button class="primary" @click="onSave">保存</button>
+        <button @click="onCancel">取消</button>
       </div>
     </div>
   </div>

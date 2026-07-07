@@ -64,8 +64,8 @@
         <button v-show="!!editingBlock" class="del" @click="deleteBlock">删除</button>
         <button v-show="!!editingBlock" @click="copyBlock">复制</button>
         <span class="spacer"></span>
-        <button @click="onCancel">取消</button>
         <button class="primary" @click="save">保存</button>
+        <button @click="onCancel">取消</button>
       </div>
     </div>
   </div>

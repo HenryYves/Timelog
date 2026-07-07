@@ -37,8 +37,8 @@
 
         <div class="actions">
           <span class="spacer"></span>
-          <button type="button" @click="emit('close')">取消</button>
           <button type="button" class="primary" @click="confirmImport">确认导入</button>
+          <button type="button" @click="emit('close')">取消</button>
         </div>
       </template>
 
@@ -65,8 +65,8 @@
 
         <div class="actions">
           <span class="spacer"></span>
-          <button type="button" @click="cancelJsonImport">取消</button>
           <button type="button" class="primary" @click="confirmJsonImport">确认导入</button>
+          <button type="button" @click="cancelJsonImport">取消</button>
         </div>
       </template>
 
