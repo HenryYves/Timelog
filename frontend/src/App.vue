@@ -561,6 +561,9 @@ onMounted(async () => {
   watch(() => settings.keepDays, (v) => setBackupPrefs({ keepDays: v }))
   watch(() => settings.borderless, () => applyBorderless())
 
+  // When ConfirmDialog closes, return focus to top modal
+  watch(confirmVisible, (v) => { if (!v) focusTopModal() })
+
   // Watch data changes → trigger auto-save / clean
   watch(() => store.blocks, onDataChanged, { deep: true })
   watch(() => tagStore.tags, onDataChanged, { deep: true })

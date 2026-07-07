@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="overlay" @mousedown.self="emit('close')">
+  <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="emit('close')">
     <div class="modal" ref="modalEl" @keydown="trapFocus">
       <h2>设置</h2>
 
