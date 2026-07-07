@@ -90,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, onErrorCaptured } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, onErrorCaptured, nextTick } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { tExport } from './utils/tauri.js'
 import { save } from '@tauri-apps/plugin-dialog'
