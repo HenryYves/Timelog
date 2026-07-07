@@ -40,8 +40,8 @@ const modalEl = ref(null)
 
 // Parse text into blocks
 const parsed = computed(() => {
-  const raw = text.value.trim()
-  if (!raw) return []
+  const raw = text.value
+  if (!raw.trim()) return []
 
   // Split by --- lines (standalone, with optional surrounding whitespace)
   const chunks = raw.split(/\n\s*---\s*(?:\n|$)/)
@@ -50,14 +50,19 @@ const parsed = computed(() => {
 
 function parseChunk(chunk) {
   const lines = chunk.split('\n')
-  if (!lines.length) return null
 
-  const title = (lines[0] || '').trim() || STR.batchCreate.defaultTitle
-  const tags = lines.length > 1
-    ? lines[1].split(',').map(t => t.trim()).filter(Boolean)
+  // Skip leading empty lines so blank title doesn't shift everything
+  let i = 0
+  while (i < lines.length && !lines[i].trim()) i++
+  const meaningful = lines.slice(i)
+  if (!meaningful.length) return null
+
+  const title = (meaningful[0] || '').trim() || STR.batchCreate.defaultTitle
+  const tags = meaningful.length > 1
+    ? meaningful[1].split(',').map(t => t.trim()).filter(Boolean)
     : []
-  const timeStr = lines.length > 2 ? (lines[2] || '').trim() : ''
-  const note = lines.length > 3 ? lines.slice(3).join('\n').trimEnd() : ''
+  const timeStr = meaningful.length > 2 ? (meaningful[2] || '').trim() : ''
+  const note = meaningful.length > 3 ? meaningful.slice(3).join('\n').trimEnd() : ''
 
   let start, end
   if (timeStr) {
