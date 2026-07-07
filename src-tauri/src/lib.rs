@@ -46,7 +46,7 @@ pub struct LatestJson {
 async fn fetch_latest_json() -> Result<Option<LatestJson>, String> {
     let endpoints = [
         "https://gitee.com/Henry_Yves/timelog/raw/main/latest.json",
-        "https://github.com/HenryYves/timelog/releases/latest/download/latest.json",
+        "https://raw.githubusercontent.com/HenryYves/Timelog/main/latest.json",
     ];
     let client = reqwest::Client::new();
     for url in endpoints {

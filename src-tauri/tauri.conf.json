@@ -39,7 +39,7 @@
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk4RkY2QkJCMEVGMjM2QzgKUldUSU52SU91MnYvbVA5dTJqNnlJZ2d3Q2Q1ZHNzb1ZrUm9wWkNGTjhoZ3BoNlV3dXVhcEVseXYK",
       "endpoints": [
         "https://gitee.com/Henry_Yves/timelog/raw/main/latest.json",
-        "https://github.com/HenryYves/timelog/releases/latest/download/latest.json"
+        "https://raw.githubusercontent.com/HenryYves/Timelog/main/latest.json"
       ]
     }
   }
