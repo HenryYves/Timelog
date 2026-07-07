@@ -23,7 +23,7 @@
           <div style="font-size:11px;color:var(--text2);padding:4px 12px 2px;">{{ bkStatusText }}</div>
         </div>
       </div>
-      <button id="exportBtn" class="primary" @click="showExport = true; exportMode = 'export'">导出文本</button>
+      <button id="exportBtn" class="primary" @click="showMore = false; showExport = true; exportMode = 'export'">导出文本</button>
       <span class="win-ctrls" :class="{ on: winCtrlActive }" id="winCtrls">
         <button class="win-btn" id="winMin" title="最小化" @click="onWinMin"><img src="/icons/win-min.svg" alt=""></button>
         <button class="win-btn" id="winMax" :title="isMaximized ? '还原' : '最大化'" @click="onWinMax"><img :src="isMaximized ? '/icons/win-restore.svg' : '/icons/win-max.svg'" alt=""></button>
@@ -374,6 +374,7 @@ function applyBorderless() {
 function onWindowKeyDown(e) {
   // Escape: close topmost visible overlay / clear selection
   if (e.key === 'Escape') {
+    if (showMore.value) { e.preventDefault(); showMore.value = false; return }
     if (showModal.value) { e.preventDefault(); closeModal(); return }
     if (showUpdate.value) { e.preventDefault(); showUpdate.value = false; return }
     if (showSettings.value) { e.preventDefault(); showSettings.value = false; return }
@@ -414,6 +415,7 @@ function onWindowKeyDown(e) {
     const duration = settings.defaultDuration
     editingBlock.value = null
     createTimes.value = { start: s, end: Math.min(s + duration, 1440) }
+    showMore.value = false
     showModal.value = true
   }
 }
@@ -485,6 +487,7 @@ async function checkForUpdate(isManual) {
 
 function onCheckUpdateResult(metadata) {
   updateInfo.value = metadata
+  showMore.value = false
   showUpdate.value = true
 }
 
