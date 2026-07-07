@@ -92,7 +92,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, onErrorCaptured } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import { tExport, isTauri } from './utils/tauri.js'
+import { tExport } from './utils/tauri.js'
 import { useTimelogStore, dkey } from './store/timelog.js'
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
@@ -262,28 +262,9 @@ async function doExportJson() {
   }
   filename += '.json'
   const json = JSON.stringify(data, null, 2)
-  if (isTauri()) {
-    const ok = await tExport(filename, json)
-    if (ok) toast('已导出到下载目录：' + filename)
-    else toast(STR.toast.backupFail)
-    return
-  }
-  const blob = new Blob([json], { type: 'application/json' })
-  if (settings.exportDialog && typeof window.showSaveFilePicker === 'function') {
-    try {
-      const h = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] })
-      const w = await h.createWritable()
-      await w.write(blob)
-      await w.close()
-      return
-    } catch (e) { if (e.name === 'AbortError') return }
-  }
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
+  const ok = await tExport(filename, json)
+  if (ok) toast('已导出到下载目录：' + filename)
+  else toast(STR.toast.backupFail)
 }
 
 async function doBackupNow() {
