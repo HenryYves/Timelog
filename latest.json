@@ -1,11 +1,11 @@
 {
-  "version": "v0.5.1",
-  "notes": "- 新增自动更新功能\n- 支持灰度发布\n- 崩溃恢复\n- 透明度滑条响应式修复\n- 无标签块也受透明度影响\n- Toast 时长延长到 3 秒",
-  "pub_date": "2026-07-06T14:30:00Z",
+  "version": "v0.5.3",
+  "notes": "- CORS 修复：fetch_latest_json 走 Rust 端，解决更新检查报错\n- 导出备份支持另存为对话框（tauri-plugin-dialog）\n- 窗口启动不再闪烁（隐藏→恢复状态→显示）\n- 本地版本高于云端时显示幽默提示\n- 所有 UI 文案统一提取到 STR\n- compareSemver 提取到 constants.js",
+  "pub_date": "2026-07-07T08:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbU5VenNRa3R5QmFMcW5Ebyt4YjdwUzg5cEg1Q1RNNFVyck11Snh4djV2MGZnM1V6NmtZNEV0M2VYeU90MjRxWURtd3AzbmFDZjQxODdiOEd6aWRCdmdZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzMzUxNjUyCWZpbGU6dGltZWxvZ18wLjUuMV94NjQtc2V0dXAuZXhlCisxZU1SNmtvcmNlVklTWSthemR4SzhkSy9hYlRwRVpkREl0SUZValQ2QXEzTHpBNHRQbGV3cG5LSEp1dnU4c3N2VjZaOW1pbHlDQlB3ZmU0M0VMRkFRPT0K",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.5.1/timelog_0.5.1_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUlCUE1pNC9MeUFvS0NNbnpiYWI4L1JneTh1MVJhRDI5NjVsMVVLYXlxZlkvVlduVTAyNFJxQ1BCNTdqWEVxN2RDalZoblRoanlCZGdjTXVFelZLSlEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNDExNjI1CWZpbGU6dGltZWxvZ18wLjUuM194NjQtc2V0dXAuZXhlCkFlOXpjSDg4dzVTdzAybmJGbFgwV3ZUNzNCOHloLzB5NTllR3dFOFV6L1lSUjgwVGtwU2VBZEdSMFZaaEZwRFkxbkl4ZWFLQ0RhOFN0M3VvVDVSL0RRPT0K",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.5.3/timelog_0.5.3_x64-setup.exe"
     }
   }
 }
