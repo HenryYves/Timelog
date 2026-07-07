@@ -374,6 +374,7 @@ function applyBorderless() {
 function onWindowKeyDown(e) {
   // Escape: close topmost visible overlay / clear selection
   if (e.key === 'Escape') {
+    if (confirmVisible) { e.preventDefault(); resolveConfirm(false); return }
     if (showMore.value) { e.preventDefault(); showMore.value = false; return }
     if (showModal.value) { e.preventDefault(); closeModal(); return }
     if (showUpdate.value) { e.preventDefault(); showUpdate.value = false; return }
