@@ -1,11 +1,11 @@
 {
-  "version": "v0.5.3",
-  "notes": "- CORS 修复：fetch_latest_json 走 Rust 端，解决更新检查报错\n- 导出备份支持另存为对话框（tauri-plugin-dialog）\n- 窗口启动不再闪烁（隐藏→恢复状态→显示）\n- 本地版本高于云端时显示幽默提示\n- 所有 UI 文案统一提取到 STR\n- compareSemver 提取到 constants.js",
-  "pub_date": "2026-07-07T08:00:00Z",
+  "version": "v0.5.8",
+  "notes": "新功能：N 键批量创建时间块（--- 分隔，标题/标签/时间/备注格式）\n重构：模态栈 LIFO + ESC 统一处理（@keydown.escape.stop）\n修复：confirmVisible ref 解包 bug 导致 ESC 失效\n修复：批量创建空标题解析（.trim + 贪婪正则）\n重构：More 菜单纳入 useModal 栈管理\n性能：8 个弹窗组件按需创建/销毁（v-if）",
+  "pub_date": "2026-07-07T14:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUx1MnJ4eUFCRnV3ZzhrUDR4U3ZzUTZjWkVQMDgrd3RDTElLYmJmMVg0MW1lZDlYUEVnbHlzdFRFRmI0UTRHbmNlOHlEdFppcENQbGFOUU5UN0hlN0FBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNDEyNTI4CWZpbGU6dGltZWxvZ18wLjUuM194NjQtc2V0dXAuZXhlCmlkL3RQenFBSm1aVXA1Snk0cXpNZmZ3UmpLMHdkbklWV1JkakxnNzFpN1FZeWliclJ2TjFUMGhEQWRST3grMXh4WXd4em5aalRPTHFtcU8zZUk5cUF3PT0K",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.5.3/timelog_0.5.3_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUduZ01Dd0tMN1Y2bWhJWUYrQ0Z2YzU3OTZweUxCVnIzVmZDUVhvZUxQMWZmUitwelhpOWZkQU1yTkpzWEtISkZDQkJTT2hqQlNnaWlEM0ZOZDNLYndNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNDMwNDA3CWZpbGU6dGltZWxvZ18wLjUuOF94NjQtc2V0dXAuZXhlCnpSRENvd3plWER2bm5UUUZTUUoxd3JGYVp0WmMwQU52dDdWcDdYOWhBZldRcHNldi9Pc0p3NHd6MVBhdnAvUHJBSEl3VnRqTkQxWUY1SGlFZnVoSUF3PT0K",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.5.8/timelog_0.5.8_x64-setup.exe"
     }
   }
 }
