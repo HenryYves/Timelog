@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="emit('close')">
-    <div class="modal" @keydown="trapFocus">
+    <div class="modal" ref="modalEl" @keydown="trapFocus">
       <h2>管理标签</h2>
       <div class="sub">点左侧色块自定义颜色；相同"分组"的标签会归类显示（如"很自律"与"自律"放同一组）。</div>
 
@@ -38,6 +38,7 @@ const tagStore = useTagStore()
 const { showConfirm } = useConfirm()
 
 const tagDraft = ref([])
+const modalEl = ref(null)
 const origNames = ref([])
 const deletedNames = ref(new Set())
 
@@ -74,7 +75,7 @@ async function onDeleteTag(index) {
   const name = tagDraft.value[index].name.trim()
   if (name) {
     const ok = await showConfirm(STR.confirm.deleteTag(name))
-    if (!ok) return
+    if (!ok) { modalEl.value?.querySelector('button')?.focus(); return }
     deletedNames.value.add(name)
   }
   tagDraft.value.splice(index, 1)
@@ -140,7 +141,8 @@ async function onSave() {
     const nn = tagDraft.value[i].name.trim()
     if (on && nn && on !== nn) {
       const ok = await showConfirm(STR.confirm.renameTag(on, nn))
-      if (ok) tagStore.replaceTagInBlocks(on, nn)
+      if (ok) { tagStore.replaceTagInBlocks(on, nn) }
+      else { modalEl.value?.querySelector('button')?.focus() }
     }
   }
 

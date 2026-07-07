@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="emit('close')">
-    <div class="modal" @keydown="trapFocus">
+    <div class="modal" ref="modalEl" @keydown="trapFocus">
       <h2>数据管理</h2>
       <div class="sub">按日期段删除，或逐天删除。</div>
 
@@ -58,6 +58,7 @@ const emit = defineEmits(['close', 'changed'])
 const { showConfirm, showAlert } = useConfirm()
 
 const days = ref([])
+const modalEl = ref(null)
 const fromDate = ref('')
 const toDate = ref('')
 const fileInput = ref(null)
@@ -114,9 +115,11 @@ watch(() => props.show, (val) => {
   }
 })
 
+function refocusModal() { modalEl.value?.querySelector('button')?.focus() }
+
 async function deleteDate(date) {
   const ok = await showConfirm(STR.confirm.deleteDay(date))
-  if (!ok) return
+  if (!ok) { refocusModal(); return }
   localStorage.removeItem(KEY_PREFIX + date)
   loadDays()
   emit('changed')
@@ -136,7 +139,7 @@ async function deleteDateRange() {
   }
   const total = toDel.reduce((s, d) => s + d.count, 0)
   const ok = await showConfirm(STR.confirm.deleteRangeConfirm(toDel.length, total))
-  if (!ok) return
+  if (!ok) { refocusModal(); return }
   toDel.forEach(d => localStorage.removeItem(KEY_PREFIX + d.date))
   loadDays()
   emit('changed')
@@ -150,7 +153,7 @@ async function deleteAll() {
     return
   }
   const ok = await showConfirm(STR.confirm.deleteAllConfirm(totalDays, totalBlocks))
-  if (!ok) return
+  if (!ok) { refocusModal(); return }
   days.value.forEach(d => localStorage.removeItem(KEY_PREFIX + d.date))
   loadDays()
   emit('changed')

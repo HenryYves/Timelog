@@ -222,7 +222,12 @@ async function onCancel() {
 async function deleteBlock() {
   if (!props.editingBlock) return
   const confirmed = await showConfirm(STR.confirm.deleteBlock)
-  if (!confirmed) return
+  if (!confirmed) {
+    await nextTick()
+    const first = modalEl.value?.querySelector('button, input:not([disabled])')
+    if (first) first.focus()
+    return
+  }
   timelogStore.deleteBlock(props.editingBlock.id)
   emit('close')
 }

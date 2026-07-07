@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="emit('close')">
-    <div class="modal" @keydown="trapFocus">
+    <div class="modal" ref="modalEl" @keydown="trapFocus">
       <h2>设置</h2>
 
       <label>默认时长（分钟）</label>
@@ -131,6 +131,7 @@ const { showConfirm } = useConfirm()
 const { toast } = useToast()
 
 const checkingUpdate = ref(false)
+const modalEl = ref(null)
 
 const bkPathDraft = ref(settings.bkCustomPath)
 
@@ -213,7 +214,11 @@ async function onBkPathSave() {
 async function onBkPathReset() {
   if (!settings.bkCustomPath) return
   const ok = await showConfirm(STR.confirm.backupPathReset)
-  if (!ok) return
+  if (!ok) {
+    const first = modalEl.value?.querySelector('button, input:not([disabled])')
+    if (first) first.focus()
+    return
+  }
   const old = settings.bkCustomPath
   settings.setBkCustomPath('')
   bkPathDraft.value = ''
