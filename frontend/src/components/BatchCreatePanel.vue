@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, watch } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useTimelogStore, dkey } from '../store/timelog.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
@@ -35,7 +35,6 @@ const { toast } = useToast()
 
 const text = ref('')
 const ta = ref(null)
-watch(() => props.show, (v) => { if (v) text.value = '' })
 const modalEl = ref(null)
 
 // Parse text into blocks
