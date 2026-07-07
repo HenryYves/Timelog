@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="overlay" @mousedown.self="onCancel">
+  <div v-if="show" class="overlay" @mousedown.self="onCancel" @keydown.escape.stop="onCancel">
     <div class="modal" ref="modalEl" @keydown="trapFocus">
       <h2>{{ STR.batchCreate.title }}</h2>
       <textarea

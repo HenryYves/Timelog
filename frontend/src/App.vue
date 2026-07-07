@@ -398,11 +398,9 @@ function applyBorderless() {
 
 // Global keyboard shortcuts (overlay close, modal delete, T, ?)
 function onWindowKeyDown(e) {
-  // Escape: close topmost visible overlay / clear selection
   if (e.key === 'Escape') {
     if (confirmVisible) { e.preventDefault(); resolveConfirm(false); return }
     if (showMore.value) { e.preventDefault(); showMore.value = false; return }
-    if (modalStack.value.length > 0) { e.preventDefault(); console.log('[ESC] stack depth:', modalStack.value.length + 1, 'popping...'); modalStack.value.pop()(); return }
     return
   }
 

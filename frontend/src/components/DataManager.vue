@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="overlay" @mousedown.self="emit('close')">
+  <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="emit('close')">
     <div class="modal" ref="modalEl" @keydown="trapFocus">
       <h2>数据管理</h2>
       <div class="sub">按日期段删除，或逐天删除。</div>
