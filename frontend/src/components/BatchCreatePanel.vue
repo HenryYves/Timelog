@@ -48,15 +48,15 @@ const parsed = computed(() => {
 })
 
 function parseChunk(chunk) {
-  const lines = chunk.trim().split('\n')
-  if (!lines.length || lines.every(l => !l.trim())) return null
+  const lines = chunk.split('\n')
+  if (!lines.length) return null
 
-  const title = lines[0].trim() || STR.batchCreate.defaultTitle
+  const title = (lines[0] || '').trim() || STR.batchCreate.defaultTitle
   const tags = lines.length > 1
     ? lines[1].split(',').map(t => t.trim()).filter(Boolean)
     : []
-  const timeStr = lines.length > 2 ? lines[2].trim() : ''
-  const note = lines.length > 3 ? lines.slice(3).join('\n') : ''
+  const timeStr = lines.length > 2 ? (lines[2] || '').trim() : ''
+  const note = lines.length > 3 ? lines.slice(3).join('\n').trimEnd() : ''
 
   let start, end
   if (timeStr) {
