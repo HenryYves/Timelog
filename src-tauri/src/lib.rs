@@ -92,34 +92,43 @@ async fn download_update(
     pending: tauri::State<'_, PendingUpdate>,
     on_event: tauri::ipc::Channel<DownloadEvent>,
 ) -> Result<(), String> {
-    // Extract the update and drop the lock before the async download
-    let update = pending.0.lock().unwrap().take()
-        .ok_or("没有待下载的更新".to_string())?
-        .0; // discard the empty bytes vec
+    let (update, _) = pending.0.lock().unwrap().take()
+        .ok_or("没有待下载的更新".to_string())?;
+    let version = update.version.clone();
 
-    let started = std::sync::Mutex::new(false);
-    let finished_channel = on_event.clone();
+    let urls = [
+        format!("https://gitee.com/Henry_Yves/timelog/releases/download/v{0}/timelog_{0}_x64-setup.exe", version),
+        format!("https://github.com/HenryYves/Timelog/releases/download/v{0}/timelog_{0}_x64-setup.exe", version),
+    ];
 
-    let bytes = update
-        .download(
-            move |chunk_length, content_length| {
-                let mut started = started.lock().unwrap();
-                if !*started {
-                    let _ = on_event.send(DownloadEvent::Started { content_length });
-                    *started = true;
-                }
-                let _ = on_event.send(DownloadEvent::Progress { chunk_length });
-            },
-            move || {
-                let _ = finished_channel.send(DownloadEvent::Finished);
-            },
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut last_err = String::new();
+    let client = reqwest::Client::new();
 
-    // Put update back with downloaded bytes for the install step
-    *pending.0.lock().unwrap() = Some((update, bytes));
-    Ok(())
+    for url in &urls {
+        match client.get(url).timeout(std::time::Duration::from_secs(300)).send().await {
+            Ok(resp) if resp.status().is_success() => {
+                let total = resp.content_length();
+                let _ = on_event.send(DownloadEvent::Started { content_length: total });
+
+                let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
+                let _ = on_event.send(DownloadEvent::Progress { chunk_length: bytes.len() });
+                let _ = on_event.send(DownloadEvent::Finished);
+
+                *pending.0.lock().unwrap() = Some((update, bytes));
+                return Ok(());
+            }
+            Ok(resp) => {
+                last_err = format!("HTTP {}", resp.status().as_u16());
+            }
+            Err(e) => {
+                last_err = e.to_string();
+            }
+        }
+    }
+
+    // All URLs failed — put update back so user can retry
+    *pending.0.lock().unwrap() = Some((update, Vec::new()));
+    Err(format!("下载失败：{}", last_err))
 }
 
 #[tauri::command]
