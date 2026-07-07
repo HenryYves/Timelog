@@ -86,6 +86,10 @@
       @close="showUpdate = false"
       @will-install-on-exit="onWillInstallOnExit"
     />
+    <BatchCreatePanel
+      :show="showBatchCreate"
+      @close="showBatchCreate = false"
+    />
   </div>
 </template>
 
@@ -113,6 +117,7 @@ import Toast from './components/Toast.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import HelpPanel from './components/HelpPanel.vue'
 import UpdateDialog from './components/UpdateDialog.vue'
+import BatchCreatePanel from './components/BatchCreatePanel.vue'
 import { useToast } from './composables/useToast.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { logger } from './utils/log.js'
@@ -238,6 +243,10 @@ const helpClose = useModal(showHelp)
 const showUpdate = ref(false)
 const updateInfo = ref(null)
 const updateClose = useModal(showUpdate)
+
+// Batch create panel
+const showBatchCreate = ref(false)
+const batchCreateClose = useModal(showBatchCreate)
 
 // More dropdown actions
 function doImport() {
@@ -428,6 +437,10 @@ function onWindowKeyDown(e) {
     createTimes.value = { start: s, end: Math.min(s + duration, 1440) }
     showMore.value = false
     showModal.value = true
+  }
+  if (e.key === 'n' || e.key === 'N') {
+    e.preventDefault()
+    showBatchCreate.value = true
   }
 }
 

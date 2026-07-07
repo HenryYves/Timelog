@@ -82,4 +82,12 @@ export const STR = {
     pendingDismiss: '忽略',
     versionAhead: '你的版本已经高于云端了，你还想怎么样嘛',
   },
+  batchCreate: {
+    title: '批量创建时间块',
+    placeholder: '做了什么\n标签,标签\n0900 1100\n备注内容\n---\n下一个块...',
+    preview: (n) => `预览：${n} 个时间块`,
+    create: '创建',
+    created: (n) => `已创建 ${n} 个时间块`,
+    defaultTitle: '(未命名)',
+  },
 }
