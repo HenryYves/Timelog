@@ -35,6 +35,37 @@ struct PendingUpdate(Mutex<Option<(Update, Vec<u8>)>>);
 
 // ── Commands ──
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LatestJson {
+    version: Option<String>,
+    rollout: Option<u8>,
+}
+
+#[tauri::command]
+async fn fetch_latest_json() -> Result<Option<LatestJson>, String> {
+    let endpoints = [
+        "https://gitee.com/Henry_Yves/timelog/raw/main/latest.json",
+        "https://github.com/HenryYves/timelog/releases/latest/download/latest.json",
+    ];
+    let client = reqwest::Client::new();
+    for url in endpoints {
+        match client.get(url).timeout(std::time::Duration::from_secs(5)).send().await {
+            Ok(r) if r.status().is_success() => {
+                if let Ok(json) = r.json::<serde_json::Value>().await {
+                    return Ok(Some(LatestJson {
+                        version: json.get("version").and_then(|v| v.as_str()).map(String::from),
+                        rollout: json.get("rollout").and_then(|v| v.as_u64()).map(|n| n as u8),
+                    }));
+                }
+                return Ok(None);
+            }
+            _ => continue,
+        }
+    }
+    Ok(None)
+}
+
 #[tauri::command]
 async fn check_update(
     app: AppHandle,
@@ -144,6 +175,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            fetch_latest_json,
             check_update,
             download_update,
             install_update,

@@ -95,7 +95,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { useTimelogStore, dkey } from './store/timelog.js'
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
-import { APP_VERSION } from './constants.js'
+import { APP_VERSION, compareSemver } from './constants.js'
 import { STR } from './strings.js'
 import {
   bkStatusText, bkStatusClass, setBackupPrefs,
@@ -130,35 +130,14 @@ const showMore = ref(false)
 function closeMore(e) { if (!e.target.closest('.more-wrap')) showMore.value = false }
 
 // ── Rollout gate ──
-const UPDATE_ENDPOINTS = [
-  'https://gitee.com/Henry_Yves/timelog/raw/main/latest.json',
-  'https://github.com/HenryYves/timelog/releases/latest/download/latest.json',
-]
 
 async function fetchLatestJson() {
-  for (const url of UPDATE_ENDPOINTS) {
-    try {
-      const r = await fetch(url, { signal: AbortSignal.timeout(5000) })
-      if (r.ok) {
-        const json = await r.json()
-        return {
-          version: json.version || null,
-          rollout: typeof json.rollout === 'number' ? json.rollout : null,
-        }
-      }
-    } catch {}
+  try {
+    const result = await invoke('fetch_latest_json')
+    return result || null
+  } catch {
+    return null
   }
-  return null
-}
-
-function compareSemver(a, b) {
-  const pa = a.replace(/^v/, '').split('.').map(Number)
-  const pb = b.replace(/^v/, '').split('.').map(Number)
-  for (let i = 0; i < 3; i++) {
-    if ((pa[i] || 0) > (pb[i] || 0)) return 1
-    if ((pa[i] || 0) < (pb[i] || 0)) return -1
-  }
-  return 0
 }
 
 function isRolloutAllowed(version, rollout) {

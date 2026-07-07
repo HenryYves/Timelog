@@ -27,4 +27,14 @@ export const DEFAULT_CURSOR_CENTER = true
 // ---------- UI ----------
 export const APP_VERSION = 'v0.5.1'
 export const TOAST_DURATION = 3000
+
+export function compareSemver(a, b) {
+  const pa = a.replace(/^v/, '').split('.').map(Number)
+  const pb = b.replace(/^v/, '').split('.').map(Number)
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) > (pb[i] || 0)) return 1
+    if ((pa[i] || 0) < (pb[i] || 0)) return -1
+  }
+  return 0
+}
 export const GUTTER_WIDTH = 56

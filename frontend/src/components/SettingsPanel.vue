@@ -118,7 +118,7 @@ import { useSettingsStore } from '../store/settings.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { migrateBackups } from '../utils/backup.js'
-import { APP_VERSION } from '../constants.js'
+import { APP_VERSION, compareSemver } from '../constants.js'
 import { STR } from '../strings.js'
 
 const props = defineProps({
@@ -228,12 +228,10 @@ async function onCheckUpdate() {
       emit('checkUpdateResult', metadata)
     } else {
       // Check if local version is higher than remote
-      const r = await fetch('https://gitee.com/Henry_Yves/timelog/raw/main/latest.json', { signal: AbortSignal.timeout(5000) })
-      if (r.ok) {
-        const json = await r.json()
-        const local = APP_VERSION.replace(/^v/, '').split('.').map(Number)
-        const remote = (json.version || '0').replace(/^v/, '').split('.').map(Number)
-        if (local[0] > remote[0] || (local[0] === remote[0] && local[1] > remote[1]) || (local[0] === remote[0] && local[1] === remote[1] && local[2] > remote[2])) {
+      const latest = await invoke('fetch_latest_json')
+      if (latest?.version) {
+        const cmp = compareSemver(APP_VERSION, latest.version)
+        if (cmp > 0) {
           toast(STR.update.versionAhead)
         } else {
           toast(STR.update.noUpdate)
