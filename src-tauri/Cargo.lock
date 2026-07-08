@@ -4203,7 +4203,7 @@ dependencies = [
 
 [[package]]
 name = "timelog"
-version = "0.5.13"
+version = "0.5.16"
 dependencies = [
  "reqwest 0.12.28",
  "serde",

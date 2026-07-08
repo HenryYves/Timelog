@@ -1,11 +1,11 @@
 {
-  "version": "v0.5.8",
-  "notes": "新功能：N 键批量创建时间块（--- 分隔，标题/标签/时间/备注格式）\n重构：模态栈 LIFO + ESC 统一处理（@keydown.escape.stop）\n修复：confirmVisible ref 解包 bug 导致 ESC 失效\n修复：批量创建空标题解析（.trim + 贪婪正则）\n重构：More 菜单纳入 useModal 栈管理\n性能：8 个弹窗组件按需创建/销毁（v-if）",
-  "pub_date": "2026-07-07T14:00:00Z",
+  "version": "v0.5.16",
+  "notes": "新增：Mango 字体标题、编辑时间跨度显示、n 批量创建接续上块+全天警告+自定义分隔符、缩放/字体设置、未修改不弹确认\n变更：t 键智能默认时间（当天取最后块结束）、精确分钟值\n修复：时间跨度负值",
+  "pub_date": "2026-07-08T10:30:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUduZ01Dd0tMN1Y2bWhJWUYrQ0Z2YzU3OTZweUxCVnIzVmZDUVhvZUxQMWZmUitwelhpOWZkQU1yTkpzWEtISkZDQkJTT2hqQlNnaWlEM0ZOZDNLYndNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNDMwNDA3CWZpbGU6dGltZWxvZ18wLjUuOF94NjQtc2V0dXAuZXhlCnpSRENvd3plWER2bm5UUUZTUUoxd3JGYVp0WmMwQU52dDdWcDdYOWhBZldRcHNldi9Pc0p3NHd6MVBhdnAvUHJBSEl3VnRqTkQxWUY1SGlFZnVoSUF3PT0K",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.5.8/timelog_0.5.8_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUIrNkFucERWTktVZmhxQlBCMS9wRm8rUE1tWGVQM3F1Lzg5TFJmYTZtZkZSTk4ydHdwSUhjTldORUF1ODB5ckFoaStzUGtVL2oxQ2x3eFZCc2NvU1FvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNTEwMjgzCWZpbGU6dGltZWxvZ18wLjUuMTZfeDY0X2VuLVVTLm1zaQoxRjlMS0NXd1NpS3JDaVNNdXBnSVRDU2lhRUNvTHFYSm1TWStFL05XdXNvUVlIUEMvSTdTQm9DM1IzcTlUOUE0MFNieE40dDBtODJJdWV4dG1ES0NDUT09Cg==",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.5.16/timelog_0.5.16_x64_en-US.msi"
     }
   }
 }
