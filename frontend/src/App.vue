@@ -1,7 +1,7 @@
 <template>
   <div id="app-container">
     <header @mousedown="onHeaderMouseDown">
-      <h1><img src="/icons/icon.svg" class="logo" alt="">时间块记录</h1>
+      <h1><img src="/icons/icon.svg" class="logo" alt=""><img src="/icons/timelog.svg" class="logo-text" alt="Timelog"></h1>
       <div class="datenav">
         <button class="icon" @click="store.goPrevDay()">‹</button>
         <span class="date">{{ dateLabel }}</span>
@@ -431,9 +431,16 @@ function onWindowKeyDown(e) {
   if (e.key === 't' || e.key === 'T') {
     e.preventDefault()
     const now = new Date()
-    let s = dkey(now) === store.dateKey
-      ? now.getHours() * 60 + now.getMinutes()
-      : 540
+    const isToday = dkey(now) === store.dateKey
+    const nowMin = now.getHours() * 60 + now.getMinutes()
+    const blocks = store.blocks
+    let s
+    if (blocks.length > 0) {
+      const lastEnd = Math.max(...blocks.map(b => b.end))
+      s = (isToday && lastEnd > nowMin) ? nowMin : lastEnd
+    } else {
+      s = isToday ? nowMin : 540
+    }
     s = Math.round(s / 5) * 5
     if (s > 1380) s = 1380
     const duration = settings.defaultDuration
