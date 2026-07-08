@@ -88,5 +88,6 @@ src-tauri/src/
 
 - **改前必问** — 任何 Write / Edit / Bash 改文件 / git checkout / git revert 都必须先说方案、等用户明确同意（"行"/"OK"/"可以"）
 - Commit message：英文前缀 + 中文描述（Conventional Commits）— `feat:` / `fix:` / `docs:` / `refactor:` / `chore:` / `release:`
+- 写 message 前先 `git diff --stat` 看全部改动，概括整体而非只描述最后一条
 - 提交前必须先把 message 给用户过目，同意后再提交
 - 遇到 bug → 先拿用户输入 trace 代码 → 诊断 → 讨论方案 → 再改

@@ -45,10 +45,16 @@ const parsed = computed(() => {
 
   // Split by --- lines; trailing blank lines are consumed by the separator
   const chunks = raw.split(/\n[ \t]*---[ \t]*\n/)
-  return chunks.map(parseChunk).filter(b => b)
+  const results = []
+  let prevEnd = null
+  for (const chunk of chunks) {
+    const block = parseChunk(chunk, prevEnd)
+    if (block) { results.push(block); prevEnd = block.end }
+  }
+  return results
 })
 
-function parseChunk(chunk) {
+function parseChunk(chunk, prevEnd) {
   const lines = chunk.split('\n')
   if (!lines.length) return null
 
@@ -69,15 +75,18 @@ function parseChunk(chunk) {
     }
   }
   if (start == null) {
-    // Default: same logic as T key
-    const now = new Date()
-    if (dkey(now) === store.dateKey && store.blocks.length) {
-      const last = store.blocks[store.blocks.length - 1]
-      start = Math.min(last.end, 1380)
+    if (prevEnd != null) {
+      start = prevEnd
+      // If prevEnd is in the future (today) → all-day warning
+      const now = new Date()
+      if (dkey(now) === store.dateKey) {
+        const nowMin = now.getHours() * 60 + now.getMinutes()
+        if (prevEnd > nowMin) { start = 0; end = 1440; return { title, tags, start, end, note } }
+      }
     } else {
-      start = 540
+      // No prevEnd and no explicit time → all-day warning
+      start = 0; end = 1440; return { title, tags, start, end, note }
     }
-    start = Math.round(start / 5) * 5
     end = Math.min(start + 30, 1440)
   }
 
