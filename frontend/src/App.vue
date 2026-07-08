@@ -441,7 +441,6 @@ function onWindowKeyDown(e) {
     } else {
       s = isToday ? nowMin : 540
     }
-    s = Math.round(s / 5) * 5
     if (s > 1380) s = 1380
     const duration = settings.defaultDuration
     editingBlock.value = null
