@@ -1,7 +1,10 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="onCancel">
     <div class="modal" ref="modalEl" @keydown="trapFocus">
-      <h2>{{ editingBlock ? '编辑时间块' : '记录时间块' }}</h2>
+      <div class="modal-head">
+        <h2>{{ editingBlock ? '编辑时间块' : '记录时间块' }}</h2>
+        <span v-if="editingBlock" class="duration">{{ duration }}</span>
+      </div>
 
       <label>做了什么</label>
       <input
@@ -140,6 +143,12 @@ const groupedTags = computed(() => {
   return groups
 })
 
+// Duration display (HH:MM)
+const duration = computed(() => {
+  const diff = fromInput(mEnd.value) - fromInput(mStart.value)
+  return toInput(Math.max(diff, 0))
+})
+
 // Tag toggle
 function toggleTag(name) {
   const idx = selectedTags.value.indexOf(name)
@@ -266,6 +275,19 @@ function trapFocus(e) {
 </script>
 
 <style scoped>
+.modal-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.modal-head h2 { margin: 0; }
+.duration {
+  font-size: 13px;
+  color: var(--text2);
+  font-family: Menlo, Consolas, monospace;
+  white-space: nowrap;
+  user-select: none;
+}
 .grouplabel {
   font-size: 11px;
   color: var(--text2);
