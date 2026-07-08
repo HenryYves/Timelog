@@ -2,7 +2,7 @@
 
 竖直时间轴拖拽创建记录，支持标签分组、Markdown 备注、JSON 备份的桌面应用。
 
-基于 [Tauri v2](https://v2.tauri.app/) 构建，单文件纯前端（无框架、无打包器），Rust 后端提供文件系统存取与窗口管理。
+基于 [Tauri v2](https://v2.tauri.app/) 构建，Vue 3 + Vite + Pinia 前端，Rust 后端提供文件系统存取与窗口管理。
 
 ---
 
