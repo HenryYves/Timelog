@@ -11,6 +11,16 @@
 
       <div class="divider"></div>
 
+      <label>标签分隔符</label>
+      <input type="text"
+        :value="settings.tagDelimiters"
+        @change="settings.setTagDelimiters($event.target.value)"
+        placeholder=","
+        style="width:200px;">
+      <div class="small">批量创建（<kbd>n</kbd>）时拆分标签的字符，如 <code>, ， .</code></div>
+
+      <div class="divider"></div>
+
       <label class="switchrow">
         <input type="checkbox" id="setAutoScroll"
           :checked="settings.autoScroll"

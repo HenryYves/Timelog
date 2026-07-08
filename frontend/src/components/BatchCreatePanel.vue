@@ -22,6 +22,7 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { useTimelogStore, dkey } from '../store/timelog.js'
+import { useSettingsStore } from '../store/settings.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { STR } from '../strings.js'
@@ -30,6 +31,7 @@ const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close'])
 
 const store = useTimelogStore()
+const settings = useSettingsStore()
 const { showConfirm } = useConfirm()
 const { toast } = useToast()
 
@@ -54,13 +56,19 @@ const parsed = computed(() => {
   return results
 })
 
+function splitTags(str, delims) {
+  // Escape special regex chars, build character class: e.g. ", ， ." → /[,，.]+/
+  const escaped = [...delims].map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('')
+  return str.split(new RegExp('[' + escaped + ']+')).map(t => t.trim()).filter(Boolean)
+}
+
 function parseChunk(chunk, prevEnd) {
   const lines = chunk.split('\n')
   if (!lines.length) return null
 
   const title = (lines[0] || '').trim() || STR.batchCreate.defaultTitle
   const tags = lines.length > 1
-    ? lines[1].split(',').map(t => t.trim()).filter(Boolean)
+    ? splitTags(lines[1], settings.tagDelimiters)
     : []
   const timeStr = lines.length > 2 ? (lines[2] || '').trim() : ''
   const note = lines.length > 3 ? lines.slice(3).join('\n').trimEnd() : ''

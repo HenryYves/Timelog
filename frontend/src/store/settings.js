@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import {
   KEY_PREFIX, DEFAULT_DURATION, DEFAULT_OPACITY, DEFAULT_KEEP_DAYS,
   DEFAULT_AUTO_SCROLL, DEFAULT_EXPORT_TIMESTAMP, DEFAULT_EXPORT_DIALOG,
-  DEFAULT_BORDERLESS, DEFAULT_BACKUP_ON, DEFAULT_AUTO_UPDATE,
+  DEFAULT_BORDERLESS, DEFAULT_BACKUP_ON, DEFAULT_AUTO_UPDATE, DEFAULT_TAG_DELIMITERS,
 } from '../constants.js'
 
 function loadNum(k, d) {
@@ -27,6 +27,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const keepDays = ref(loadNum('keepDays', DEFAULT_KEEP_DAYS))
   const backupOn = ref(loadBool('backupOn', DEFAULT_BACKUP_ON))
   const autoUpdate = ref(loadBool('autoUpdate', DEFAULT_AUTO_UPDATE))
+  const tagDelimiters = ref(localStorage.getItem(KEY_PREFIX + 'tagDelimiters') || DEFAULT_TAG_DELIMITERS)
 
   function saveNum(k, v) { localStorage.setItem(KEY_PREFIX + k, String(v)) }
   function saveBool(k, v) { localStorage.setItem(KEY_PREFIX + k, v ? '1' : '0') }
@@ -86,10 +87,15 @@ export const useSettingsStore = defineStore('settings', () => {
     saveBool('autoUpdate', v)
   }
 
+  function setTagDelimiters(v) {
+    tagDelimiters.value = v || DEFAULT_TAG_DELIMITERS
+    localStorage.setItem(KEY_PREFIX + 'tagDelimiters', tagDelimiters.value)
+  }
+
   return {
     defaultDuration, autoScroll, exportTimestamp, exportDialog,
-    blockOpacity, bkCustomPath, borderless, keepDays, backupOn, autoUpdate,
+    blockOpacity, bkCustomPath, borderless, keepDays, backupOn, autoUpdate, tagDelimiters,
     setDuration, setAutoScroll, setExportTimestamp, setExportDialog,
-    setBlockOpacity, setBkCustomPath, setBorderless, setKeepDays, setBackupOn, setAutoUpdate,
+    setBlockOpacity, setBkCustomPath, setBorderless, setKeepDays, setBackupOn, setAutoUpdate, setTagDelimiters,
   }
 })
