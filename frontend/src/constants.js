@@ -28,7 +28,7 @@ export const DEFAULT_ZOOM = 100
 export const DEFAULT_FONT_FAMILY = ''
 
 // ---------- UI ----------
-export const APP_VERSION = 'v0.5.13'
+export const APP_VERSION = 'v0.5.16'
 export const TOAST_DURATION = 3000
 
 export function compareSemver(a, b) {
