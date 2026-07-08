@@ -1,5 +1,5 @@
 <template>
-  <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="emit('close')">
+  <div v-if="show" class="overlay" @mousedown.self="onClose" @keydown.escape.stop="onClose">
     <div class="modal" ref="modalEl" @keydown="trapFocus">
       <h2>设置</h2>
 
@@ -56,6 +56,30 @@
         :value="settings.blockOpacity"
         @input="onOpacityInput"
         style="width:100%;margin-top:4px;">
+
+      <div class="divider"></div>
+
+      <label>
+        缩放比例
+        <span style="font-weight:400;color:var(--text2);">{{ settings.zoom }}%</span>
+      </label>
+      <input type="range" id="setZoom" min="25" max="400"
+        :value="settings.zoom"
+        @input="settings.setZoom($event.target.value)"
+        style="width:100%;margin-top:4px;">
+      <div class="small">25%–400%，默认 100%</div>
+
+      <div class="divider"></div>
+
+      <label>字体</label>
+      <input type="text"
+        :value="settings.fontFamily"
+        @change="settings.setFontFamily($event.target.value)"
+        placeholder="默认（系统字体）"
+        style="width:100%;">
+      <div class="small">输入字体名称，如 <code>JetBrains Mono</code>；留空恢复默认</div>
+
+      <div class="divider"></div>
 
       <label>备份路径</label>
       <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
@@ -116,7 +140,7 @@
         </button>
       </div>
 
-      <div class="actions"><span class="spacer"></span><button type="button" id="setClose" @click="emit('close')">关闭</button></div>
+      <div class="actions"><span class="spacer"></span><button type="button" id="setClose" @click="onClose">关闭</button></div>
     </div>
   </div>
 </template>
@@ -233,6 +257,11 @@ async function onBkPathReset() {
   settings.setBkCustomPath('')
   bkPathDraft.value = ''
   await migrateBackups(old, '')
+}
+
+function onClose() {
+  if (document.activeElement?.tagName === 'INPUT') document.activeElement.blur()
+  emit('close')
 }
 
 async function onCheckUpdate() {

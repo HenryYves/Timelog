@@ -24,6 +24,8 @@ export const DEFAULT_BACKUP_ON = true
 export const DEFAULT_AUTO_UPDATE = false
 export const DEFAULT_CURSOR_CENTER = true
 export const DEFAULT_TAG_DELIMITERS = ','
+export const DEFAULT_ZOOM = 100
+export const DEFAULT_FONT_FAMILY = ''
 
 // ---------- UI ----------
 export const APP_VERSION = 'v0.5.13'

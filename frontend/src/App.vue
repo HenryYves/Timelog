@@ -569,6 +569,28 @@ onMounted(async () => {
   watch(() => settings.keepDays, (v) => setBackupPrefs({ keepDays: v }))
   watch(() => settings.borderless, () => applyBorderless())
 
+  // Apply zoom & font
+  function applyZoom() {
+    const el = document.getElementById('app-container')
+    if (!el) return
+    const z = settings.zoom / 100
+    el.style.transform = `scale(${z})`
+    el.style.transformOrigin = '0 0'
+    el.style.width = `${100 / z}%`
+    el.style.height = `${100 / z}%`
+  }
+  function applyFontFamily() {
+    if (settings.fontFamily) {
+      document.body.style.fontFamily = settings.fontFamily + ', -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
+    } else {
+      document.body.style.fontFamily = ''
+    }
+  }
+  applyZoom()
+  applyFontFamily()
+  watch(() => settings.zoom, applyZoom)
+  watch(() => settings.fontFamily, applyFontFamily)
+
   // When ConfirmDialog closes, return focus to top modal
   watch(confirmVisible, (v) => { if (!v) focusTopModal() })
 
