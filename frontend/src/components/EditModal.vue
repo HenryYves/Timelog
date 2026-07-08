@@ -105,6 +105,17 @@ const notePreview = ref('')
 const mTagsRef = ref(null)
 const modalEl = ref(null)
 
+// Snapshot on open — used to skip confirm when nothing changed
+const original = ref({ title: '', note: '', start: '', end: '', tags: [] })
+
+function isDirty() {
+  return mTitle.value !== original.value.title ||
+    mNote.value !== original.value.note ||
+    mStart.value !== original.value.start ||
+    mEnd.value !== original.value.end ||
+    selectedTags.value.join(',') !== original.value.tags.join(',')
+}
+
 // Populate form when modal opens
 watch(
   () => [props.show, props.editingBlock, props.createTimes],
@@ -122,6 +133,13 @@ watch(
       mStart.value = toInput(cTimes.start)
       mEnd.value = toInput(cTimes.end)
       selectedTags.value = []
+    }
+    original.value = {
+      title: mTitle.value,
+      note: mNote.value,
+      start: mStart.value,
+      end: mEnd.value,
+      tags: [...selectedTags.value],
     }
     updatePreview()
     nextTick(() => {
@@ -218,6 +236,7 @@ function save() {
 }
 
 async function onCancel() {
+  if (!isDirty()) { emit('close'); return }
   const confirmed = await showConfirm(STR.confirm.discardEdit)
   if (confirmed) {
     emit('close')
