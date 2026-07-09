@@ -48,18 +48,25 @@
                 <button type="button" @click="onCheckUpdate" :disabled="checkingUpdate" class="small-btn">
                   {{ checkingUpdate ? STR.update.checking : STR.update.checkUpdate }}
                 </button>
+                <span class="restore-spacer"></span>
               </div>
             </div>
 
             <div class="row">
               <label>{{ STR.settings.language }}</label>
-              <select disabled style="width:140px;"><option>中文</option></select>
+              <div>
+                <select disabled style="width:140px;"><option>中文</option></select>
+                <span class="restore-spacer"></span>
+              </div>
             </div>
             <div class="small">{{ STR.settings.descLanguage }}</div>
 
             <div class="row">
               <span>{{ STR.settings.help }}</span>
-              <button type="button" class="small-btn" disabled>{{ STR.settings.helpButton }}</button>
+              <div>
+                <button type="button" class="small-btn" disabled>{{ STR.settings.helpButton }}</button>
+                <span class="restore-spacer"></span>
+              </div>
             </div>
             <div class="small">{{ STR.settings.descHelp }}</div>
 
@@ -550,6 +557,18 @@ function resetCategory(cat) {
 }
 .btn-restore:hover { opacity: 1; }
 .btn-restore img { width: 100%; height: 100%; display: block; }
+
+.restore-spacer { width: 20px; height: 20px; flex-shrink: 0; }
+
+/* ── Select ── */
+select {
+  font-family: inherit; font-size: 13px;
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 10px; color: var(--text); background: var(--soft);
+  cursor: pointer;
+}
+select:focus { outline: none; border-color: var(--blue); background: var(--canvas); }
+select:disabled { opacity: .5; cursor: default; }
 
 /* ── Value hints ── */
 .val-hint { font-weight: 400; color: var(--text2); font-size: 13px; margin-left: 4px; }
