@@ -34,7 +34,7 @@
             <div class="row">
               <label>{{ STR.settings.autoUpdate }}</label>
               <div>
-                <input type="checkbox" :checked="settings.autoUpdate" @change="settings.setAutoUpdate($event.target.checked)">
+                <label class="toggle"><input type="checkbox" :checked="settings.autoUpdate" @change="settings.setAutoUpdate($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoUpdate(DEFAULT_AUTO_UPDATE)">
                   <img src="/icons/restore.svg" alt="">
                 </button>
@@ -73,7 +73,7 @@
             <div class="row">
               <label>{{ STR.settings.autoScroll }}</label>
               <div>
-                <input type="checkbox" :checked="settings.autoScroll" @change="settings.setAutoScroll($event.target.checked)">
+                <label class="toggle"><input type="checkbox" :checked="settings.autoScroll" @change="settings.setAutoScroll($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoScroll(DEFAULT_AUTO_SCROLL)">
                   <img src="/icons/restore.svg" alt="">
                 </button>
@@ -104,7 +104,7 @@
 
             <div class="row">
               <label>{{ STR.settings.markdownPreview }}</label>
-              <input type="checkbox" disabled>
+              <label class="toggle"><input type="checkbox" disabled><span class="tk"></span></label>
             </div>
             <div class="small">{{ STR.settings.descMarkdownPreview }}</div>
 
@@ -118,7 +118,7 @@
             <div class="row">
               <label>{{ STR.settings.checkBeforeCreate }}</label>
               <div>
-                <input type="checkbox" :checked="settings.checkBeforeCreate" @change="settings.setCheckBeforeCreate($event.target.checked)">
+                <label class="toggle"><input type="checkbox" :checked="settings.checkBeforeCreate" @change="settings.setCheckBeforeCreate($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setCheckBeforeCreate(DEFAULT_CHECK_BEFORE_CREATE)">
                   <img src="/icons/restore.svg" alt="">
                 </button>
@@ -189,7 +189,7 @@
             <div class="row">
               <label>{{ STR.settings.borderless }}</label>
               <div>
-                <input type="checkbox" :checked="settings.borderless" @change="onBorderlessChange">
+                <label class="toggle"><input type="checkbox" :checked="settings.borderless" @change="onBorderlessChange"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBorderless(DEFAULT_BORDERLESS)">
                   <img src="/icons/restore.svg" alt="">
                 </button>
@@ -210,7 +210,7 @@
             <div class="row">
               <label>{{ STR.settings.exportTimestamp }}</label>
               <div>
-                <input type="checkbox" :checked="settings.exportTimestamp" @change="settings.setExportTimestamp($event.target.checked)">
+                <label class="toggle"><input type="checkbox" :checked="settings.exportTimestamp" @change="settings.setExportTimestamp($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setExportTimestamp(DEFAULT_EXPORT_TIMESTAMP)">
                   <img src="/icons/restore.svg" alt="">
                 </button>
@@ -221,7 +221,7 @@
             <div class="row">
               <label>{{ STR.settings.exportDialog }}</label>
               <div>
-                <input type="checkbox" :checked="settings.exportDialog" @change="settings.setExportDialog($event.target.checked)">
+                <label class="toggle"><input type="checkbox" :checked="settings.exportDialog" @change="settings.setExportDialog($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setExportDialog(DEFAULT_EXPORT_DIALOG)">
                   <img src="/icons/restore.svg" alt="">
                 </button>
@@ -249,7 +249,7 @@
             <div class="row">
               <label>{{ STR.settings.backupOn }}</label>
               <div>
-                <input type="checkbox" :checked="settings.backupOn" @change="settings.setBackupOn($event.target.checked)">
+                <label class="toggle"><input type="checkbox" :checked="settings.backupOn" @change="settings.setBackupOn($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBackupOn(DEFAULT_BACKUP_ON)">
                   <img src="/icons/restore.svg" alt="">
                 </button>
@@ -553,9 +553,19 @@ function resetCategory(cat) {
 
 /* ── Misc ── */
 .small-btn { font-size: 12px; padding: 2px 10px; }
-.settings-modal { max-width: 680px; }
+.settings-modal { width: 77vw; max-width: 95vw; height: 85vh; max-height: 95vh; }
 .settings-content .small { margin-top: 2px; margin-bottom: 0; }
 .settings-content label { display: inline; font-size: inherit; color: inherit; margin: 0; font-weight: inherit; }
 .settings-content input[type="checkbox"] { vertical-align: middle; }
+
+/* ── Toggle switch ── */
+.toggle { position: relative; display: inline-flex; align-items: center; width: 40px; height: 22px; flex-shrink: 0; cursor: pointer; }
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle .tk { position: absolute; inset: 0; background: var(--border); border-radius: 11px; transition: background .2s; }
+.toggle .tk::before { content: ''; position: absolute; left: 2px; top: 2px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+.toggle input:checked + .tk { background: var(--blue); }
+.toggle input:checked + .tk::before { transform: translateX(18px); }
+.toggle input:disabled + .tk { opacity: .35; cursor: default; }
+.toggle input:disabled + .tk::before { box-shadow: none; }
 .settings-content input[type="range"] { vertical-align: middle; }
 </style>
