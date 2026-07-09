@@ -16,10 +16,10 @@
           <button class="dropdown-item" @click="showSettings = true; showMore = false"><img src="/icons/settings.svg" alt="">设置</button>
           <button class="dropdown-item" @click="showTagMgr = true; showMore = false"><img src="/icons/tag.svg" alt="">标签</button>
           <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><img src="/icons/text-import.svg" alt="">文本导入</button>
-          <button class="dropdown-item" @click="doImport; showMore = false"><img src="/icons/import.svg" alt="">导入</button>
-          <button class="dropdown-item" @click="doExportJson; showMore = false"><img src="/icons/export.svg" alt="">导出备份</button>
+          <button class="dropdown-item" @click="doImport(); showMore = false"><img src="/icons/import.svg" alt="">导入</button>
+          <button class="dropdown-item" @click="doExportJson(); showMore = false"><img src="/icons/export.svg" alt="">导出备份</button>
           <button class="dropdown-item" @click="showDataMgr = true; showMore = false"><img src="/icons/data.svg" alt="">管理数据</button>
-          <button class="dropdown-item" @click="doBackupNow; showMore = false"><img src="/icons/backup.svg" alt="">立即备份<span class="dot" :class="bkStatusClass"></span></button>
+          <button class="dropdown-item" @click="doBackupNow(); showMore = false"><img src="/icons/backup.svg" alt="">立即备份<span class="dot" :class="bkStatusClass"></span></button>
           <div style="font-size:11px;color:var(--text2);padding:4px 12px 2px;">{{ bkStatusText }}</div>
         </div>
       </div>
