@@ -22,7 +22,18 @@
       @mousemove="onMouseMove"
       @mouseup="onMouseUp"
       @mouseleave="onMouseUp"
+      @click.self="onDayClick"
+      @contextmenu.prevent
     >
+      <!-- Selection rectangle -->
+      <div
+        v-if="selRect"
+        class="selrect"
+        :style="{
+          top: Math.min(selRect.top, selRect.bottom) + 'px',
+          height: Math.abs(selRect.bottom - selRect.top) + 'px',
+        }"
+      />
       <!-- Hour lines -->
       <div
         v-for="h in 25"
@@ -119,6 +130,11 @@ let dlabel = null
 // { type: 'create', anchor, cur }
 // { type: 'resize', id, edge, other, cur, el }
 const suppressClick = ref(false)
+
+// --- Right-drag selection ---
+const selRect = ref(null) // { top, bottom } in container px
+let selPending = null // { clientY } — wait for drag threshold
+let selMoved = false // true once drag threshold passed — suppress block toggle
 
 // --- Hover tracking (for paste) ---
 const lastHoverMin = ref(0)
@@ -289,7 +305,18 @@ function endDrag(commit) {
 }
 
 // --- Event handlers ---
+function onDayClick() {
+  if (suppressClick.value) return
+  if (store.selectedBlocks.size > 0) store.selectedBlocks.clear()
+}
+
 function onDayMouseDown(e) {
+  // Right-click: pending selection drag (starts on mousemove past threshold)
+  if (e.button === 2) {
+    e.preventDefault()
+    selPending = { clientY: e.clientY }
+    return
+  }
   if (e.button !== 0 || adrag) return
   const s = yToMin(e.clientY)
   adrag = { type: 'create', anchor: s, cur: s }
@@ -335,6 +362,24 @@ function onMouseMove(e) {
     adrag.cur = yToMin(e.clientY)
     applyDrag()
   }
+  if (selPending) {
+    const dy = Math.abs(e.clientY - selPending.clientY)
+    if (dy > 3) {
+      const r = dayRef.value.getBoundingClientRect()
+      const z = settingsStore.zoom / 100
+      const top = (selPending.clientY - r.top) / z
+      const bottom = (e.clientY - r.top) / z
+      selRect.value = { top, bottom }
+      selPending = null
+      selMoved = true
+    }
+    return
+  }
+  if (selRect.value) {
+    const r = dayRef.value.getBoundingClientRect()
+    const z = settingsStore.zoom / 100
+    selRect.value = { ...selRect.value, bottom: (e.clientY - r.top) / z }
+  }
   lastHoverMin.value = yToMin(e.clientY)
   overGrid.value = true
 }
@@ -342,6 +387,27 @@ function onMouseMove(e) {
 function onMouseUp() {
   if (adrag) {
     endDrag(true)
+  }
+  selPending = null
+  selMoved = false
+  if (selRect.value) {
+    const sr = selRect.value
+    selRect.value = null
+    const t = Math.min(sr.top, sr.bottom)
+    const b = Math.max(sr.top, sr.bottom)
+    // Convert container px to minutes
+    const z = settingsStore.zoom / 100
+    const r = dayRef.value.getBoundingClientRect()
+    const smin = yToMin(r.top + t * z)
+    const smax = yToMin(r.top + b * z)
+    store.blocks.forEach(bl => {
+      if (bl.end > smin && bl.start < smax) {
+        store.selectedBlocks.add(bl.id)
+      }
+    })
+    if (store.selectedBlocks.size > 0) {
+      toast(STR.toast.contextSelected(store.selectedBlocks.size))
+    }
   }
   overGrid.value = false
 }
@@ -357,6 +423,7 @@ function onBlockClick(e, ev) {
 }
 
 function onBlockContextMenu(ev) {
+  if (selMoved) return // area selection drag — don't toggle
   if (store.selectedBlocks.has(ev.id)) {
     store.selectedBlocks.delete(ev.id)
     if (store.selectedBlocks.size === 0) {
@@ -546,6 +613,15 @@ watch(() => store.dateKey, () => {
   left: 0;
   right: 0;
   border-top: 1px dashed #F0EFED;
+}
+.selrect {
+  position: absolute;
+  left: 0; right: 0;
+  background: var(--blue-soft);
+  border: 1px solid var(--blue);
+  opacity: .35;
+  z-index: 2;
+  pointer-events: none;
 }
 .block {
   position: absolute;
