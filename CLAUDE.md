@@ -69,6 +69,7 @@ src-tauri/src/
 ## 发布
 
 - 变更记录遵循 [Keep a Changelog](https://keepachangelog.com/) 格式，写入 `CHANGELOG.md`
+- bump version 时同步更新 CHANGELOG.md，与版本号 5 个文件一起提交
 
 1. 版本号同步 5 个文件：`frontend/src/constants.js`、`frontend/package.json`、`package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`
 2. 设置签名：`$env:TAURI_SIGNING_PRIVATE_KEY` + `$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
