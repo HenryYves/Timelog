@@ -75,11 +75,18 @@ function parseChunk(chunk, prevEnd) {
 
   let start, end
   if (timeStr) {
-    const m = timeStr.match(/^(\d{2})(\d{2})\s+(\d{2})(\d{2})$/)
-    if (m) {
-      start = parseInt(m[1]) * 60 + parseInt(m[2])
-      end = parseInt(m[3]) * 60 + parseInt(m[4])
+    const full = timeStr.match(/^(\d{2})(\d{2})\s+(\d{2})(\d{2})$/)
+    if (full) {
+      start = parseInt(full[1]) * 60 + parseInt(full[2])
+      end = parseInt(full[3]) * 60 + parseInt(full[4])
       if (end <= start || start >= 1440) { start = null; end = null }
+    } else {
+      // Single time → treat as end time, start from prevEnd / default
+      const single = timeStr.match(/^(\d{2})(\d{2})$/)
+      if (single) {
+        end = parseInt(single[1]) * 60 + parseInt(single[2])
+        start = null // will be filled by prevEnd / all-day logic below
+      }
     }
   }
   if (start == null) {
@@ -95,7 +102,12 @@ function parseChunk(chunk, prevEnd) {
       // No prevEnd and no explicit time → all-day warning
       start = 0; end = 1440; return { title, tags, start, end, note }
     }
+  }
+  if (end == null) {
     end = Math.min(start + 30, 1440)
+  } else if (end <= start) {
+    // User only provided end time, but start >= end → all-day warning
+    start = 0; end = 1440; return { title, tags, start, end, note }
   }
 
   return { title, tags, start, end, note }
