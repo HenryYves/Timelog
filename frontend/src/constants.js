@@ -27,6 +27,7 @@ export const DEFAULT_TAG_DELIMITERS = ','
 export const DEFAULT_ZOOM = 100
 export const DEFAULT_FONT_FAMILY = ''
 export const DEFAULT_CHECK_BEFORE_CREATE = false
+export const DEFAULT_COPY_AFTER_CREATE = true
 
 // ---------- UI ----------
 export const APP_VERSION = 'v0.6.4'

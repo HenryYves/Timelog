@@ -159,6 +159,9 @@ async function onCreate() {
     })
   }
   toast(STR.batchCreate.created(blocks.length))
+  if (settings.copyAfterCreate && text.value.trim()) {
+    try { await navigator.clipboard.writeText(text.value) } catch {}
+  }
   emit('close')
 }
 

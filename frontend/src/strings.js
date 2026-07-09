@@ -116,6 +116,7 @@ export const STR = {
     markdownPreview: 'Markdown 预览',
     sectionBatchCreate: 'N 模式创建时间块',
     checkBeforeCreate: '保存前检查解析结果',
+    copyAfterCreate: '创建后复制到剪贴板',
     tagDelimiters: '标签分隔符',
 
     // ── Appearance ──
@@ -139,6 +140,7 @@ export const STR = {
     descTagDelimiters: '批量创建（n）时拆分标签的字符，如 , ， .',
     descAutoScroll: '启动时自动将时间轴滚动到当前时间所在位置',
     descCheckBeforeCreate: '启用后批量创建前弹出预览确认，关闭则直接创建',
+    descCopyAfterCreate: '创建后将格式化文本复制到剪贴板，便于粘贴恢复',
     descFontFamily: '输入字体名称，如 JetBrains Mono；留空恢复默认',
     descZoom: '25%–400%，默认 100%',
     descBlockOpacity: '调整时间块颜色的透明度',

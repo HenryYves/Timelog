@@ -134,6 +134,17 @@
             <div class="small">{{ STR.settings.descCheckBeforeCreate }}</div>
 
             <div class="row">
+              <label>{{ STR.settings.copyAfterCreate }}</label>
+              <div>
+                <label class="toggle"><input type="checkbox" :checked="settings.copyAfterCreate" @change="settings.setCopyAfterCreate($event.target.checked)"><span class="tk"></span></label>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setCopyAfterCreate(DEFAULT_COPY_AFTER_CREATE)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descCopyAfterCreate }}</div>
+
+            <div class="row">
               <label>{{ STR.settings.tagDelimiters }}</label>
               <div>
                 <input type="text" :value="settings.tagDelimiters" @change="settings.setTagDelimiters($event.target.value)" placeholder="," style="width:200px;">
@@ -292,7 +303,7 @@ import {
   DEFAULT_AUTO_SCROLL, DEFAULT_EXPORT_TIMESTAMP, DEFAULT_EXPORT_DIALOG,
   DEFAULT_BORDERLESS, DEFAULT_BACKUP_ON, DEFAULT_AUTO_UPDATE,
   DEFAULT_TAG_DELIMITERS, DEFAULT_ZOOM, DEFAULT_FONT_FAMILY,
-  DEFAULT_CHECK_BEFORE_CREATE,
+  DEFAULT_CHECK_BEFORE_CREATE, DEFAULT_COPY_AFTER_CREATE,
 } from '../constants.js'
 import { STR } from '../strings.js'
 
@@ -449,6 +460,7 @@ function resetCategory(cat) {
       break
     case 'batchCreate':
       settings.setCheckBeforeCreate(DEFAULT_CHECK_BEFORE_CREATE)
+      settings.setCopyAfterCreate(DEFAULT_COPY_AFTER_CREATE)
       settings.setTagDelimiters(DEFAULT_TAG_DELIMITERS)
       break
     case 'export':

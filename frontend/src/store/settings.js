@@ -4,7 +4,7 @@ import {
   KEY_PREFIX, DEFAULT_DURATION, DEFAULT_OPACITY, DEFAULT_KEEP_DAYS,
   DEFAULT_AUTO_SCROLL, DEFAULT_EXPORT_TIMESTAMP, DEFAULT_EXPORT_DIALOG,
   DEFAULT_BORDERLESS, DEFAULT_BACKUP_ON, DEFAULT_AUTO_UPDATE, DEFAULT_TAG_DELIMITERS,
-  DEFAULT_ZOOM, DEFAULT_FONT_FAMILY, DEFAULT_CHECK_BEFORE_CREATE,
+  DEFAULT_ZOOM, DEFAULT_FONT_FAMILY, DEFAULT_CHECK_BEFORE_CREATE, DEFAULT_COPY_AFTER_CREATE,
 } from '../constants.js'
 
 function loadNum(k, d) {
@@ -32,6 +32,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const zoom = ref(loadNum('zoom', DEFAULT_ZOOM))
   const fontFamily = ref(localStorage.getItem(KEY_PREFIX + 'fontFamily') || DEFAULT_FONT_FAMILY)
   const checkBeforeCreate = ref(loadBool('checkBeforeCreate', DEFAULT_CHECK_BEFORE_CREATE))
+  const copyAfterCreate = ref(loadBool('copyAfterCreate', DEFAULT_COPY_AFTER_CREATE))
 
   function saveNum(k, v) { localStorage.setItem(KEY_PREFIX + k, String(v)) }
   function saveBool(k, v) { localStorage.setItem(KEY_PREFIX + k, v ? '1' : '0') }
@@ -115,12 +116,17 @@ export const useSettingsStore = defineStore('settings', () => {
     saveBool('checkBeforeCreate', v)
   }
 
+  function setCopyAfterCreate(v) {
+    copyAfterCreate.value = v
+    saveBool('copyAfterCreate', v)
+  }
+
   return {
     defaultDuration, autoScroll, exportTimestamp, exportDialog,
     blockOpacity, bkCustomPath, borderless, keepDays, backupOn, autoUpdate, tagDelimiters,
-    zoom, fontFamily, checkBeforeCreate,
+    zoom, fontFamily, checkBeforeCreate, copyAfterCreate,
     setDuration, setAutoScroll, setExportTimestamp, setExportDialog,
     setBlockOpacity, setBkCustomPath, setBorderless, setKeepDays, setBackupOn, setAutoUpdate, setTagDelimiters,
-    setZoom, setFontFamily, setCheckBeforeCreate,
+    setZoom, setFontFamily, setCheckBeforeCreate, setCopyAfterCreate,
   }
 })
