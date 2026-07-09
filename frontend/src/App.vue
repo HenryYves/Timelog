@@ -451,6 +451,11 @@ function onWindowKeyDown(e) {
     e.preventDefault()
     showBatchCreate.value = true
   }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A')) {
+    e.preventDefault()
+    store.selectAll()
+    toast(STR.toast.contextSelected(store.selectedBlocks.size))
+  }
 }
 
 // Called whenever blocks or tags change — debounced auto-save

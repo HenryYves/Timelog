@@ -75,6 +75,11 @@ export const useTimelogStore = defineStore('timelog', () => {
     saveBlocks()
   }
 
+  function selectAll() {
+    selectedBlocks.value.clear()
+    blocks.value.forEach(b => selectedBlocks.value.add(b.id))
+  }
+
   function copySelected() {
     if (!selectedBlocks.value.size) return false
     clipboard.value = blocks.value
@@ -167,7 +172,7 @@ export const useTimelogStore = defineStore('timelog', () => {
   return {
     curDate, blocks, selectedBlocks, clipboard, dateKey,
     loadBlocks, saveBlocks, addBlock, updateBlock, deleteBlock,
-    deleteSelectedBlocks, copySelected, pasteBlocks, setDate,
+    deleteSelectedBlocks, copySelected, pasteBlocks, selectAll, setDate,
     goNextDay, goPrevDay, goToday, colorOf,
   }
 })
