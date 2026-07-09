@@ -166,12 +166,6 @@
             <div class="small">{{ STR.settings.descFontFamily }}</div>
 
             <div class="row">
-              <label>{{ STR.settings.fontSize }}</label>
-              <input type="text" disabled :placeholder="STR.settings.placeholderFontSize" style="width:120px;">
-            </div>
-            <div class="small">{{ STR.settings.descFontSize }}</div>
-
-            <div class="row">
               <label>{{ STR.settings.zoom }} <span class="val-hint">{{ settings.zoom }}%</span></label>
               <div>
                 <input type="range" min="25" max="400" :value="settings.zoom" @input="settings.setZoom($event.target.value)" style="width:180px;">
