@@ -553,7 +553,7 @@ function resetCategory(cat) {
 
 /* ── Misc ── */
 .small-btn { font-size: 12px; padding: 2px 10px; }
-.settings-modal { width: 77vw; max-width: 95vw; height: 85vh; max-height: 95vh; }
+.settings-modal { width: 64.5vw; max-width: 95vw; height: 87.5vh; max-height: 95vh; }
 .settings-content .small { margin-top: 2px; margin-bottom: 0; }
 .settings-content label { display: inline; font-size: inherit; color: inherit; margin: 0; font-weight: inherit; }
 .settings-content input[type="checkbox"] { vertical-align: middle; }

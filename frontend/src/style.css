@@ -126,7 +126,7 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
   padding: 1px 7px; border-radius: 5px; z-index: 45; pointer-events: none;
   white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.2);
 }
-.modal input[type=text], .modal textarea, .modal input[type=time], .modal input[type=date] {
+.modal input[type=text], .modal input[type=number], .modal textarea, .modal input[type=time], .modal input[type=date] {
   width: 100%; font-family: inherit; font-size: 14px;
   border: 1px solid var(--border); border-radius: 8px;
   padding: 9px 10px; color: var(--text); background: var(--soft);
