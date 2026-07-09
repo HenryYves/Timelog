@@ -576,6 +576,7 @@ onMounted(async () => {
     const z = settings.zoom / 100
     el.style.transform = `scale(${z})`
     el.style.transformOrigin = '0 0'
+    el.style.setProperty('--zoom', z)
     el.style.width = `${100 / z}%`
     el.style.height = `${100 / z}%`
   }
