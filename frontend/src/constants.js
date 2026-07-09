@@ -29,7 +29,7 @@ export const DEFAULT_FONT_FAMILY = ''
 export const DEFAULT_CHECK_BEFORE_CREATE = false
 
 // ---------- UI ----------
-export const APP_VERSION = 'v0.6.0'
+export const APP_VERSION = 'v0.6.4'
 export const TOAST_DURATION = 3000
 
 export function compareSemver(a, b) {
