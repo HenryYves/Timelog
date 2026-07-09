@@ -30,7 +30,7 @@ export const DEFAULT_CHECK_BEFORE_CREATE = false
 export const DEFAULT_COPY_AFTER_CREATE = true
 
 // ---------- UI ----------
-export const APP_VERSION = 'v0.6.7'
+export const APP_VERSION = 'v0.6.12'
 export const TOAST_DURATION = 3000
 
 export function compareSemver(a, b) {
