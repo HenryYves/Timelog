@@ -202,7 +202,7 @@ function blockTitle(ev) {
 // --- Mouse helpers ---
 function yToMin(y) {
   const r = dayRef.value.getBoundingClientRect()
-  return Math.max(0, Math.min(DAY_MIN, Math.round((y - r.top) / PX_MIN)))
+  return Math.max(0, Math.min(DAY_MIN, Math.round((y - r.top) / (settingsStore.zoom / 100) / PX_MIN)))
 }
 
 function dragBounds() {
