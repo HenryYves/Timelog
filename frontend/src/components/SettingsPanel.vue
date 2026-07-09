@@ -239,9 +239,10 @@
             <div class="row">
               <label>{{ STR.settings.backupPath }}</label>
               <div>
-                <input type="text" :value="bkPathDraft" @input="bkPathDraft = $event.target.value" :placeholder="STR.settings.placeholderBackupPath" style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;" :title="bkPathDraft">
-                <button type="button" class="small-btn" @click="onBkPathSave">{{ STR.btn.save }}</button>
-                <button type="button" class="small-btn" @click="onBkPathReset">{{ STR.settings.restoreDefault }}</button>
+                <input type="text" :value="bkPathDraft" @input="bkPathDraft = $event.target.value" @change="onBkPathBlur" :placeholder="STR.settings.placeholderBackupPath" style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;" :title="bkPathDraft">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="onBkPathReset">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
               </div>
             </div>
             <div class="small">{{ STR.settings.descBackupPath }}</div>
@@ -380,9 +381,11 @@ function applyBorderless(val) {
   }
 }
 
-async function onBkPathSave() {
+async function onBkPathBlur() {
   const np = bkPathDraft.value.trim()
   if (np === settings.bkCustomPath) return
+  const ok = await showConfirm(`将备份路径改为 "${np}" 并迁移已有备份？`)
+  if (!ok) return
   const old = settings.bkCustomPath
   settings.setBkCustomPath(np)
   bkPathDraft.value = settings.bkCustomPath
