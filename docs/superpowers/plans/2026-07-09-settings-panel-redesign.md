@@ -407,6 +407,63 @@ const tabs = [
 
 Remove the unused `winMaxed` variable if still present. Keep all existing handler functions (`onDurationChange`, `onOpacityInput`, `onBorderlessChange`, `onKeepDaysChange`, `applyBorderless`, `onBkPathSave`, `onBkPathReset`, `onClose`, `onCheckUpdate`, `trapFocus`). Keep the `bkPathDraft` watch.
 
+Add category-level reset:
+
+```javascript
+function resetCategory(cat) {
+  switch (cat) {
+    case 'startup':
+      settings.setAutoScroll(DEFAULT_AUTO_SCROLL)
+      break
+    case 'tEditor':
+      settings.setDuration(DEFAULT_DURATION)
+      break
+    case 'batchCreate':
+      settings.setCheckBeforeCreate(DEFAULT_CHECK_BEFORE_CREATE)
+      settings.setTagDelimiters(DEFAULT_TAG_DELIMITERS)
+      break
+    case 'export':
+      settings.setExportTimestamp(DEFAULT_EXPORT_TIMESTAMP)
+      settings.setExportDialog(DEFAULT_EXPORT_DIALOG)
+      break
+    case 'backup':
+      settings.setBkCustomPath('')
+      bkPathDraft.value = ''
+      settings.setBackupOn(DEFAULT_BACKUP_ON)
+      settings.setKeepDays(DEFAULT_KEEP_DAYS)
+      break
+    case 'basic':
+      settings.setAutoUpdate(DEFAULT_AUTO_UPDATE)
+      break
+    case 'appearance':
+      settings.setFontFamily(DEFAULT_FONT_FAMILY)
+      settings.setZoom(DEFAULT_ZOOM)
+      settings.setBlockOpacity(DEFAULT_OPACITY)
+      settings.setBorderless(DEFAULT_BORDERLESS)
+      break
+  }
+}
+```
+
+Each subheading section uses `<div class="section-head">` wrapper:
+
+```html
+<div class="section-head">
+  <h4 class="section-title">{{ STR.settings.sectionStartup }}</h4>
+  <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('startup')">
+    <img src="/icons/恢复.svg" alt="">
+  </button>
+</div>
+```
+
+Apply the same pattern to all subheadings:
+- `sectionEditor` → `resetCategory('tEditor')`
+- `sectionBatchCreate` → `resetCategory('batchCreate')`
+- `sectionExport` → `resetCategory('export')`
+- `sectionBackup` → `resetCategory('backup')`
+
+For top-level categories without subheadings (basic, appearance), add a category reset button next to the first setting or as a standalone row.
+
 - [ ] **Step 3: Replace style section**
 
 ```css
@@ -456,15 +513,21 @@ row {
 row > :first-child { flex-shrink: 0; }
 row > :last-child { display: flex; align-items: center; gap: 6px; }
 
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 16px 0 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
 .section-title {
   font-size: 12px;
   color: var(--text2);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .5px;
-  margin: 16px 0 6px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
+  margin: 0;
 }
 
 /* ── Restore button ── */
