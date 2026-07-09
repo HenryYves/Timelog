@@ -333,7 +333,6 @@ function onBlockMouseMove(e, _ev) {
 
 function onBlockMouseDown(e, ev) {
   if (e.button !== 0) return
-  e.stopPropagation()
   const el = e.currentTarget
   const r = el.getBoundingClientRect()
   const y = e.clientY - r.top
@@ -342,6 +341,7 @@ function onBlockMouseDown(e, ev) {
   if (y <= ez) edge = 'start'
   else if (y >= r.height - ez) edge = 'end'
   if (edge) {
+    e.stopPropagation()
     e.preventDefault()
     suppressClick.value = true
     document.body.style.cursor = 'ns-resize'
