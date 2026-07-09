@@ -1,11 +1,11 @@
 {
-  "version": "v0.5.16",
-  "notes": "新增：Mango 字体标题、编辑时间跨度显示、n 批量创建接续上块+全天警告+自定义分隔符、缩放/字体设置、未修改不弹确认\n变更：t 键智能默认时间（当天取最后块结束）、精确分钟值\n修复：时间跨度负值",
-  "pub_date": "2026-07-08T10:30:00Z",
+  "version": "v0.6.12",
+  "notes": "新增：右键框选时间块、左键拖拽创建、Ctrl+A全选、空白处取消选中、设置面板重构分栏、恢复默认按钮、n模式预览确认+剪贴板备份\n变更：Toggle滑开关、输入框/下拉栏/滑动条美化、备份路径失焦保存、无边框默认开启\n修复：缩放鼠标偏差、More菜单无反应、n单时间值作为结束时间",
+  "pub_date": "2026-07-09T08:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUIrNkFucERWTktVZmhxQlBCMS9wRm8rUE1tWGVQM3F1Lzg5TFJmYTZtZkZSTk4ydHdwSUhjTldORUF1ODB5ckFoaStzUGtVL2oxQ2x3eFZCc2NvU1FvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNTEwMjgzCWZpbGU6dGltZWxvZ18wLjUuMTZfeDY0X2VuLVVTLm1zaQoxRjlMS0NXd1NpS3JDaVNNdXBnSVRDU2lhRUNvTHFYSm1TWStFL05XdXNvUVlIUEMvSTdTQm9DM1IzcTlUOUE0MFNieE40dDBtODJJdWV4dG1ES0NDUT09Cg==",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.5.16/timelog_0.5.16_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUpvcWp5VE0yZ3ZCeFFwWE90b0RoWm5BQ3oyV1AyWEk0dmNkaGNtQzlKaGszS0dwY3pyVmVudzVoTndleGQ3Y0dXSnRPUXROOGFHM083VEVYdkFObnc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNTg0MTUxCWZpbGU6dGltZWxvZ18wLjYuMTJfeDY0X2VuLVVTLm1zaQo2ZU5mT3J1SVpZUHhWaEVQUmtBL3NoV0R2YlczTGwxNHZiM2doYkpIZ0lXbzc0UnBjYm9jTlF5cTRmYkNpWEVHcWtnQW4wNVJBRzdtQWJHL0JxcERDQT09Cg==",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.6.12/timelog_0.6.12_x64_en-US.msi"
     }
   }
 }
