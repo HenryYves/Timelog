@@ -21,7 +21,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { useTimelogStore, dkey } from '../store/timelog.js'
+import { useTimelogStore, dkey, toInput } from '../store/timelog.js'
 import { useSettingsStore } from '../store/settings.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
@@ -135,7 +135,20 @@ function onInput() {
 }
 
 async function onCreate() {
-  for (const b of parsed.value) {
+  const blocks = parsed.value
+  if (!blocks.length) return
+
+  if (settings.checkBeforeCreate) {
+    const lines = [`${STR.batchCreate.preview(blocks.length)}\n`]
+    for (const b of blocks) {
+      lines.push(`${toInput(b.start)} - ${toInput(b.end)}  ${b.title}`)
+      if (b.tags.length) lines.push(`  标签：${b.tags.join(', ')}`)
+    }
+    const confirmed = await showConfirm(lines.join('\n'))
+    if (!confirmed) return
+  }
+
+  for (const b of blocks) {
     store.addBlock({
       id: 'b' + Date.now() + Math.random().toString(36).slice(2, 6),
       start: b.start,
@@ -145,7 +158,7 @@ async function onCreate() {
       tags: b.tags,
     })
   }
-  toast(STR.batchCreate.created(parsed.value.length))
+  toast(STR.batchCreate.created(blocks.length))
   emit('close')
 }
 

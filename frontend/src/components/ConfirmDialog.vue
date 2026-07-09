@@ -94,9 +94,12 @@ const cancelLabel = STR.btn.cancel
   font-size: 14px;
   color: var(--text);
   line-height: 1.6;
-  text-align: center;
+  text-align: left;
   margin: 0 0 22px;
   word-break: break-word;
+  white-space: pre-wrap;
+  max-height: 60vh;
+  overflow-y: auto;
 }
 .dlg-btns {
   display: flex;
