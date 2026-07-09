@@ -1,146 +1,278 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="onClose" @keydown.escape.stop="onClose">
-    <div class="modal" ref="modalEl" @keydown="trapFocus">
+    <div class="modal settings-modal" ref="modalEl" @keydown="trapFocus">
       <h2>设置</h2>
 
-      <label>默认时长（分钟）</label>
-      <input type="number" id="setDuration" min="1" max="1440" style="width:80px;"
-        :value="settings.defaultDuration"
-        @change="onDurationChange">
-      <div class="small">按 <kbd>T</kbd> 键快速创建时默认时间块长度</div>
+      <div class="settings-layout">
+        <!-- Left nav -->
+        <nav class="settings-nav">
+          <button v-for="tab in tabs" :key="tab.key"
+            class="snav-item" :class="{ active: activeTab === tab.key }"
+            @click="activeTab = tab.key"
+          >{{ tab.label }}</button>
+        </nav>
 
-      <div class="divider"></div>
+        <!-- Right content -->
+        <div class="settings-content">
 
-      <label>标签分隔符</label>
-      <input type="text"
-        :value="settings.tagDelimiters"
-        @change="settings.setTagDelimiters($event.target.value)"
-        placeholder=","
-        style="width:200px;">
-      <div class="small">批量创建（<kbd>n</kbd>）时拆分标签的字符，如 <code>, ， .</code></div>
+          <!-- ═══════ 基础 ═══════ -->
+          <div v-show="activeTab === 'basic'">
+            <label>{{ STR.settings.version }}</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <code>{{ APP_VERSION }}</code>
+              <a href="https://github.com/HenryYves/Timelog" target="_blank" class="small">GitHub</a>
+              <a href="https://gitee.com/Henry_Yves/timelog" target="_blank" class="small">Gitee</a>
+            </div>
 
-      <div class="divider"></div>
+            <div class="section-head">
+              <h4 class="section-title">{{ STR.settings.navBasic }}</h4>
+              <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('basic')">
+                <img src="/icons/restore.svg" alt="">
+              </button>
+            </div>
 
-      <label class="switchrow">
-        <input type="checkbox" id="setAutoScroll"
-          :checked="settings.autoScroll"
-          @change="settings.setAutoScroll(($event.target).checked)">
-        <span>打开时滚到当前时间</span>
-      </label>
+            <div class="row">
+              <label>{{ STR.settings.autoUpdate }}</label>
+              <div>
+                <input type="checkbox" :checked="settings.autoUpdate" @change="settings.setAutoUpdate($event.target.checked)">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoUpdate(DEFAULT_AUTO_UPDATE)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descAutoUpdate }}</div>
 
-      <div class="divider"></div>
-      <label style="margin-bottom:4px;">导出</label>
+            <div class="row">
+              <span>{{ STR.settings.checkUpdate }}</span>
+              <div>
+                <button type="button" @click="onCheckUpdate" :disabled="checkingUpdate" class="small-btn">
+                  {{ checkingUpdate ? STR.update.checking : STR.update.checkUpdate }}
+                </button>
+              </div>
+            </div>
 
-      <label class="switchrow">
-        <input type="checkbox" id="setExportTimestamp"
-          :checked="settings.exportTimestamp"
-          @change="settings.setExportTimestamp(($event.target).checked)">
-        <span>文件名加时间戳</span>
-      </label>
-      <div class="small">例：timelog-backup-2026-07-04-1730.json</div>
+            <div class="row">
+              <label>{{ STR.settings.language }}</label>
+              <select disabled style="width:140px;"><option>中文</option></select>
+            </div>
+            <div class="small">{{ STR.settings.descLanguage }}</div>
 
-      <label class="switchrow">
-        <input type="checkbox" id="setExportDialog"
-          :checked="settings.exportDialog"
-          @change="settings.setExportDialog(($event.target).checked)">
-        <span>导出时弹出保存对话框</span>
-      </label>
+            <div class="row">
+              <span>{{ STR.settings.help }}</span>
+              <button type="button" class="small-btn" disabled>打开</button>
+            </div>
+            <div class="small">{{ STR.settings.descHelp }}</div>
 
-      <div class="divider"></div>
+            <div class="section-head">
+              <h4 class="section-title">{{ STR.settings.sectionStartup }}</h4>
+              <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('startup')">
+                <img src="/icons/restore.svg" alt="">
+              </button>
+            </div>
 
-      <label>
-        时间块透明度
-        <span style="font-weight:400;color:var(--text2);">{{ settings.blockOpacity }}%</span>
-      </label>
-      <input type="range" id="setOpacity" min="5" max="200"
-        :value="settings.blockOpacity"
-        @input="onOpacityInput"
-        style="width:100%;margin-top:4px;">
+            <div class="row">
+              <label>{{ STR.settings.autoScroll }}</label>
+              <div>
+                <input type="checkbox" :checked="settings.autoScroll" @change="settings.setAutoScroll($event.target.checked)">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoScroll(DEFAULT_AUTO_SCROLL)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descAutoScroll }}</div>
+          </div>
 
-      <div class="divider"></div>
+          <!-- ═══════ 编辑器 ═══════ -->
+          <div v-show="activeTab === 'editor'">
+            <div class="section-head">
+              <h4 class="section-title">{{ STR.settings.sectionEditor }}</h4>
+              <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('tEditor')">
+                <img src="/icons/restore.svg" alt="">
+              </button>
+            </div>
 
-      <label>
-        缩放比例
-        <span style="font-weight:400;color:var(--text2);">{{ settings.zoom }}%</span>
-      </label>
-      <input type="range" id="setZoom" min="25" max="400"
-        :value="settings.zoom"
-        @input="settings.setZoom($event.target.value)"
-        style="width:100%;margin-top:4px;">
-      <div class="small">25%–400%，默认 100%</div>
+            <div class="row">
+              <label>{{ STR.settings.defaultDuration }}</label>
+              <div>
+                <input type="number" min="1" max="1440" style="width:80px;" :value="settings.defaultDuration" @change="onDurationChange">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setDuration(DEFAULT_DURATION)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descDefaultDuration }}</div>
 
-      <div class="divider"></div>
+            <div class="row">
+              <label>{{ STR.settings.markdownPreview }}</label>
+              <input type="checkbox" disabled>
+            </div>
+            <div class="small">{{ STR.settings.descMarkdownPreview }}</div>
 
-      <label>字体</label>
-      <input type="text"
-        :value="settings.fontFamily"
-        @change="settings.setFontFamily($event.target.value)"
-        placeholder="默认（系统字体）"
-        style="width:100%;">
-      <div class="small">输入字体名称，如 <code>JetBrains Mono</code>；留空恢复默认</div>
+            <div class="section-head">
+              <h4 class="section-title">{{ STR.settings.sectionBatchCreate }}</h4>
+              <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('batchCreate')">
+                <img src="/icons/restore.svg" alt="">
+              </button>
+            </div>
 
-      <div class="divider"></div>
+            <div class="row">
+              <label>{{ STR.settings.checkBeforeCreate }}</label>
+              <div>
+                <input type="checkbox" :checked="settings.checkBeforeCreate" @change="settings.setCheckBeforeCreate($event.target.checked)">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setCheckBeforeCreate(DEFAULT_CHECK_BEFORE_CREATE)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descCheckBeforeCreate }}</div>
 
-      <label>备份路径</label>
-      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
-        <input type="text" id="bkPathInput"
-          :value="bkPathDraft"
-          @input="bkPathDraft = $event.target.value"
-          placeholder="默认（AppData）"
-          style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;"
-          :title="bkPathDraft">
-        <button type="button" style="flex:none;font-size:12px;" @click="onBkPathSave">保存</button>
-        <button type="button" style="flex:none;font-size:12px;" @click="onBkPathReset">恢复默认</button>
+            <div class="row">
+              <label>{{ STR.settings.tagDelimiters }}</label>
+              <div>
+                <input type="text" :value="settings.tagDelimiters" @change="settings.setTagDelimiters($event.target.value)" placeholder="," style="width:200px;">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setTagDelimiters(DEFAULT_TAG_DELIMITERS)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descTagDelimiters }}</div>
+          </div>
+
+          <!-- ═══════ 外观 ═══════ -->
+          <div v-show="activeTab === 'appearance'">
+            <div class="section-head">
+              <h4 class="section-title">{{ STR.settings.navAppearance }}</h4>
+              <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('appearance')">
+                <img src="/icons/restore.svg" alt="">
+              </button>
+            </div>
+
+            <div class="row">
+              <label>{{ STR.settings.fontFamily }}</label>
+              <div>
+                <input type="text" :value="settings.fontFamily" @change="settings.setFontFamily($event.target.value)" :placeholder="'默认（系统字体）'" style="width:100%;">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setFontFamily(DEFAULT_FONT_FAMILY)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descFontFamily }}</div>
+
+            <div class="row">
+              <label>{{ STR.settings.fontSize }}</label>
+              <input type="text" disabled placeholder="待实现" style="width:120px;">
+            </div>
+            <div class="small">{{ STR.settings.descFontSize }}</div>
+
+            <div class="row">
+              <label>{{ STR.settings.zoom }} <span class="val-hint">{{ settings.zoom }}%</span></label>
+              <div>
+                <input type="range" min="25" max="400" :value="settings.zoom" @input="settings.setZoom($event.target.value)" style="width:180px;">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setZoom(DEFAULT_ZOOM)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descZoom }}</div>
+
+            <div class="row">
+              <label>{{ STR.settings.blockOpacity }} <span class="val-hint">{{ settings.blockOpacity }}%</span></label>
+              <div>
+                <input type="range" min="5" max="200" :value="settings.blockOpacity" @input="onOpacityInput" style="width:180px;">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBlockOpacity(DEFAULT_OPACITY)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descBlockOpacity }}</div>
+
+            <div class="row">
+              <label>{{ STR.settings.borderless }}</label>
+              <div>
+                <input type="checkbox" :checked="settings.borderless" @change="onBorderlessChange">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBorderless(DEFAULT_BORDERLESS)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descBorderless }}</div>
+          </div>
+
+          <!-- ═══════ 文件 ═══════ -->
+          <div v-show="activeTab === 'files'">
+            <div class="section-head">
+              <h4 class="section-title">{{ STR.settings.sectionExport }}</h4>
+              <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('export')">
+                <img src="/icons/restore.svg" alt="">
+              </button>
+            </div>
+
+            <div class="row">
+              <label>{{ STR.settings.exportTimestamp }}</label>
+              <div>
+                <input type="checkbox" :checked="settings.exportTimestamp" @change="settings.setExportTimestamp($event.target.checked)">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setExportTimestamp(DEFAULT_EXPORT_TIMESTAMP)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descExportTimestamp }}</div>
+
+            <div class="row">
+              <label>{{ STR.settings.exportDialog }}</label>
+              <div>
+                <input type="checkbox" :checked="settings.exportDialog" @change="settings.setExportDialog($event.target.checked)">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setExportDialog(DEFAULT_EXPORT_DIALOG)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descExportDialog }}</div>
+
+            <div class="section-head">
+              <h4 class="section-title">{{ STR.settings.sectionBackup }}</h4>
+              <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('backup')">
+                <img src="/icons/restore.svg" alt="">
+              </button>
+            </div>
+
+            <div class="row">
+              <label>{{ STR.settings.backupPath }}</label>
+              <div>
+                <input type="text" :value="bkPathDraft" @input="bkPathDraft = $event.target.value" :placeholder="'默认（AppData）'" style="flex:1;font-size:13px;">
+                <button type="button" class="small-btn" @click="onBkPathSave">{{ STR.btn.save }}</button>
+                <button type="button" class="small-btn" @click="onBkPathReset">恢复默认</button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descBackupPath }}</div>
+
+            <div class="row">
+              <label>{{ STR.settings.backupOn }}</label>
+              <div>
+                <input type="checkbox" :checked="settings.backupOn" @change="settings.setBackupOn($event.target.checked)">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBackupOn(DEFAULT_BACKUP_ON)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descBackupOn }}</div>
+
+            <div class="row">
+              <label>{{ STR.settings.keepDays }}</label>
+              <div>
+                <input type="number" min="0" max="3650" style="width:80px;" placeholder="0" :value="settings.keepDays" @change="onKeepDaysChange">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setKeepDays(DEFAULT_KEEP_DAYS)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descKeepDays }}</div>
+          </div>
+
+        </div>
       </div>
-      <div class="small">输入绝对路径，留空则使用 AppData</div>
 
-      <div class="divider"></div>
-
-      <label class="switchrow">
-        <input type="checkbox" id="setBorderless"
-          :checked="settings.borderless"
-          @change="onBorderlessChange">
-        <span>无边框窗口</span>
-      </label>
-      <div class="small">启用后隐藏原生标题栏，顶部右侧显示窗口控制按钮</div>
-
-      <div class="divider"></div>
-
-      <label class="switchrow">
-        <input type="checkbox" id="setBackup"
-          :checked="settings.backupOn"
-          @change="settings.setBackupOn(($event.target).checked)">
-        <span>启用自动备份（Tauri）</span>
-      </label>
-      <div class="small">关闭后不再自动写入备份文件，避免数据量大时影响性能；你仍可随时点「立即备份」手动保存。</div>
-
-      <div class="divider"></div>
-      <label>备份策略</label>
-      <div class="small">每天首次操作时，会把当前数据快照存为上一次日期的备份（timelog-backup-日期.json）；最多保留 4 个，超出自动删除最早的。</div>
-      <div class="divider"></div>
-      <label>只保留最近 N 天数据</label>
-      <input type="number" id="setKeepDays" min="0" max="3650" style="width:80px;" placeholder="0"
-        :value="settings.keepDays"
-        @change="onKeepDaysChange">
-      <div class="small">0 = 保留全部；设 7 则每天首次操作时自动删掉第 8 个及更早有数据的天，仅保留最近 7 个有数据的天。</div>
-
-      <div class="divider"></div>
-
-      <label class="switchrow">
-        <input type="checkbox" id="setAutoUpdate"
-          :checked="settings.autoUpdate"
-          @change="settings.setAutoUpdate(($event.target).checked)">
-        <span>自动更新</span>
-      </label>
-      <div class="small">启动时自动检查更新（默认关闭）</div>
-
-      <div style="margin-top:8px;">
-        <button type="button" id="checkUpdateBtn" @click="onCheckUpdate" :disabled="checkingUpdate">
-          {{ checkingUpdate ? '检查中...' : '检查更新' }}
-        </button>
-      </div>
-
-      <div class="actions"><span class="spacer"></span><button type="button" id="setClose" @click="onClose">关闭</button></div>
+      <div class="actions"><span class="spacer"></span><button type="button" id="setClose" @click="onClose">{{ STR.btn.close }}</button></div>
     </div>
   </div>
 </template>
@@ -152,7 +284,14 @@ import { useSettingsStore } from '../store/settings.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { migrateBackups } from '../utils/backup.js'
-import { APP_VERSION, compareSemver } from '../constants.js'
+import {
+  APP_VERSION, compareSemver,
+  DEFAULT_DURATION, DEFAULT_OPACITY, DEFAULT_KEEP_DAYS,
+  DEFAULT_AUTO_SCROLL, DEFAULT_EXPORT_TIMESTAMP, DEFAULT_EXPORT_DIALOG,
+  DEFAULT_BORDERLESS, DEFAULT_BACKUP_ON, DEFAULT_AUTO_UPDATE,
+  DEFAULT_TAG_DELIMITERS, DEFAULT_ZOOM, DEFAULT_FONT_FAMILY,
+  DEFAULT_CHECK_BEFORE_CREATE,
+} from '../constants.js'
 import { STR } from '../strings.js'
 
 const props = defineProps({
@@ -168,6 +307,14 @@ const checkingUpdate = ref(false)
 const modalEl = ref(null)
 
 const bkPathDraft = ref(settings.bkCustomPath)
+
+const activeTab = ref('basic')
+const tabs = [
+  { key: 'basic', label: STR.settings.navBasic },
+  { key: 'editor', label: STR.settings.navEditor },
+  { key: 'appearance', label: STR.settings.navAppearance },
+  { key: 'files', label: STR.settings.navFiles },
+]
 
 function trapFocus(e) {
   if (e.key !== 'Tab') return
@@ -192,9 +339,6 @@ watch(() => props.show, (val) => {
     bkPathDraft.value = settings.bkCustomPath
   }
 }, { immediate: true })
-
-// Track maximize state for restore/maximize toggle
-let winMaxed = false
 
 function onDurationChange(e) {
   settings.setDuration(e.target.value)
@@ -290,4 +434,126 @@ async function onCheckUpdate() {
     checkingUpdate.value = false
   }
 }
+
+function resetCategory(cat) {
+  switch (cat) {
+    case 'startup':
+      settings.setAutoScroll(DEFAULT_AUTO_SCROLL)
+      break
+    case 'tEditor':
+      settings.setDuration(DEFAULT_DURATION)
+      break
+    case 'batchCreate':
+      settings.setCheckBeforeCreate(DEFAULT_CHECK_BEFORE_CREATE)
+      settings.setTagDelimiters(DEFAULT_TAG_DELIMITERS)
+      break
+    case 'export':
+      settings.setExportTimestamp(DEFAULT_EXPORT_TIMESTAMP)
+      settings.setExportDialog(DEFAULT_EXPORT_DIALOG)
+      break
+    case 'backup':
+      settings.setBkCustomPath('')
+      bkPathDraft.value = ''
+      settings.setBackupOn(DEFAULT_BACKUP_ON)
+      settings.setKeepDays(DEFAULT_KEEP_DAYS)
+      break
+    case 'basic':
+      settings.setAutoUpdate(DEFAULT_AUTO_UPDATE)
+      break
+    case 'appearance':
+      settings.setFontFamily(DEFAULT_FONT_FAMILY)
+      settings.setZoom(DEFAULT_ZOOM)
+      settings.setBlockOpacity(DEFAULT_OPACITY)
+      settings.setBorderless(DEFAULT_BORDERLESS)
+      break
+  }
+}
 </script>
+
+<style scoped>
+/* ── Layout ── */
+.settings-layout {
+  display: flex;
+  gap: 0;
+  min-height: 360px;
+  margin-top: 8px;
+}
+.settings-nav {
+  width: 180px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  padding-right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.snav-item {
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13.5px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.snav-item:hover { background: var(--soft2); }
+.snav-item.active { background: var(--blue-soft); color: var(--blue); font-weight: 600; }
+.settings-content {
+  flex: 1;
+  padding-left: 20px;
+  overflow-y: auto;
+}
+
+/* ── Setting rows ── */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+.row > :first-child { flex-shrink: 0; }
+.row > :last-child { display: flex; align-items: center; gap: 6px; }
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 16px 0 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.section-title {
+  font-size: 12px;
+  color: var(--text2);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin: 0;
+}
+
+/* ── Restore button ── */
+.btn-restore {
+  width: 20px; height: 20px;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  opacity: .35;
+  flex-shrink: 0;
+}
+.btn-restore:hover { opacity: 1; }
+.btn-restore img { width: 100%; height: 100%; display: block; }
+
+/* ── Value hints ── */
+.val-hint { font-weight: 400; color: var(--text2); font-size: 13px; margin-left: 4px; }
+
+/* ── Misc ── */
+.small-btn { font-size: 12px; padding: 2px 10px; }
+.settings-modal { max-width: 680px; }
+.settings-content .small { margin-top: 2px; margin-bottom: 0; }
+.settings-content label { display: inline; font-size: inherit; color: inherit; margin: 0; font-weight: inherit; }
+.settings-content input[type="checkbox"] { vertical-align: middle; }
+.settings-content input[type="range"] { vertical-align: middle; }
+</style>
