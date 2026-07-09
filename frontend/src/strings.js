@@ -91,6 +91,10 @@ export const STR = {
     defaultTitle: '(未命名)',
   },
   settings: {
+    // ── General ──
+    title: '设置',
+    helpButton: '打开',
+
     // ── Nav ──
     navBasic: '基础',
     navEditor: '编辑器',
@@ -154,5 +158,8 @@ export const STR = {
     // ── Restore ──
     restoreDefault: '恢复默认设置',
     restoreCategory: '恢复本栏默认',
+    placeholderFontFamily: '默认（系统字体）',
+    placeholderFontSize: '待实现',
+    placeholderBackupPath: '默认（AppData）',
   },
 }

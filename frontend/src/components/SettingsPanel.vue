@@ -1,7 +1,7 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="onClose" @keydown.escape.stop="onClose">
     <div class="modal settings-modal" ref="modalEl" @keydown="trapFocus">
-      <h2>设置</h2>
+      <h2>{{ STR.settings.title }}</h2>
 
       <div class="settings-layout">
         <!-- Left nav -->
@@ -59,7 +59,7 @@
 
             <div class="row">
               <span>{{ STR.settings.help }}</span>
-              <button type="button" class="small-btn" disabled>打开</button>
+              <button type="button" class="small-btn" disabled>{{ STR.settings.helpButton }}</button>
             </div>
             <div class="small">{{ STR.settings.descHelp }}</div>
 
@@ -150,7 +150,7 @@
             <div class="row">
               <label>{{ STR.settings.fontFamily }}</label>
               <div>
-                <input type="text" :value="settings.fontFamily" @change="settings.setFontFamily($event.target.value)" :placeholder="'默认（系统字体）'" style="width:100%;">
+                <input type="text" :value="settings.fontFamily" @change="settings.setFontFamily($event.target.value)" :placeholder="STR.settings.placeholderFontFamily" style="width:100%;">
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setFontFamily(DEFAULT_FONT_FAMILY)">
                   <img src="/icons/restore.svg" alt="">
                 </button>
@@ -160,7 +160,7 @@
 
             <div class="row">
               <label>{{ STR.settings.fontSize }}</label>
-              <input type="text" disabled placeholder="待实现" style="width:120px;">
+              <input type="text" disabled :placeholder="STR.settings.placeholderFontSize" style="width:120px;">
             </div>
             <div class="small">{{ STR.settings.descFontSize }}</div>
 
@@ -239,9 +239,9 @@
             <div class="row">
               <label>{{ STR.settings.backupPath }}</label>
               <div>
-                <input type="text" :value="bkPathDraft" @input="bkPathDraft = $event.target.value" :placeholder="'默认（AppData）'" style="flex:1;font-size:13px;">
+                <input type="text" :value="bkPathDraft" @input="bkPathDraft = $event.target.value" :placeholder="STR.settings.placeholderBackupPath" style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;" :title="bkPathDraft">
                 <button type="button" class="small-btn" @click="onBkPathSave">{{ STR.btn.save }}</button>
-                <button type="button" class="small-btn" @click="onBkPathReset">恢复默认</button>
+                <button type="button" class="small-btn" @click="onBkPathReset">{{ STR.settings.restoreDefault }}</button>
               </div>
             </div>
             <div class="small">{{ STR.settings.descBackupPath }}</div>
@@ -452,6 +452,8 @@ function resetCategory(cat) {
       settings.setExportDialog(DEFAULT_EXPORT_DIALOG)
       break
     case 'backup':
+      // Note: unlike onBkPathReset, this does not call migrateBackups() or show confirmation.
+      // Category reset is meant as a quick bulk restore; per-item reset handles migration.
       settings.setBkCustomPath('')
       bkPathDraft.value = ''
       settings.setBackupOn(DEFAULT_BACKUP_ON)
