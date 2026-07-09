@@ -90,4 +90,69 @@ export const STR = {
     created: (n) => `已创建 ${n} 个时间块`,
     defaultTitle: '(未命名)',
   },
+  settings: {
+    // ── Nav ──
+    navBasic: '基础',
+    navEditor: '编辑器',
+    navAppearance: '外观',
+    navFiles: '文件',
+
+    // ── Basic ──
+    version: '当前版本',
+    checkUpdate: '检查更新',
+    autoUpdate: '自动更新',
+    language: '语言',
+    help: '帮助弹窗',
+    sectionStartup: '启动',
+    autoScroll: '打开时滚到当前时间',
+
+    // ── Editor ──
+    sectionEditor: '时间块编辑器 (T & 鼠标)',
+    defaultDuration: '默认时长',
+    markdownPreview: 'Markdown 预览',
+    sectionBatchCreate: 'N 模式创建时间块',
+    checkBeforeCreate: '保存前检查解析结果',
+    tagDelimiters: '标签分隔符',
+
+    // ── Appearance ──
+    fontFamily: '字体',
+    fontSize: '字体大小',
+    zoom: '缩放比例',
+    blockOpacity: '时间块透明度',
+    borderless: '无边框窗口',
+
+    // ── Files ──
+    sectionExport: '导出',
+    exportTimestamp: '文件名加时间戳',
+    exportDialog: '导出时弹出保存对话框',
+    sectionBackup: '备份',
+    backupPath: '备份路径',
+    backupOn: '启用自动备份（Tauri）',
+    keepDays: '只保留最近 N 天数据',
+
+    // ── Descriptions ──
+    descDefaultDuration: '按 T 键快速创建时默认时间块长度',
+    descTagDelimiters: '批量创建（n）时拆分标签的字符，如 , ， .',
+    descAutoScroll: '启动时自动将时间轴滚动到当前时间所在位置',
+    descCheckBeforeCreate: '启用后批量创建前弹出预览确认，关闭则直接创建',
+    descFontFamily: '输入字体名称，如 JetBrains Mono；留空恢复默认',
+    descZoom: '25%–400%，默认 100%',
+    descBlockOpacity: '调整时间块颜色的透明度',
+    descBorderless: '启用后隐藏原生标题栏，顶部右侧显示窗口控制按钮',
+    descExportTimestamp: '例：timelog-backup-2026-07-04-1730.json',
+    descExportDialog: '导出时弹出系统文件对话框选择保存位置',
+    descBackupPath: '输入绝对路径，留空则使用 AppData',
+    descBackupOn: '关闭后不再自动写入备份文件，避免数据量大时影响性能',
+    descKeepDays: '0 = 保留全部；设 7 则仅保留最近 7 个有数据的天',
+    descCheckUpdate: '手动检测是否有新版本可下载',
+    descAutoUpdate: '启动时自动检查更新（默认关闭）',
+    descLanguage: '界面显示语言（尚未开放）',
+    descHelp: '查看键盘快捷键和操作指南',
+    descFontSize: '调整界面文字大小（尚未开放）',
+    descMarkdownPreview: '编辑时间块时显示 Markdown 实时预览（尚未开放）',
+
+    // ── Restore ──
+    restoreDefault: '恢复默认设置',
+    restoreCategory: '恢复本栏默认',
+  },
 }
