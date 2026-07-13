@@ -50,6 +50,7 @@ const editorEl = ref(null)
 const taRef = ref(null)
 const isUpdating = ref(false)
 const navMode = ref(false)
+let inputLock = 0
 // lastLineIndex moved into centerCursor closure
 
 // ── Scanner: Cursor offset preservation ──
@@ -121,7 +122,20 @@ function unwrapFormatting(root) {
 function scanContentEditable(root) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
   const nodes = []
-  while (walker.nextNode()) nodes.push(walker.currentNode)
+  while (walker.nextNode()) {
+    // Skip text inside already-formatted elements — prevents infinite
+    // re-wrapping (e.g. \ inside escape span being escaped again)
+    let parent = walker.currentNode.parentNode
+    let skip = false
+    while (parent && parent !== root) {
+      if (parent.className && /EditMarkdown-/.test(parent.className)) {
+        skip = true
+        break
+      }
+      parent = parent.parentNode
+    }
+    if (!skip) nodes.push(walker.currentNode)
+  }
 
   for (const textNode of nodes) {
     const text = textNode.textContent || ''
@@ -129,20 +143,34 @@ function scanContentEditable(root) {
       const ch = text[i]
 
       if (ch === '\\') {
-        // Wrap \ as gray marker
+        // \ escapes the NEXT character: \ gray, next char as literal text
         const parent = textNode.parentNode
-        const span = document.createElement('span')
-        span.className = 'EditMarkdown-escape'
-        span.textContent = '\\'
+        const escSpan = document.createElement('span')
+        escSpan.className = 'EditMarkdown-escape'
+        escSpan.textContent = '\\'
+
         if (i === 0) {
-          parent.insertBefore(span, textNode)
-          textNode.textContent = text.slice(1)
+          parent.insertBefore(escSpan, textNode)
+          // Extract the escaped character as a literal text node
+          const escapedChar = text.length > 1 ? text[1] : null
+          if (escapedChar) {
+            const literal = document.createTextNode(escapedChar)
+            parent.insertBefore(literal, textNode)
+            textNode.nodeValue = text.slice(2) // remove \ + escaped char
+          } else {
+            textNode.nodeValue = text.slice(1) // remove \ only (end of text)
+          }
         } else {
           const after = textNode.splitText(i)
-          after.textContent = after.textContent.slice(1)
-          parent.insertBefore(span, after)
+          const escapedChar = after.nodeValue.length > 1 ? after.nodeValue[1] : null
+          after.nodeValue = escapedChar ? after.nodeValue.slice(2) : after.nodeValue.slice(1)
+          if (escapedChar) {
+            const literal = document.createTextNode(escapedChar)
+            parent.insertBefore(literal, after)
+          }
+          parent.insertBefore(escSpan, after)
         }
-        return false // re-scan needed
+        return false
       }
 
       if (ch === '`') {
@@ -498,19 +526,19 @@ function confirmTag(word) {
 }
 
 function onInput() {
-  if (isUpdating.value) return
-  isUpdating.value = true
+  if (inputLock > 0) return
+  inputLock++
   try {
     scanAndHighlight()
     emit('update:modelValue', getPlainText())
   } finally {
-    // Delay resetting isUpdating until after nextTick callbacks run —
-    // updateInlineHint inserts DOM nodes that can fire input events in WebView2
     nextTick(() => {
       if (props.tagLine) updateInlineHint()
       centerCursor()
-      isUpdating.value = false
     })
+    // Unlock after a macro-task — ensures all microtask-level input events
+    // triggered by DOM mutations in the scanner have been processed
+    setTimeout(() => { inputLock = 0 }, 0)
   }
 }
 
