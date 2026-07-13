@@ -6,7 +6,7 @@
         v-model="text"
         height="220px"
         :font-size="settings.editorFontSize"
-        :enable-md="settings.markdownPreview"
+        :enable-md="settings.batchMarkdownPreview"
         :custom-css="settings.customCss"
         :placeholder="STR.batchCreate.placeholder"
         :tag-line="true"
@@ -119,8 +119,9 @@ function parseChunk(chunk, prevEnd) {
 // Focus trap
 function trapFocus(e) {
   if (e.key !== 'Tab') return
+  if (document.activeElement?.isContentEditable) return
   const modal = e.currentTarget
-  const focusable = modal.querySelectorAll('button:not([disabled]), textarea, [contenteditable="true"]')
+  const focusable = modal.querySelectorAll('button:not([disabled]), textarea')
   const visible = [...focusable].filter(el => el.offsetParent !== null)
   if (!visible.length) { e.preventDefault(); return }
   const idx = visible.indexOf(document.activeElement)

@@ -156,8 +156,12 @@ export const STR = {
     descHelp: '查看键盘快捷键和操作指南',
     descFontSize: '调整界面文字大小（尚未开放）',
     descMarkdownPreview: '编辑时所见即所得渲染 Markdown，关闭后使用纯文本',
+    batchMarkdownPreview: 'N - Markdown 预览',
+    descBatchMarkdownPreview: 'N 键批量创建时所见即所得渲染 Markdown，关闭后使用纯文本',
     tabToIndent: 'Tab 插入缩进',
-    descTabToIndent: '关闭后 Tab 恢复为焦点跳转；ESC 切换编辑/导航模式',
+    descTabToIndent: '开启后在行首使用 Tab 插入缩进；ESC 切换编辑/导航模式',
+    batchTabToIndent: 'Tab 插入缩进',
+    descBatchTabToIndent: '开启后在 N 键行首使用 Tab 插入缩进；ESC 切换编辑/导航模式',
     editorFontSize: '编辑器字号',
     descEditorFontSize: '编辑框内文字大小，10–28px',
 

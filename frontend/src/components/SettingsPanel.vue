@@ -139,6 +139,28 @@
             </div>
 
             <div class="row">
+              <label>{{ STR.settings.batchMarkdownPreview }}</label>
+              <div>
+                <label class="toggle"><input type="checkbox" :checked="settings.batchMarkdownPreview" @change="settings.setBatchMarkdownPreview($event.target.checked)"><span class="tk"></span></label>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBatchMarkdownPreview(DEFAULT_BATCH_MARKDOWN_PREVIEW)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descBatchMarkdownPreview }}</div>
+
+            <div class="row">
+              <label>{{ STR.settings.batchTabToIndent }}</label>
+              <div>
+                <label class="toggle"><input type="checkbox" :checked="settings.batchTabToIndent" @change="settings.setBatchTabToIndent($event.target.checked)"><span class="tk"></span></label>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBatchTabToIndent(DEFAULT_BATCH_TAB_TO_INDENT)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descBatchTabToIndent }}</div>
+
+            <div class="row">
               <label>{{ STR.settings.checkBeforeCreate }}</label>
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.checkBeforeCreate" @change="settings.setCheckBeforeCreate($event.target.checked)"><span class="tk"></span></label>
@@ -331,7 +353,7 @@ import {
   DEFAULT_BORDERLESS, DEFAULT_BACKUP_ON, DEFAULT_AUTO_UPDATE,
   DEFAULT_TAG_DELIMITERS, DEFAULT_ZOOM, DEFAULT_FONT_FAMILY,
   DEFAULT_CHECK_BEFORE_CREATE, DEFAULT_COPY_AFTER_CREATE,
-  DEFAULT_MARKDOWN_PREVIEW, DEFAULT_TAB_TO_INDENT, DEFAULT_EDITOR_FONT_SIZE,
+  DEFAULT_MARKDOWN_PREVIEW, DEFAULT_BATCH_MARKDOWN_PREVIEW, DEFAULT_TAB_TO_INDENT, DEFAULT_BATCH_TAB_TO_INDENT, DEFAULT_EDITOR_FONT_SIZE,
 } from '../constants.js'
 import { STR } from '../strings.js'
 
@@ -494,6 +516,8 @@ function resetCategory(cat) {
       settings.setTabToIndent(DEFAULT_TAB_TO_INDENT)
       break
     case 'batchCreate':
+      settings.setBatchMarkdownPreview(DEFAULT_BATCH_MARKDOWN_PREVIEW)
+      settings.setBatchTabToIndent(DEFAULT_BATCH_TAB_TO_INDENT)
       settings.setCheckBeforeCreate(DEFAULT_CHECK_BEFORE_CREATE)
       settings.setCopyAfterCreate(DEFAULT_COPY_AFTER_CREATE)
       settings.setTagDelimiters(DEFAULT_TAG_DELIMITERS)

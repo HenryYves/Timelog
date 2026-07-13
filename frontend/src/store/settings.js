@@ -5,7 +5,7 @@ import {
   DEFAULT_AUTO_SCROLL, DEFAULT_EXPORT_TIMESTAMP, DEFAULT_EXPORT_DIALOG,
   DEFAULT_BORDERLESS, DEFAULT_BACKUP_ON, DEFAULT_AUTO_UPDATE, DEFAULT_TAG_DELIMITERS,
   DEFAULT_ZOOM, DEFAULT_FONT_FAMILY, DEFAULT_CHECK_BEFORE_CREATE, DEFAULT_COPY_AFTER_CREATE,
-  DEFAULT_MARKDOWN_PREVIEW, DEFAULT_TAB_TO_INDENT, DEFAULT_EDITOR_FONT_SIZE, DEFAULT_CUSTOM_CSS,
+  DEFAULT_MARKDOWN_PREVIEW, DEFAULT_BATCH_MARKDOWN_PREVIEW, DEFAULT_TAB_TO_INDENT, DEFAULT_BATCH_TAB_TO_INDENT, DEFAULT_EDITOR_FONT_SIZE, DEFAULT_CUSTOM_CSS,
 } from '../constants.js'
 
 function loadNum(k, d) {
@@ -35,7 +35,9 @@ export const useSettingsStore = defineStore('settings', () => {
   const checkBeforeCreate = ref(loadBool('checkBeforeCreate', DEFAULT_CHECK_BEFORE_CREATE))
   const copyAfterCreate = ref(loadBool('copyAfterCreate', DEFAULT_COPY_AFTER_CREATE))
   const markdownPreview = ref(loadBool('markdownPreview', DEFAULT_MARKDOWN_PREVIEW))
+  const batchMarkdownPreview = ref(loadBool('batchMarkdownPreview', DEFAULT_BATCH_MARKDOWN_PREVIEW))
   const tabToIndent = ref(loadBool('tabToIndent', DEFAULT_TAB_TO_INDENT))
+  const batchTabToIndent = ref(loadBool('batchTabToIndent', DEFAULT_BATCH_TAB_TO_INDENT))
   const editorFontSize = ref(loadNum('editorFontSize', DEFAULT_EDITOR_FONT_SIZE))
   const customCss = ref(localStorage.getItem(KEY_PREFIX + 'customCss') || DEFAULT_CUSTOM_CSS)
 
@@ -127,7 +129,9 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   function setMarkdownPreview(v) { markdownPreview.value = v; saveBool('markdownPreview', v) }
+  function setBatchMarkdownPreview(v) { batchMarkdownPreview.value = v; saveBool('batchMarkdownPreview', v) }
   function setTabToIndent(v) { tabToIndent.value = v; saveBool('tabToIndent', v) }
+  function setBatchTabToIndent(v) { batchTabToIndent.value = v; saveBool('batchTabToIndent', v) }
   function setEditorFontSize(v) {
     editorFontSize.value = Math.max(10, Math.min(28, parseInt(v) || DEFAULT_EDITOR_FONT_SIZE))
     saveNum('editorFontSize', editorFontSize.value)
@@ -142,10 +146,10 @@ export const useSettingsStore = defineStore('settings', () => {
     defaultDuration, autoScroll, exportTimestamp, exportDialog,
     blockOpacity, bkCustomPath, borderless, keepDays, backupOn, autoUpdate, tagDelimiters,
     zoom, fontFamily, checkBeforeCreate, copyAfterCreate,
-    markdownPreview, tabToIndent, editorFontSize, customCss,
+    markdownPreview, batchMarkdownPreview, tabToIndent, batchTabToIndent, editorFontSize, customCss,
     setDuration, setAutoScroll, setExportTimestamp, setExportDialog,
     setBlockOpacity, setBkCustomPath, setBorderless, setKeepDays, setBackupOn, setAutoUpdate, setTagDelimiters,
     setZoom, setFontFamily, setCheckBeforeCreate, setCopyAfterCreate,
-    setMarkdownPreview, setTabToIndent, setEditorFontSize, setCustomCss,
+    setMarkdownPreview, setBatchMarkdownPreview, setTabToIndent, setBatchTabToIndent, setEditorFontSize, setCustomCss,
   }
 })

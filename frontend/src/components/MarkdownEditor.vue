@@ -299,9 +299,8 @@ function wrapBold(textNode, start, end) {
 }
 
 function scanAndHighlight() {
-  // Only render Markdown on note lines — elsewhere let browser handle
-  const lineType = getCurrentLineType()
-  if (lineType < LineType.NOTE) return
+  // N 模式：仅备注行触发语法渲染；T 模式：全局触发
+  if (props.tagLine && getCurrentLineType() < LineType.NOTE) return
   const root = editorEl.value
   if (!root) return
   const offset = saveCursorOffset(root)
@@ -581,6 +580,7 @@ function onKeydown(e) {
     // Nav mode: jump to next focusable
     if (navMode.value) {
       e.preventDefault()
+      e.stopPropagation()
       const focusable = [...document.querySelectorAll(
         '.modal button:not([disabled]), .modal input:not([disabled]), [tabindex="0"]'
       )]
@@ -590,10 +590,57 @@ function onKeydown(e) {
       return
     }
 
-    // Normal: insert tab
+    // Normal: insert tab (only at line start)
     e.preventDefault()
-    if (!settingsStore.tabToIndent) return
-    document.execCommand('insertText', false, '\t')
+    e.stopPropagation()
+    // Only intercept Tab at line start; elsewhere let browser handle focus
+    let atLineStart = false
+    const sel = window.getSelection()
+    if (sel?.rangeCount) {
+      const node = sel.anchorNode
+      const off = sel.anchorOffset
+      const text = node?.textContent || ''
+      // Cursor at start of text, or after \n, or after existing leading tabs
+      if (off === 0 || text[off - 1] === '\n') {
+        atLineStart = true
+      } else {
+        let i = off - 1
+        while (i >= 0 && text[i] === '\t') i--
+        atLineStart = i < 0 || text[i] === '\n'
+      }
+    }
+    const tabIndent = props.tagLine ? settingsStore.batchTabToIndent : settingsStore.tabToIndent
+    // Only insert \t when indent is ON AND cursor is at line start.
+    // Otherwise, switch focus to next element in modal.
+    if (!tabIndent || !atLineStart) {
+      const modal = editorEl.value.closest('.modal')
+      if (modal) {
+        const focusable = modal.querySelectorAll(
+          'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
+        )
+        const visible = [...focusable].filter(el => el.offsetParent !== null)
+        // Find first element after editor in DOM order
+        let next = null
+        for (const el of visible) {
+          if (editorEl.value.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING && !next) next = el
+        }
+        if (next) next.focus()
+      }
+      return
+    }
+    // Insert tab at line start with indent enabled
+    e.preventDefault()
+    e.stopPropagation()
+    const tabNode = document.createTextNode('\t')
+    if (sel?.rangeCount) {
+      const r = sel.getRangeAt(0)
+      r.deleteContents()
+      r.insertNode(tabNode)
+      r.setStartAfter(tabNode)
+      r.collapse(true)
+      sel.removeAllRanges()
+      sel.addRange(r)
+    }
     return
   }
 
@@ -623,10 +670,37 @@ function onKeydown(e) {
 
 function onTaKeydown(e) {
   if (e.key === 'Tab') {
-    e.preventDefault()
-    if (!settingsStore.tabToIndent) return
+    const tabIndent = props.tagLine ? settingsStore.batchTabToIndent : settingsStore.tabToIndent
     const ta = taRef.value
     const start = ta.selectionStart
+    // Cursor at start, after \n, or after existing leading tabs
+    let atLineStart = start === 0 || ta.value[start - 1] === '\n'
+    if (!atLineStart && start > 0) {
+      let i = start - 1
+      while (i >= 0 && ta.value[i] === '\t') i--
+      atLineStart = i < 0 || ta.value[i] === '\n'
+    }
+
+    if (!tabIndent || !atLineStart) {
+      e.preventDefault()
+      e.stopPropagation()
+      const modal = ta.closest('.modal')
+      if (modal) {
+        const focusable = modal.querySelectorAll(
+          'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
+        )
+        const visible = [...focusable].filter(el => el.offsetParent !== null)
+        let next = null
+        for (const el of visible) {
+          if (ta.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING && !next) next = el
+        }
+        if (next) next.focus()
+      }
+      return
+    }
+
+    e.preventDefault()
+    e.stopPropagation()
     const end = ta.selectionEnd
     const newVal = ta.value.slice(0, start) + '\t' + ta.value.slice(end)
     emit('update:modelValue', newVal)

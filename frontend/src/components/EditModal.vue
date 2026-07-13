@@ -259,9 +259,10 @@ function copyBlock() {
 // Focus trap
 function trapFocus(e) {
   if (e.key !== 'Tab') return
+  if (document.activeElement?.isContentEditable) return
   const modal = e.currentTarget
   const focusable = modal.querySelectorAll(
-    'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [contenteditable="true"], [tabindex="0"]'
+    'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
   )
   const visible = [...focusable].filter(el => el.offsetParent !== null)
   if (!visible.length) { e.preventDefault(); return }
