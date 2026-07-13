@@ -347,43 +347,41 @@ function getAllCandidates(word) {
   return _getAllCandidates(word, tags, tagFreq)
 }
 
-// ── Check if cursor is on a tag line (2nd line of a block, after --- separator) ──
+// ── Line type detection ──
 
-function isTagLineAtCursor() {
+const LineType = { TITLE: 0, TAG: 1, TIME: 2, NOTE: 3, UNKNOWN: -1 }
+
+function getCurrentLineType() {
   const sel = window.getSelection()
-  if (!sel || !sel.rangeCount) return false
-  // Walk up from cursor to find the line-level element (direct child of editor)
+  if (!sel || !sel.rangeCount) return LineType.UNKNOWN
   let lineEl = sel.anchorNode
   while (lineEl && lineEl.parentNode !== editorEl.value) {
     lineEl = lineEl.parentNode
   }
-  if (!lineEl || lineEl.parentNode !== editorEl.value) {
-    console.log('[tag-line] cursor not in a direct child of editor')
-    return false
-  }
-  // Scan siblings before this line to count lines within current block.
-  // A "---" separator resets the count.
+  if (!lineEl || lineEl.parentNode !== editorEl.value) return LineType.UNKNOWN
+
   let linesInBlock = 0
   for (const child of editorEl.value.childNodes) {
     if (child === lineEl) { linesInBlock++; break }
     const t = (child.textContent || '').trim()
-    if (/^---$/.test(t)) {
-      linesInBlock = 0
-      continue
-    }
+    if (/^---$/.test(t)) { linesInBlock = 0; continue }
     if (child.nodeType === 1 || (child.nodeType === 3 && child.textContent.trim())) {
       linesInBlock++
     }
   }
-  console.log('[tag-line] linesInBlock:', linesInBlock, '→ tagLine:', linesInBlock === 2)
-  return linesInBlock === 2
+  console.log('[line] linesInBlock:', linesInBlock)
+  if (linesInBlock === 1) return LineType.TITLE
+  if (linesInBlock === 2) return LineType.TAG
+  if (linesInBlock === 3) return LineType.TIME
+  if (linesInBlock >= 4) return LineType.NOTE
+  return LineType.UNKNOWN
 }
 
 // ── Tag hint ──
 
 function updateInlineHint() {
   if (!props.tagLine) { console.log('[hint] tagLine prop false, skip'); return }
-  if (!isTagLineAtCursor()) { console.log('[hint] not on tag line, skip'); return }
+  if (getCurrentLineType() !== LineType.TAG) { console.log('[hint] not on tag line, skip'); return }
   const old = editorEl.value.querySelector('.tag-hint')
   if (old) old.remove()
 
