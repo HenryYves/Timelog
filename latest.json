@@ -1,11 +1,11 @@
 {
-  "version": "v0.6.12",
-  "notes": "新增：右键框选时间块、左键拖拽创建、Ctrl+A全选、空白处取消选中、设置面板重构分栏、恢复默认按钮、n模式预览确认+剪贴板备份\n变更：Toggle滑开关、输入框/下拉栏/滑动条美化、备份路径失焦保存、无边框默认开启\n修复：缩放鼠标偏差、More菜单无反应、n单时间值作为结束时间",
-  "pub_date": "2026-07-09T08:00:00Z",
+  "version": "v0.7.0",
+  "notes": "新增：自定义轻量Markdown编辑器、语法高亮、标签行内联hint补全、光标行居中、Tab缩进+ESC导航、转义\\支持\n变更：删除线红色粗线、加粗800、T/N设置分离、分隔符读设置\n修复：Tab焦点切换、onInput无限循环、转义位置/累积/匹配、Backspace清hint",
+  "pub_date": "2026-07-13T08:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUpvcWp5VE0yZ3ZCeFFwWE90b0RoWm5BQ3oyV1AyWEk0dmNkaGNtQzlKaGszS0dwY3pyVmVudzVoTndleGQ3Y0dXSnRPUXROOGFHM083VEVYdkFObnc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNTg0MTUxCWZpbGU6dGltZWxvZ18wLjYuMTJfeDY0X2VuLVVTLm1zaQo2ZU5mT3J1SVpZUHhWaEVQUmtBL3NoV0R2YlczTGwxNHZiM2doYkpIZ0lXbzc0UnBjYm9jTlF5cTRmYkNpWEVHcWtnQW4wNVJBRzdtQWJHL0JxcERDQT09Cg==",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.6.12/timelog_0.6.12_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUk4YndLZGo2UDlXajl0elBSZnRQaTFCRGNtY0VxQmUySzAwV1ZlRkFSMWV1MzNIWXNMTnBXUlAwakY2N09xblRQQkF3VUx2RUdHWFJjKzRVeDVNZlFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzOTUxMjI3CWZpbGU6dGltZWxvZ18wLjcuMF94NjRfZW4tVVMubXNpCm13RFAyN0VZcGV4MTFoaE9Ob1JTZ1pLVjlHS1VnRlRkSHMvQkJLMVlXWTU3eTk3Q2d6SndCZ1JpTDVGTDdLbCtiMFFTdk9MdkRPcThxNVJBYnNYWENRPT0K",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.7.0/timelog_0.7.0_x64_en-US.msi"
     }
   }
 }

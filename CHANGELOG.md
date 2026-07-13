@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.7.0] - 2026-07-13
+
+### Added
+- 自定义轻量 Markdown 编辑器（contenteditable + 状态机扫描器），替代 Milkdown，体积 ~5KB
+- 语法高亮：加粗 `**`、斜体 `*`、删除线 `~~`、行内代码 `` ` ``、高光 `==`
+- 转义 `\` 支持——`\*` 阻止 markdown 语法匹配
+- 标签行内联 hint 补全（N 键第二行自动匹配 + Tab 循环 + 频率记录）
+- 光标行居中（打字机模式）+ 缩放补偿
+- Tab 行首缩进 + ESC 导航模式 + Shift+Tab 反向焦点
+- T/N Markdown 预览/Tab 缩进 设置分离独立控制
+- 编辑器字号独立设置
+- `EditMarkdown-` 类名前缀，便于自定义 CSS
+
+### Changed
+- 删除线改为红色粗线，加粗改为 800
+- `getCurrentLineType` 枚举（标题/标签/时间/备注）
+- 分隔符从 `tagDelimiters` 设置读取（含空格）
+
+### Fixed
+- Tab 焦点切换：编辑器在 tabindex 列表中，Shift+Tab 支持
+- onInput 无限循环（inputLock + setTimeout 防重入）
+- `\` 转义位置错误、累积、匹配跳过失效
+- unwrapFormatting 后 normalize 合并文本节点
+- Backspace 一键删除字符+清 hint+重新匹配
+
 ## [0.6.12] - 2026-07-09
 
 ### Added
