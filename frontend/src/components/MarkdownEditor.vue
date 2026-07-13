@@ -104,7 +104,7 @@ function restoreCursorOffset(root, offset) {
 // ── Scanner: Unwrap previous formatting ──
 
 function unwrapFormatting(root) {
-  const els = root.querySelectorAll('.md-marker, .md-escape, b, i, s, code')
+  const els = root.querySelectorAll('.EditMarkdown-marker, .EditMarkdown-escape, .EditMarkdown-bold, .EditMarkdown-italic, .EditMarkdown-strike, .EditMarkdown-code, .EditMarkdown-highlight')
   for (let i = els.length - 1; i >= 0; i--) {
     const el = els[i]
     const parent = el.parentNode
@@ -132,7 +132,7 @@ function scanContentEditable(root) {
         // Wrap \ as gray marker
         const parent = textNode.parentNode
         const span = document.createElement('span')
-        span.className = 'md-escape'
+        span.className = 'EditMarkdown-escape'
         span.textContent = '\\'
         if (i === 0) {
           parent.insertBefore(span, textNode)
@@ -151,6 +151,16 @@ function scanContentEditable(root) {
           wrapInline(textNode, i, close + 1, 'code', 'code')
           return false
         }
+        continue
+      }
+
+      if (ch === '=' && text[i + 1] === '=') {
+        const closeIdx = text.indexOf('==', i + 2)
+        if (closeIdx >= 0) {
+          wrapInline(textNode, i, closeIdx + 2, 'mark', 'mark')
+          return false
+        }
+        i++
         continue
       }
 
@@ -195,8 +205,8 @@ function wrapInline(textNode, start, end, wrapperTag, wrapperClass) {
   let markerLen
   if (wrapperTag === 'code') {
     markerLen = 1
-  } else if (wrapperTag === 's') {
-    markerLen = 2
+  } else if (wrapperTag === 's' || wrapperTag === 'mark') {
+    markerLen = 2 // ~~ and == are 2-char markers
   } else {
     markerLen = 1
   }
@@ -209,16 +219,18 @@ function wrapInline(textNode, start, end, wrapperTag, wrapperClass) {
   if (before) frag.appendChild(document.createTextNode(before))
 
   const m1 = document.createElement('span')
-  m1.className = 'md-marker'
+  m1.className = 'EditMarkdown-marker'
   m1.textContent = firstMarker
   frag.appendChild(m1)
 
   const wrapper = document.createElement(wrapperTag)
+  const cls = { code: 'EditMarkdown-code', i: 'EditMarkdown-italic', s: 'EditMarkdown-strike', mark: 'EditMarkdown-highlight' }
+  wrapper.className = cls[wrapperTag] || ''
   wrapper.textContent = content
   frag.appendChild(wrapper)
 
   const m2 = document.createElement('span')
-  m2.className = 'md-marker'
+  m2.className = 'EditMarkdown-marker'
   m2.textContent = lastMarker
   frag.appendChild(m2)
 
@@ -239,16 +251,17 @@ function wrapBold(textNode, start, end) {
   if (before) frag.appendChild(document.createTextNode(before))
 
   const m1 = document.createElement('span')
-  m1.className = 'md-marker'
+  m1.className = 'EditMarkdown-marker'
   m1.textContent = firstMarker
   frag.appendChild(m1)
 
   const b = document.createElement('b')
+  b.className = 'EditMarkdown-bold'
   b.textContent = content
   frag.appendChild(b)
 
   const m2 = document.createElement('span')
-  m2.className = 'md-marker'
+  m2.className = 'EditMarkdown-marker'
   m2.textContent = lastMarker
   frag.appendChild(m2)
 
@@ -642,38 +655,7 @@ watch(() => props.modelValue, (val) => {
   background: var(--canvas);
 }
 
-/* ── Scanner styles ── */
-.md-editor .md-marker {
-  opacity: 0.35;
-  font-weight: normal;
-  font-style: normal;
-}
-
-.md-editor .md-escape {
-  opacity: 0.35;
-}
-
-.md-editor b {
-  font-weight: 700;
-}
-
-.md-editor i {
-  font-style: italic;
-}
-
-.md-editor s {
-  text-decoration: line-through;
-  opacity: 0.7;
-}
-
-.md-editor code {
-  background: rgba(0,0,0,.06);
-  padding: 0 3px;
-  border-radius: 3px;
-  font-family: Menlo, Consolas, monospace;
-}
-
-/* ── Tag hint styles ── */
+/* ── Scanner styles (unscoped — elements created via JS need global classes) ── */
 .md-editor .tag-hint {
   color: var(--text2);
   opacity: 0.5;

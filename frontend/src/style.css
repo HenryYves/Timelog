@@ -168,3 +168,33 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
   opacity: 0.5;
   user-select: none;
 }
+
+/* ── MarkdownEditor syntax highlighting ── */
+.EditMarkdown-marker {
+  opacity: 0.35;
+  font-weight: normal;
+  font-style: normal;
+}
+.EditMarkdown-escape {
+  opacity: 0.35;
+}
+.EditMarkdown-bold {
+  font-weight: 800;
+}
+.EditMarkdown-italic {
+  font-style: italic;
+}
+.EditMarkdown-strike {
+  text-decoration: line-through 2px var(--red);
+}
+.EditMarkdown-highlight {
+  background: #ffc773;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+.EditMarkdown-code {
+  background: rgba(0,0,0,.06);
+  padding: 0 3px;
+  border-radius: 3px;
+  font-family: Menlo, Consolas, monospace;
+}
