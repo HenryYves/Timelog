@@ -111,9 +111,25 @@
 
             <div class="row">
               <label>{{ STR.settings.markdownPreview }}</label>
-              <label class="toggle"><input type="checkbox" disabled><span class="tk"></span></label>
+              <div>
+                <label class="toggle"><input type="checkbox" :checked="settings.markdownPreview" @change="settings.setMarkdownPreview($event.target.checked)"><span class="tk"></span></label>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setMarkdownPreview(DEFAULT_MARKDOWN_PREVIEW)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
             </div>
             <div class="small">{{ STR.settings.descMarkdownPreview }}</div>
+
+            <div class="row">
+              <label>{{ STR.settings.tabToIndent }}</label>
+              <div>
+                <label class="toggle"><input type="checkbox" :checked="settings.tabToIndent" @change="settings.setTabToIndent($event.target.checked)"><span class="tk"></span></label>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setTabToIndent(DEFAULT_TAB_TO_INDENT)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descTabToIndent }}</div>
 
             <div class="section-head">
               <h4 class="section-title">{{ STR.settings.sectionBatchCreate }}</h4>
@@ -175,6 +191,17 @@
               </div>
             </div>
             <div class="small">{{ STR.settings.descFontFamily }}</div>
+
+            <div class="row">
+              <label>{{ STR.settings.editorFontSize }} <span class="val-hint">{{ settings.editorFontSize }}px</span></label>
+              <div>
+                <input type="number" min="10" max="28" style="width:80px;" :value="settings.editorFontSize" @change="onEditorFontSizeChange">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setEditorFontSize(DEFAULT_EDITOR_FONT_SIZE)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descEditorFontSize }}</div>
 
             <div class="row">
               <label>{{ STR.settings.zoom }} <span class="val-hint">{{ settings.zoom }}%</span></label>
@@ -304,6 +331,7 @@ import {
   DEFAULT_BORDERLESS, DEFAULT_BACKUP_ON, DEFAULT_AUTO_UPDATE,
   DEFAULT_TAG_DELIMITERS, DEFAULT_ZOOM, DEFAULT_FONT_FAMILY,
   DEFAULT_CHECK_BEFORE_CREATE, DEFAULT_COPY_AFTER_CREATE,
+  DEFAULT_MARKDOWN_PREVIEW, DEFAULT_TAB_TO_INDENT, DEFAULT_EDITOR_FONT_SIZE,
 } from '../constants.js'
 import { STR } from '../strings.js'
 
@@ -356,6 +384,11 @@ watch(() => props.show, (val) => {
 function onDurationChange(e) {
   settings.setDuration(e.target.value)
   e.target.value = settings.defaultDuration
+}
+
+function onEditorFontSizeChange(e) {
+  settings.setEditorFontSize(e.target.value)
+  e.target.value = settings.editorFontSize
 }
 
 function onOpacityInput(e) {
@@ -457,6 +490,8 @@ function resetCategory(cat) {
       break
     case 'tEditor':
       settings.setDuration(DEFAULT_DURATION)
+      settings.setMarkdownPreview(DEFAULT_MARKDOWN_PREVIEW)
+      settings.setTabToIndent(DEFAULT_TAB_TO_INDENT)
       break
     case 'batchCreate':
       settings.setCheckBeforeCreate(DEFAULT_CHECK_BEFORE_CREATE)
@@ -480,6 +515,7 @@ function resetCategory(cat) {
       break
     case 'appearance':
       settings.setFontFamily(DEFAULT_FONT_FAMILY)
+      settings.setEditorFontSize(DEFAULT_EDITOR_FONT_SIZE)
       settings.setZoom(DEFAULT_ZOOM)
       settings.setBlockOpacity(DEFAULT_OPACITY)
       settings.setBorderless(DEFAULT_BORDERLESS)
