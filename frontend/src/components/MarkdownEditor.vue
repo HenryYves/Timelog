@@ -27,6 +27,7 @@
 <script setup>
 import { ref, nextTick, onMounted, watch } from 'vue'
 import { useSettingsStore } from '../store/settings.js'
+import { useTagStore } from '../store/tags.js'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -42,9 +43,11 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const settingsStore = useSettingsStore()
+const tagStore = useTagStore()
 const editorEl = ref(null)
 const taRef = ref(null)
 const isUpdating = ref(false)
+const navMode = ref(false)
 let lastLineIndex = -1
 
 // ── Scanner: Cursor offset preservation ──
@@ -299,12 +302,117 @@ function centerCursor() {
   editorEl.value.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
 }
 
-// ── Event handlers ──
+// ── Tag hint ──
+
+const tagFreq = {}
+
+function loadFreq() {
+  try {
+    const data = JSON.parse(localStorage.getItem('timelog:tagFrequency') || '{}')
+    Object.assign(tagFreq, data)
+  } catch {}
+}
+
+function saveFreq() {
+  localStorage.setItem('timelog:tagFrequency', JSON.stringify(tagFreq))
+}
+
+function getWordAtCursor() {
+  const sel = window.getSelection()
+  if (!sel || !sel.rangeCount) return null
+  const node = sel.anchorNode
+  if (!node) return null
+  const offset = sel.anchorOffset
+  const text = node.textContent || ''
+  let start = offset
+  while (start > 0) {
+    const ch = text[start - 1]
+    if (',.，。、\n'.includes(ch)) break
+    start--
+  }
+  return text.slice(start, offset)
+}
+
+function getTagHint(word) {
+  const tags = tagStore.tags.map(t => t.name)
+  const matches = tags.filter(t => t.startsWith(word) && t !== word)
+  if (!matches.length) return null
+  matches.sort((a, b) => (tagFreq[b] || 0) - (tagFreq[a] || 0))
+  return matches[0].slice(word.length)
+}
+
+function getAllCandidates(word) {
+  const tags = tagStore.tags.map(t => t.name)
+  const matches = tags.filter(t => t.startsWith(word) && t !== word)
+  matches.sort((a, b) => (tagFreq[b] || 0) - (tagFreq[a] || 0))
+  return matches
+}
+
+function updateInlineHint() {
+  if (!props.tagLine) return
+  const old = editorEl.value.querySelector('.tag-hint')
+  if (old) old.remove()
+
+  const word = getWordAtCursor()
+  if (!word) return
+  const hint = getTagHint(word)
+  if (!hint) return
+
+  const sel = window.getSelection()
+  if (!sel || !sel.rangeCount) return
+  const range = sel.getRangeAt(0)
+  const hintSpan = document.createElement('span')
+  hintSpan.className = 'tag-hint'
+  hintSpan.textContent = hint
+  hintSpan.contentEditable = 'false'
+  range.collapse(false)
+  range.insertNode(hintSpan)
+  // Move cursor before hint
+  range.setStartBefore(hintSpan)
+  range.collapse(true)
+  sel.removeAllRanges()
+  sel.addRange(range)
+}
+
+function cycleTagHint() {
+  const hint = editorEl.value.querySelector('.tag-hint')
+  if (!hint) return
+  const word = getWordAtCursor()
+  if (!word) return
+  const candidates = getAllCandidates(word)
+  if (!candidates.length) return
+
+  // Determine current candidate from hint
+  const suffix = hint.textContent || ''
+  const full = word + suffix
+  const idx = candidates.indexOf(full)
+
+  // Next candidate (cycle)
+  const nextIdx = (idx + 1) % candidates.length
+  const next = candidates[nextIdx]
+
+  // Replace hint text
+  hint.textContent = next.slice(word.length)
+
+  // Update cursor
+  const sel = window.getSelection()
+  const range = document.createRange()
+  range.setStartBefore(hint)
+  range.collapse(true)
+  sel.removeAllRanges()
+  sel.addRange(range)
+}
+
+function confirmTag(word) {
+  tagFreq[word] = (tagFreq[word] || 0) + 1
+  saveFreq()
+}
 
 function onInput() {
   if (isUpdating.value) return
   scanAndHighlight()
   emit('update:modelValue', getPlainText())
+  if (props.tagLine) updateInlineHint()
   nextTick(() => centerCursor())
 }
 
@@ -316,10 +424,66 @@ function onPaste(e) {
 }
 
 function onKeydown(e) {
+  const isTagLine = props.tagLine
+  const hint = editorEl.value.querySelector('.tag-hint')
+
+  // Enter: confirm tag hint (tagLine only)
+  if (e.key === 'Enter' && isTagLine) {
+    const word = getWordAtCursor()
+    if (word) confirmTag(word)
+    // Remove hint span before default Enter behavior inserts newline
+    if (hint) hint.remove()
+    return
+  }
+
+  // Tab: tag hint cycling, nav mode tab-out, or indent
   if (e.key === 'Tab') {
+    // Tag hint cycling takes priority when hint exists
+    if (isTagLine && hint) {
+      e.preventDefault()
+      cycleTagHint()
+      return
+    }
+
+    // Nav mode: jump to next focusable
+    if (navMode.value) {
+      e.preventDefault()
+      const focusable = [...document.querySelectorAll(
+        '.modal button:not([disabled]), .modal input:not([disabled]), [tabindex="0"]'
+      )]
+      if (focusable.length > 0) focusable[0].focus()
+      navMode.value = false
+      editorEl.value.style.outline = ''
+      return
+    }
+
+    // Normal: insert tab
     e.preventDefault()
     if (!settingsStore.tabToIndent) return
     document.execCommand('insertText', false, '\t')
+    return
+  }
+
+  // ESC: nav mode toggle
+  if (e.key === 'Escape') {
+    if (!navMode.value) {
+      e.preventDefault()
+      e.stopPropagation()
+      editorEl.value.blur()
+      navMode.value = true
+      editorEl.value.style.outline = '2px solid var(--text2)'
+      return
+    }
+    // Second ESC: exit nav mode, let modal handle ESC
+    navMode.value = false
+    editorEl.value.style.outline = ''
+    return
+  }
+
+  // Space/Enter from container focus: enter edit mode
+  if ((e.key === ' ' || e.key === 'Enter') && document.activeElement !== editorEl.value) {
+    e.preventDefault()
+    editorEl.value.focus()
     return
   }
 }
@@ -342,6 +506,7 @@ function onTaKeydown(e) {
 // ── Lifecycle ──
 
 onMounted(() => {
+  loadFreq()
   if (props.enableMd && props.modelValue) {
     editorEl.value.textContent = props.modelValue
     scanAndHighlight()
@@ -420,6 +585,13 @@ watch(() => props.modelValue, (val) => {
   padding: 0 3px;
   border-radius: 3px;
   font-family: Menlo, Consolas, monospace;
+}
+
+/* ── Tag hint styles ── */
+.md-editor .tag-hint {
+  color: var(--text2);
+  opacity: 0.5;
+  user-select: none;
 }
 
 .md-fallback {
