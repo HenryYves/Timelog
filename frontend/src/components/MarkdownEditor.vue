@@ -125,7 +125,6 @@ function scanContentEditable(root) {
 
   for (const textNode of nodes) {
     const text = textNode.textContent || ''
-
     for (let i = 0; i < text.length; i++) {
       const ch = text[i]
 
@@ -266,6 +265,7 @@ function scanAndHighlight() {
   if (!root) return
   const offset = saveCursorOffset(root)
   unwrapFormatting(root)
+  root.normalize() // merge adjacent text nodes so scanner sees full patterns
   while (!scanContentEditable(root)) {}
   restoreCursorOffset(root, offset)
 }
@@ -372,7 +372,6 @@ function getCurrentLineType() {
       linesInBlock++
     }
   }
-  console.log('[line] linesInBlock:', linesInBlock)
   if (linesInBlock === 1) return LineType.TITLE
   if (linesInBlock === 2) return LineType.TAG
   if (linesInBlock === 3) return LineType.TIME
@@ -383,26 +382,23 @@ function getCurrentLineType() {
 // ── Tag hint ──
 
 function updateInlineHint() {
-  if (!props.tagLine) { console.log('[hint] tagLine prop false, skip'); return }
-  if (getCurrentLineType() !== LineType.TAG) { console.log('[hint] not on tag line, skip'); return }
+  if (!props.tagLine) return
+  if (getCurrentLineType() !== LineType.TAG) return
   const old = editorEl.value.querySelector('.tag-hint')
   if (old) old.remove()
 
   const word = getWordAtCursor()
-  console.log('[hint] word at cursor:', JSON.stringify(word))
   if (!word) return
 
   // Delimiter typed: confirm the tag before the delimiter
   const lastChar = word[word.length - 1]
   if (',.，。、'.includes(lastChar)) {
     const tag = word.slice(0, -1).trim()
-    console.log('[hint] delimiter detected, confirming:', JSON.stringify(tag))
     if (tag) confirmTag(tag)
     return
   }
 
   const hint = getTagHint(word)
-  console.log('[hint] getTagHint:', JSON.stringify(hint), 'for word:', JSON.stringify(word))
   if (!hint) return
 
   const sel = window.getSelection()
