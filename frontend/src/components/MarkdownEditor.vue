@@ -506,6 +506,7 @@ function onKeydown(e) {
     // Tag hint cycling takes priority when hint exists
     if (isTagLine && hint) {
       e.preventDefault()
+      e.stopPropagation()
       confirmTagHint()
       return
     }
