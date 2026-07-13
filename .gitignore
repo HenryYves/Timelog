@@ -32,3 +32,9 @@ src-tauri/target/
 # Updater artifacts (generated per release, not committed)
 latest.json
 *.sig
+
+.claude/
+*drawio*.bkp
+*drawio*.dtmp
+tab-flow.drawio
+docs/tab-flow.md
