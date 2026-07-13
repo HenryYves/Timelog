@@ -104,7 +104,7 @@ function restoreCursorOffset(root, offset) {
 // ── Scanner: Unwrap previous formatting ──
 
 function unwrapFormatting(root) {
-  const els = root.querySelectorAll('.md-marker, .md-escape, .tag-hint, b, i, s, code')
+  const els = root.querySelectorAll('.md-marker, .md-escape, b, i, s, code')
   for (let i = els.length - 1; i >= 0; i--) {
     const el = els[i]
     const parent = el.parentNode
@@ -313,9 +313,25 @@ function saveFreq() {
 function getWordAtCursor() {
   const sel = window.getSelection()
   if (!sel || !sel.rangeCount) return null
-  const node = sel.anchorNode
+  let node = sel.anchorNode
   if (!node) return null
-  const offset = sel.anchorOffset
+  let offset = sel.anchorOffset
+
+  // If anchor is on a parent element (cursor next to hint span boundary),
+  // step into the adjacent text node
+  if (node.nodeType === 1) {
+    // Cursor before a contenteditable="false" hint: use text node to left
+    if (offset > 0 && node.childNodes[offset - 1]?.nodeType === 3) {
+      node = node.childNodes[offset - 1]
+      offset = node.textContent.length
+    }
+    // Cursor after a hint: use text node to right
+    else if (offset < node.childNodes.length && node.childNodes[offset]?.nodeType === 3) {
+      node = node.childNodes[offset]
+      offset = 0
+    }
+  }
+
   const text = node.textContent || ''
   return getWordBeforeCursor(text, offset)
 }
@@ -355,7 +371,6 @@ function updateInlineHint() {
   const hintSpan = document.createElement('span')
   hintSpan.className = 'tag-hint'
   hintSpan.textContent = hint
-  hintSpan.contentEditable = 'false'
   range.collapse(false)
   range.insertNode(hintSpan)
   // Move cursor before hint
@@ -387,6 +402,8 @@ function confirmTagHint() {
   sel.addRange(range)
 
   confirmTag(fullTag)
+  // Re-focus editor after DOM changes settle
+  nextTick(() => editorEl.value?.focus())
 }
 
 function cycleTagHint() {
@@ -427,7 +444,10 @@ function onInput() {
   if (isUpdating.value) return
   scanAndHighlight()
   emit('update:modelValue', getPlainText())
-  if (props.tagLine) updateInlineHint()
+  if (props.tagLine) {
+    // Defer hint update — DOM may still be settling from scan/restore
+    nextTick(() => updateInlineHint())
+  }
   nextTick(() => centerCursor())
 }
 
@@ -441,6 +461,36 @@ function onPaste(e) {
 function onKeydown(e) {
   const isTagLine = props.tagLine
   const hint = editorEl.value.querySelector('.tag-hint')
+
+  // Backspace/Delete with hint present: remove hint first
+  if (hint && (e.key === 'Backspace' || e.key === 'Delete')) {
+    // Let browser handle the deletion naturally — hint is a normal span now.
+    // But we need to ensure the hint is removed cleanly.
+    // For Backspace: cursor is before hint → delete character before cursor (not the hint)
+    // For Delete: remove the hint span
+    if (e.key === 'Delete') {
+      e.preventDefault()
+      hint.remove()
+      return
+    }
+    // Backspace: if hint is right after cursor, remove hint first
+    const sel = window.getSelection()
+    if (sel?.rangeCount) {
+      const range = sel.getRangeAt(0)
+      if (range.collapsed && range.startContainer.nodeType === 3) {
+        const node = range.startContainer
+        const offset = range.startOffset
+        // Check if hint is immediately after cursor position
+        if (offset === node.textContent.length && node.nextSibling === hint) {
+          e.preventDefault()
+          hint.remove()
+          return
+        }
+      }
+    }
+    // Otherwise let the browser handle normal deletion
+    return
+  }
 
   // Enter: confirm tag hint (tagLine only)
   if (e.key === 'Enter' && isTagLine) {

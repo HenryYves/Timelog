@@ -161,3 +161,10 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
 .tagrow .tg {
   flex: 0 0 116px;
 }
+
+/* ── MarkdownEditor tag hint ── */
+.tag-hint {
+  color: var(--text2);
+  opacity: 0.5;
+  user-select: none;
+}
