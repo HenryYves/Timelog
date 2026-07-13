@@ -151,27 +151,20 @@ function scanContentEditable(root) {
         escSpan.textContent = '\\'
 
         if (i === 0) {
-          parent.insertBefore(escSpan, textNode)
-          // Extract the escaped character as a literal text node
           const escapedChar = text.length > 1 ? text[1] : null
-          if (escapedChar) {
-            const literal = document.createTextNode(escapedChar)
-            parent.insertBefore(literal, textNode)
-            textNode.nodeValue = text.slice(2) // remove \ + escaped char
-          } else {
-            textNode.nodeValue = text.slice(1) // remove \ only (end of text)
-          }
+          if (!escapedChar) continue // lone \ at end of text — leave as-is
+          parent.insertBefore(escSpan, textNode)
+          const literal = document.createTextNode(escapedChar)
+          parent.insertBefore(literal, textNode)
+          textNode.nodeValue = text.slice(2) // remove \ + escaped char
         } else {
           const after = textNode.splitText(i)
           const escapedChar = after.nodeValue.length > 1 ? after.nodeValue[1] : null
-          after.nodeValue = escapedChar ? after.nodeValue.slice(2) : after.nodeValue.slice(1)
-          if (escapedChar) {
-            const literal = document.createTextNode(escapedChar)
-            parent.insertBefore(literal, after)
-            parent.insertBefore(escSpan, literal) // \ before escaped char
-          } else {
-            parent.insertBefore(escSpan, after)
-          }
+          if (!escapedChar) continue // lone \ at end of text
+          after.nodeValue = after.nodeValue.slice(2)
+          const literal = document.createTextNode(escapedChar)
+          parent.insertBefore(literal, after)
+          parent.insertBefore(escSpan, literal) // \ before escaped char
         }
         return false
       }
@@ -183,7 +176,9 @@ function scanContentEditable(root) {
           idx = text.indexOf(marker, idx)
           if (idx < 0 || idx === 0) return idx
           if (text[idx - 1] !== '\\') return idx
-          idx += marker.length // skip this escaped marker
+          // Previous char is \ — but \\x means the \ itself is escaped, marker is not
+          if (idx >= 2 && text[idx - 2] === '\\') return idx
+          idx += marker.length // \x: skip this truly escaped marker
         }
       }
 
