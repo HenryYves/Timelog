@@ -87,6 +87,7 @@ src-tauri/src/
 - **下载 CORS** — `fetch_latest_json` 走 Rust 端，因 GitHub raw 有 SAS token 重定向，浏览器 CORS 拦截
 - **打包自动构建** — `tauri.conf.json` 里配了 `beforeBuildCommand`，确保不打包旧前端
 - **默认窗口隐藏** — `tauri.conf.json` 中 `visible: false`，状态恢复后再显示，消除启动闪烁
+- **WebView2 only** — 最终只跑在 Tauri WebView2，不考虑跨浏览器兼容。不需要考虑 Firefox/Safari/Chrome 差异，CSS/JS 只需对 WebView2 有效。不要因为跨浏览器顾虑增加额外方案或 fallback。
 
 ## 行为约束
 
@@ -95,3 +96,4 @@ src-tauri/src/
 - 写 message 前先 `git diff --stat` 看全部改动，概括整体而非只描述最后一条
 - 提交前必须先把 message 给用户过目，同意后再提交
 - 遇到 bug → 先拿用户输入 trace 代码 → 诊断 → 讨论方案 → 再改
+- **规则持久化** — 犯了错不要只说"下次不会了"。换 session 或 compact 之后这些对话记忆全丢，唯一持久的记忆是 CLAUDE.md。如果一条规则值得下次记住，把它写进 CLAUDE.md（行为约束、Gotchas、或架构说明）。给用户的建议也必须是实质性的——改哪个文件、加什么内容——而不是空洞的保证。
