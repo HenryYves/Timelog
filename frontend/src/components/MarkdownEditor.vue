@@ -6,6 +6,7 @@
       class="md-editor"
       :style="{ fontSize: fontSize + 'px' }"
       contenteditable="true"
+      tabindex="0"
       @input="onInput"
       @keydown="onKeydown"
       @paste="onPaste"
@@ -619,12 +620,14 @@ function onKeydown(e) {
           'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
         )
         const visible = [...focusable].filter(el => el.offsetParent !== null)
-        // Find first element after editor in DOM order
-        let next = null
-        for (const el of visible) {
-          if (editorEl.value.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING && !next) next = el
+        const idx = visible.indexOf(editorEl.value)
+        if (e.shiftKey) {
+          if (idx > 0) visible[idx - 1].focus()
+          else if (visible.length) visible[visible.length - 1].focus()
+        } else {
+          if (idx !== -1 && idx < visible.length - 1) visible[idx + 1].focus()
+          else if (visible.length) visible[0].focus()
         }
-        if (next) next.focus()
       }
       return
     }
@@ -690,11 +693,14 @@ function onTaKeydown(e) {
           'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
         )
         const visible = [...focusable].filter(el => el.offsetParent !== null)
-        let next = null
-        for (const el of visible) {
-          if (ta.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING && !next) next = el
+        const idx = visible.indexOf(ta)
+        if (e.shiftKey) {
+          if (idx > 0) visible[idx - 1].focus()
+          else if (visible.length) visible[visible.length - 1].focus()
+        } else {
+          if (idx !== -1 && idx < visible.length - 1) visible[idx + 1].focus()
+          else if (visible.length) visible[0].focus()
         }
-        if (next) next.focus()
       }
       return
     }
