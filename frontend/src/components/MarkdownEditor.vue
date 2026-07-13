@@ -29,7 +29,7 @@
 import { ref, nextTick, onMounted, watch } from 'vue'
 import { useSettingsStore } from '../store/settings.js'
 import { useTagStore } from '../store/tags.js'
-import { getTagHint as _getTagHint, getWordBeforeCursor, getAllCandidates as _getAllCandidates, confirmTagInFreq, loadFreqFromStorage, saveFreqToStorage } from '../utils/editor.js'
+import { getTagHint as _getTagHint, getWordBeforeCursor, getDelimiters, getAllCandidates as _getAllCandidates, confirmTagInFreq, loadFreqFromStorage, saveFreqToStorage } from '../utils/editor.js'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -333,7 +333,8 @@ function getWordAtCursor() {
   }
 
   const text = node.textContent || ''
-  return getWordBeforeCursor(text, offset)
+  const delimiters = getDelimiters()
+  return getWordBeforeCursor(text, offset, delimiters)
 }
 
 function getTagHint(word) {
@@ -346,23 +347,61 @@ function getAllCandidates(word) {
   return _getAllCandidates(word, tags, tagFreq)
 }
 
+// ── Check if cursor is on a tag line (2nd line of a block, after --- separator) ──
+
+function isTagLineAtCursor() {
+  const sel = window.getSelection()
+  if (!sel || !sel.rangeCount) return false
+  // Walk up from cursor to find the line-level element (direct child of editor)
+  let lineEl = sel.anchorNode
+  while (lineEl && lineEl.parentNode !== editorEl.value) {
+    lineEl = lineEl.parentNode
+  }
+  if (!lineEl || lineEl.parentNode !== editorEl.value) {
+    console.log('[tag-line] cursor not in a direct child of editor')
+    return false
+  }
+  // Scan siblings before this line to count lines within current block.
+  // A "---" separator resets the count.
+  let linesInBlock = 0
+  for (const child of editorEl.value.childNodes) {
+    if (child === lineEl) { linesInBlock++; break }
+    const t = (child.textContent || '').trim()
+    if (/^---$/.test(t)) {
+      linesInBlock = 0
+      continue
+    }
+    if (child.nodeType === 1 || (child.nodeType === 3 && child.textContent.trim())) {
+      linesInBlock++
+    }
+  }
+  console.log('[tag-line] linesInBlock:', linesInBlock, '→ tagLine:', linesInBlock === 2)
+  return linesInBlock === 2
+}
+
+// ── Tag hint ──
+
 function updateInlineHint() {
-  if (!props.tagLine) return
+  if (!props.tagLine) { console.log('[hint] tagLine prop false, skip'); return }
+  if (!isTagLineAtCursor()) { console.log('[hint] not on tag line, skip'); return }
   const old = editorEl.value.querySelector('.tag-hint')
   if (old) old.remove()
 
   const word = getWordAtCursor()
+  console.log('[hint] word at cursor:', JSON.stringify(word))
   if (!word) return
 
   // Delimiter typed: confirm the tag before the delimiter
   const lastChar = word[word.length - 1]
   if (',.，。、'.includes(lastChar)) {
     const tag = word.slice(0, -1).trim()
+    console.log('[hint] delimiter detected, confirming:', JSON.stringify(tag))
     if (tag) confirmTag(tag)
     return
   }
 
   const hint = getTagHint(word)
+  console.log('[hint] getTagHint:', JSON.stringify(hint), 'for word:', JSON.stringify(word))
   if (!hint) return
 
   const sel = window.getSelection()
@@ -389,21 +428,29 @@ function confirmTagHint() {
   const fullTag = word + suffix
 
   // Insert suffix as regular text, then remove the hint span
-  const suffixNode = document.createTextNode(suffix)
-  hint.parentNode.insertBefore(suffixNode, hint)
-  hint.remove()
-
-  // Position cursor after the confirmed tag
-  const sel = window.getSelection()
+  const parent = hint.parentNode
+  // Save where to place cursor: after the hint span (which will be removed)
   const range = document.createRange()
-  range.setStartAfter(suffixNode)
+  range.setStartAfter(hint)
   range.collapse(true)
+
+  const suffixNode = document.createTextNode(suffix)
+  parent.insertBefore(suffixNode, hint)
+  hint.remove()
+  parent.normalize() // merge adjacent text nodes
+
+  // Position cursor: range was set after hint, which is now after the merged text
+  const sel = window.getSelection()
   sel.removeAllRanges()
   sel.addRange(range)
 
   confirmTag(fullTag)
-  // Re-focus editor after DOM changes settle
-  nextTick(() => editorEl.value?.focus())
+  // Programmatic DOM change doesn't trigger input event —
+  // manually re-check for further prefix matches (e.g. "写作" → "写作方法")
+  nextTick(() => {
+    updateInlineHint()
+    editorEl.value?.focus()
+  })
 }
 
 function cycleTagHint() {

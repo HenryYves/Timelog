@@ -1,15 +1,25 @@
-const TAG_DELIMITERS = new Set([',', '.', '，', '。', '、', '\n'])
+import { KEY_PREFIX } from '../constants.js'
+
+/**
+ * Read tag delimiters from settings or use sensible defaults.
+ */
+export function getDelimiters() {
+  const raw = localStorage.getItem(KEY_PREFIX + 'tagDelimiters')
+  const chars = raw ? [...raw] : [',', '，', '.', '。', '、']
+  return new Set([...chars, '\n', ' '])
+}
 
 /**
  * Given text and cursor offset, return the word to the left of cursor.
  * Stops at any delimiter character. Returns empty string if at start.
  */
-export function getWordBeforeCursor(text, offset) {
+export function getWordBeforeCursor(text, offset, delimiters) {
   if (!text || offset <= 0) return ''
+  const d = delimiters || getDelimiters()
   let start = offset
   while (start > 0) {
     const ch = text[start - 1]
-    if (TAG_DELIMITERS.has(ch)) break
+    if (d.has(ch)) break
     start--
   }
   return text.slice(start, offset)

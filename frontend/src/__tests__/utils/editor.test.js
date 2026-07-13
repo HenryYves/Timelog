@@ -56,10 +56,10 @@ describe('getTagHint', () => {
 })
 
 describe('getWordBeforeCursor', () => {
-  it('returns word scanning left from offset, space is not a delimiter', () => {
-    // Space is NOT in the delimiter set (matching original implementation)
-    expect(getWordBeforeCursor('abc def', 7)).toBe('abc def')
-    expect(getWordBeforeCursor('abc def', 5)).toBe('abc d')
+  it('stops at space delimiter (space is always a word boundary)', () => {
+    // 'abc def' = a(0) b(1) c(2) sp(3) d(4) e(5) f(6)
+    expect(getWordBeforeCursor('abc def', 7)).toBe('def')  // cursor after 'f'
+    expect(getWordBeforeCursor('abc def', 3)).toBe('abc')  // cursor after 'c' just before space
   })
 
   it('stops at comma delimiter at correct offsets', () => {
