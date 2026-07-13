@@ -355,6 +355,15 @@ function updateInlineHint() {
 
   const word = getWordAtCursor()
   if (!word) return
+
+  // Delimiter typed: confirm the tag before the delimiter
+  const lastChar = word[word.length - 1]
+  if (',.，。、'.includes(lastChar)) {
+    const tag = word.slice(0, -1).trim()
+    if (tag) confirmTag(tag)
+    return
+  }
+
   const hint = getTagHint(word)
   if (!hint) return
 
