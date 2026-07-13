@@ -155,7 +155,11 @@ export const STR = {
     descLanguage: '界面显示语言（尚未开放）',
     descHelp: '查看键盘快捷键和操作指南',
     descFontSize: '调整界面文字大小（尚未开放）',
-    descMarkdownPreview: '编辑时间块时显示 Markdown 实时预览（尚未开放）',
+    descMarkdownPreview: '编辑时所见即所得渲染 Markdown，关闭后使用纯文本',
+    tabToIndent: 'Tab 插入缩进',
+    descTabToIndent: '关闭后 Tab 恢复为焦点跳转；ESC 切换编辑/导航模式',
+    editorFontSize: '编辑器字号',
+    descEditorFontSize: '编辑框内文字大小，10–28px',
 
     // ── Restore ──
     restoreDefault: '恢复默认设置',

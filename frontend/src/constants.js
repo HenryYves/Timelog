@@ -28,6 +28,10 @@ export const DEFAULT_ZOOM = 100
 export const DEFAULT_FONT_FAMILY = ''
 export const DEFAULT_CHECK_BEFORE_CREATE = false
 export const DEFAULT_COPY_AFTER_CREATE = true
+export const DEFAULT_MARKDOWN_PREVIEW = true
+export const DEFAULT_TAB_TO_INDENT = true
+export const DEFAULT_EDITOR_FONT_SIZE = 14
+export const DEFAULT_CUSTOM_CSS = ''
 
 // ---------- UI ----------
 export const APP_VERSION = 'v0.6.12'
