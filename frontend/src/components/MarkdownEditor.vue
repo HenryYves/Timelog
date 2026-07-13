@@ -45,6 +45,7 @@ const settingsStore = useSettingsStore()
 const editorEl = ref(null)
 const taRef = ref(null)
 const isUpdating = ref(false)
+let lastLineIndex = -1
 
 // ── Scanner: Cursor offset preservation ──
 
@@ -278,12 +279,33 @@ function getPlainText() {
   return editorEl.value.innerText || ''
 }
 
+// ── Cursor centering ──
+
+function centerCursor() {
+  const sel = window.getSelection()
+  if (!sel || !sel.rangeCount) return
+  const range = sel.getRangeAt(0)
+  const rect = range.getBoundingClientRect()
+  if (!rect || !rect.top) return
+  const editorRect = editorEl.value.getBoundingClientRect()
+  const z = (settingsStore.zoom || 100) / 100
+  const cursorY = (rect.top - editorRect.top) / z + editorEl.value.scrollTop
+
+  const lineIndex = Math.floor(cursorY / 24)
+  if (lineIndex === lastLineIndex) return
+  lastLineIndex = lineIndex
+
+  const target = cursorY - editorEl.value.clientHeight / 2
+  editorEl.value.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
+}
+
 // ── Event handlers ──
 
 function onInput() {
   if (isUpdating.value) return
   scanAndHighlight()
   emit('update:modelValue', getPlainText())
+  nextTick(() => centerCursor())
 }
 
 function onPaste(e) {
