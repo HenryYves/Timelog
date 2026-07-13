@@ -195,7 +195,7 @@ function scanContentEditable(root) {
     }
   }
 
-  return true // scan complete, no DOM changes
+  return true
 }
 
 function wrapInline(textNode, start, end, wrapperTag, wrapperClass) {
@@ -279,7 +279,8 @@ function scanAndHighlight() {
   const offset = saveCursorOffset(root)
   unwrapFormatting(root)
   root.normalize() // merge adjacent text nodes so scanner sees full patterns
-  while (!scanContentEditable(root)) {}
+  let passes = 0
+  while (!scanContentEditable(root) && passes < 20) { passes++ }
   restoreCursorOffset(root, offset)
 }
 
@@ -499,13 +500,19 @@ function confirmTag(word) {
 
 function onInput() {
   if (isUpdating.value) return
-  scanAndHighlight()
-  emit('update:modelValue', getPlainText())
-  if (props.tagLine) {
-    // Defer hint update — DOM may still be settling from scan/restore
-    nextTick(() => updateInlineHint())
+  isUpdating.value = true
+  try {
+    scanAndHighlight()
+    emit('update:modelValue', getPlainText())
+  } finally {
+    // Delay resetting isUpdating until after nextTick callbacks run —
+    // updateInlineHint inserts DOM nodes that can fire input events in WebView2
+    nextTick(() => {
+      if (props.tagLine) updateInlineHint()
+      centerCursor()
+      isUpdating.value = false
+    })
   }
-  nextTick(() => centerCursor())
 }
 
 function onPaste(e) {
@@ -618,12 +625,15 @@ onMounted(() => {
   }
 })
 
+// modelValue → editor sync (one-way, from parent to child only on initial load or reset)
 watch(() => props.modelValue, (val) => {
   if (isUpdating.value || !editorEl.value || !props.enableMd) return
   const current = getPlainText()
   if (current !== val) {
+    // Only sync when truly different (e.g. modal opened with existing text, or reset)
+    isUpdating.value = true
     editorEl.value.textContent = val
-    scanAndHighlight()
+    nextTick(() => { isUpdating.value = false })
   }
 })
 </script>
