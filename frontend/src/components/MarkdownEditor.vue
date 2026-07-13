@@ -168,8 +168,10 @@ function scanContentEditable(root) {
           if (escapedChar) {
             const literal = document.createTextNode(escapedChar)
             parent.insertBefore(literal, after)
+            parent.insertBefore(escSpan, literal) // \ before escaped char
+          } else {
+            parent.insertBefore(escSpan, after)
           }
-          parent.insertBefore(escSpan, after)
         }
         return false
       }
