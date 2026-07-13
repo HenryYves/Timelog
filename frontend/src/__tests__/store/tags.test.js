@@ -54,7 +54,7 @@ describe('useTagStore', () => {
   it('colorOf returns hex and bg for tag', () => {
     const s = useTagStore()
     s.tags = [{ name: 'Test', color: '#FF8800', group: '' }]
-    expect(s.colorOf('Test')).toEqual({ hex: '#FF8800', bg: '#FF880022' })
+    expect(s.colorOf('Test')).toEqual({ hex: '#FF8800', bg: 'rgba(255,136,0,0.15)' })
     expect(s.colorOf('Nonexistent')).toEqual({ hex: '#C4C3C0', bg: '#F0EFED' })
   })
 })

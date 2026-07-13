@@ -21,6 +21,7 @@
       @input="e => emit('update:modelValue', e.target.value)"
       @keydown="onTaKeydown"
     />
+    <component :is="'style'" v-if="customCss">{{ customCss }}</component>
   </div>
 </template>
 
@@ -28,6 +29,7 @@
 import { ref, nextTick, onMounted, watch } from 'vue'
 import { useSettingsStore } from '../store/settings.js'
 import { useTagStore } from '../store/tags.js'
+import { getTagHint as _getTagHint, getWordBeforeCursor, getAllCandidates as _getAllCandidates, confirmTagInFreq, loadFreqFromStorage, saveFreqToStorage } from '../utils/editor.js'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -48,7 +50,7 @@ const editorEl = ref(null)
 const taRef = ref(null)
 const isUpdating = ref(false)
 const navMode = ref(false)
-let lastLineIndex = -1
+// lastLineIndex moved into centerCursor closure
 
 // ── Scanner: Cursor offset preservation ──
 
@@ -121,19 +123,11 @@ function scanContentEditable(root) {
   const nodes = []
   while (walker.nextNode()) nodes.push(walker.currentNode)
 
-  let state = 'normal'
-
   for (const textNode of nodes) {
     const text = textNode.textContent || ''
 
     for (let i = 0; i < text.length; i++) {
       const ch = text[i]
-
-      if (state === 'escape') {
-        // Already handled the \ in previous iteration
-        state = 'normal'
-        continue
-      }
 
       if (ch === '\\') {
         // Wrap \ as gray marker
@@ -149,7 +143,6 @@ function scanContentEditable(root) {
           after.textContent = after.textContent.slice(1)
           parent.insertBefore(span, after)
         }
-        state = 'escape'
         return false // re-scan needed
       }
 
@@ -199,9 +192,7 @@ function scanContentEditable(root) {
 function wrapInline(textNode, start, end, wrapperTag, wrapperClass) {
   const text = textNode.textContent || ''
   const before = text.slice(0, start)
-  const marker1 = text.slice(start, start + (end - start > 3 ? 1 : 1)) // single char marker
-  // For backtick: marker is 1 char, content is between
-  // For ~: marker is 2 chars
+  // markerLen: 1 for code/*, 2 for ~~
   let markerLen
   if (wrapperTag === 'code') {
     markerLen = 1
@@ -279,42 +270,44 @@ function scanAndHighlight() {
 // ── Plain text extraction ──
 
 function getPlainText() {
-  return editorEl.value.innerText || ''
+  const clone = editorEl.value.cloneNode(true)
+  clone.querySelectorAll('.tag-hint').forEach(el => el.remove())
+  return clone.innerText || ''
 }
 
 // ── Cursor centering ──
 
-function centerCursor() {
-  const sel = window.getSelection()
-  if (!sel || !sel.rangeCount) return
-  const range = sel.getRangeAt(0)
-  const rect = range.getBoundingClientRect()
-  if (!rect || !rect.top) return
-  const editorRect = editorEl.value.getBoundingClientRect()
-  const z = (settingsStore.zoom || 100) / 100
-  const cursorY = (rect.top - editorRect.top) / z + editorEl.value.scrollTop
+const centerCursor = (function() {
+  let lastLineIndex = -1
+  return function() {
+    const sel = window.getSelection()
+    if (!sel || !sel.rangeCount) return
+    const range = sel.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
+    if (!rect || !rect.top) return
+    const editorRect = editorEl.value.getBoundingClientRect()
+    const z = (settingsStore.zoom || 100) / 100
+    const cursorY = (rect.top - editorRect.top) / z + editorEl.value.scrollTop
 
-  const lineIndex = Math.floor(cursorY / 24)
-  if (lineIndex === lastLineIndex) return
-  lastLineIndex = lineIndex
+    const lineIndex = Math.floor(cursorY / 24)
+    if (lineIndex === lastLineIndex) return
+    lastLineIndex = lineIndex
 
-  const target = cursorY - editorEl.value.clientHeight / 2
-  editorEl.value.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
-}
+    const target = cursorY - editorEl.value.clientHeight / 2
+    editorEl.value.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
+  }
+})()
 
 // ── Tag hint ──
 
 const tagFreq = {}
 
 function loadFreq() {
-  try {
-    const data = JSON.parse(localStorage.getItem('timelog:tagFrequency') || '{}')
-    Object.assign(tagFreq, data)
-  } catch {}
+  Object.assign(tagFreq, loadFreqFromStorage())
 }
 
 function saveFreq() {
-  localStorage.setItem('timelog:tagFrequency', JSON.stringify(tagFreq))
+  saveFreqToStorage(tagFreq)
 }
 
 function getWordAtCursor() {
@@ -324,28 +317,17 @@ function getWordAtCursor() {
   if (!node) return null
   const offset = sel.anchorOffset
   const text = node.textContent || ''
-  let start = offset
-  while (start > 0) {
-    const ch = text[start - 1]
-    if (',.，。、\n'.includes(ch)) break
-    start--
-  }
-  return text.slice(start, offset)
+  return getWordBeforeCursor(text, offset)
 }
 
 function getTagHint(word) {
   const tags = tagStore.tags.map(t => t.name)
-  const matches = tags.filter(t => t.startsWith(word) && t !== word)
-  if (!matches.length) return null
-  matches.sort((a, b) => (tagFreq[b] || 0) - (tagFreq[a] || 0))
-  return matches[0].slice(word.length)
+  return _getTagHint(word, tags, tagFreq)
 }
 
 function getAllCandidates(word) {
   const tags = tagStore.tags.map(t => t.name)
-  const matches = tags.filter(t => t.startsWith(word) && t !== word)
-  matches.sort((a, b) => (tagFreq[b] || 0) - (tagFreq[a] || 0))
-  return matches
+  return _getAllCandidates(word, tags, tagFreq)
 }
 
 function updateInlineHint() {
@@ -383,6 +365,30 @@ function updateInlineHint() {
   sel.addRange(range)
 }
 
+function confirmTagHint() {
+  const hint = editorEl.value.querySelector('.tag-hint')
+  if (!hint) return
+  const word = getWordAtCursor()
+  if (!word) return
+  const suffix = hint.textContent || ''
+  const fullTag = word + suffix
+
+  // Insert suffix as regular text, then remove the hint span
+  const suffixNode = document.createTextNode(suffix)
+  hint.parentNode.insertBefore(suffixNode, hint)
+  hint.remove()
+
+  // Position cursor after the confirmed tag
+  const sel = window.getSelection()
+  const range = document.createRange()
+  range.setStartAfter(suffixNode)
+  range.collapse(true)
+  sel.removeAllRanges()
+  sel.addRange(range)
+
+  confirmTag(fullTag)
+}
+
 function cycleTagHint() {
   const hint = editorEl.value.querySelector('.tag-hint')
   if (!hint) return
@@ -413,8 +419,8 @@ function cycleTagHint() {
 }
 
 function confirmTag(word) {
-  tagFreq[word] = (tagFreq[word] || 0) + 1
-  saveFreq()
+  confirmTagInFreq(word, tagFreq)
+  saveFreqToStorage(tagFreq)
 }
 
 function onInput() {
@@ -450,7 +456,7 @@ function onKeydown(e) {
     // Tag hint cycling takes priority when hint exists
     if (isTagLine && hint) {
       e.preventDefault()
-      cycleTagHint()
+      confirmTagHint()
       return
     }
 

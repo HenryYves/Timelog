@@ -2,12 +2,15 @@
   <div v-if="show" class="overlay" @mousedown.self="onCancel" @keydown.escape.stop="onCancel">
     <div class="modal" ref="modalEl" @keydown="trapFocus">
       <h2>{{ STR.batchCreate.title }}</h2>
-      <textarea
-        ref="ta"
+      <MarkdownEditor
         v-model="text"
-        class="batch-ta"
+        height="220px"
+        :font-size="settings.editorFontSize"
+        :enable-md="settings.markdownPreview"
+        :custom-css="settings.customCss"
         :placeholder="STR.batchCreate.placeholder"
-        @input="onInput"
+        :tag-line="true"
+        auto-focus
       />
       <div class="small" style="margin:4px 0 10px;">{{ STR.batchCreate.preview(parsed.length) }}</div>
       <div class="actions">
@@ -26,6 +29,7 @@ import { useSettingsStore } from '../store/settings.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { STR } from '../strings.js'
+import MarkdownEditor from './MarkdownEditor.vue'
 
 const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close'])
@@ -37,7 +41,6 @@ const { toast } = useToast()
 
 const text = ref('')
 watch(() => props.show, (v) => { if (v) text.value = '' })
-const ta = ref(null)
 const modalEl = ref(null)
 
 // Parse text into blocks
@@ -117,7 +120,7 @@ function parseChunk(chunk, prevEnd) {
 function trapFocus(e) {
   if (e.key !== 'Tab') return
   const modal = e.currentTarget
-  const focusable = modal.querySelectorAll('button:not([disabled]), textarea')
+  const focusable = modal.querySelectorAll('button:not([disabled]), textarea, [contenteditable="true"]')
   const visible = [...focusable].filter(el => el.offsetParent !== null)
   if (!visible.length) { e.preventDefault(); return }
   const idx = visible.indexOf(document.activeElement)
@@ -128,10 +131,6 @@ function trapFocus(e) {
     e.preventDefault()
     visible[idx === -1 || idx >= visible.length - 1 ? 0 : idx + 1].focus()
   }
-}
-
-function onInput() {
-  // Trigger re-computation
 }
 
 async function onCreate() {
@@ -175,13 +174,4 @@ async function onCancel() {
 </script>
 
 <style scoped>
-.batch-ta {
-  width: 100%; min-height: 220px; font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
-  font-size: 13px; line-height: 1.6;
-  border: 1px solid var(--border); border-radius: 8px;
-  padding: 10px 12px; color: var(--text); background: var(--soft);
-  resize: vertical; tab-size: 2;
-}
-.batch-ta:focus { outline: none; border-color: var(--blue); background: var(--canvas); }
-.batch-ta::placeholder { color: var(--text2); opacity: .6; }
 </style>

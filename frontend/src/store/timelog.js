@@ -11,7 +11,7 @@ export function dkey(d) {
 }
 
 export function fmt(min) {
-  return String(Math.floor(min / 60)) + ':' +
+  return String(Math.floor(min / 60)).padStart(2, '0') + ':' +
     String(min % 60).padStart(2, '0')
 }
 

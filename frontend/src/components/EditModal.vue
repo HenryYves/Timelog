@@ -53,15 +53,13 @@
       </div>
 
       <label>备注（可选）</label>
-      <textarea
-        id="mNote"
+      <MarkdownEditor
         v-model="mNote"
-        placeholder="例如：写得有点慢但挺认真的"
-        @input="updatePreview"
-        @scroll="syncScroll"
-      ></textarea>
-      <div class="mdhint">支持 **粗体** *斜体* ~~删除线~~ `代码` - 列表 # 标题</div>
-      <div class="mdprev" id="mNotePrev" v-show="notePreview" v-html="notePreview"></div>
+        height="126px"
+        :font-size="settings.editorFontSize"
+        :enable-md="settings.markdownPreview"
+        :custom-css="settings.customCss"
+      />
 
       <div class="actions">
         <button v-show="!!editingBlock" class="del" @click="deleteBlock">删除</button>
@@ -78,10 +76,11 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useTimelogStore, fmt, toInput, fromInput } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
-import { mdToHtml, esc } from '../utils/markdown.js'
+import { useSettingsStore } from '../store/settings.js'
 import { useToast } from '../composables/useToast.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { STR } from '../strings.js'
+import MarkdownEditor from './MarkdownEditor.vue'
 
 const props = defineProps({
   show: Boolean,
@@ -92,6 +91,7 @@ const emit = defineEmits(['close', 'manage-tags'])
 
 const timelogStore = useTimelogStore()
 const tagStore = useTagStore()
+const settings = useSettingsStore()
 const { toast } = useToast()
 const { showConfirm } = useConfirm()
 
@@ -101,7 +101,6 @@ const mNote = ref('')
 const mStart = ref('')
 const mEnd = ref('')
 const selectedTags = ref([])
-const notePreview = ref('')
 const mTagsRef = ref(null)
 const modalEl = ref(null)
 
@@ -141,7 +140,6 @@ watch(
       end: mEnd.value,
       tags: [...selectedTags.value],
     }
-    updatePreview()
     nextTick(() => {
       const el = document.getElementById('mTitle')
       if (el) el.focus()
@@ -187,7 +185,7 @@ function onChipKeydown(e, name) {
     const wraps = Array.from(mTagsRef.value.querySelectorAll('.tagwrap'))
     const i = wraps.indexOf(wrap)
     if (i === wraps.length - 1) {
-      const note = document.getElementById('mNote')
+      const note = document.querySelector('.md-editor')
       if (note) note.focus()
     } else {
       const fc = wraps[i + 1].querySelector('.chip:not(.add)')
@@ -200,21 +198,6 @@ function onChipKeydown(e, name) {
 function focusFirstChip() {
   const fc = document.querySelector('#mTags .chip:not(.add)')
   if (fc) fc.focus()
-}
-
-// Markdown preview
-function updatePreview() {
-  notePreview.value = mNote.value.trim() ? mdToHtml(mNote.value) : ''
-}
-
-// One-way scroll sync: textarea -> preview
-function syncScroll(e) {
-  const ta = e.target
-  const pv = document.getElementById('mNotePrev')
-  if (!pv) return
-  const fm = ta.scrollHeight - ta.clientHeight
-  const tm = pv.scrollHeight - pv.clientHeight
-  pv.scrollTop = fm > 0 ? (ta.scrollTop / fm) * tm : 0
 }
 
 // Save
@@ -278,7 +261,7 @@ function trapFocus(e) {
   if (e.key !== 'Tab') return
   const modal = e.currentTarget
   const focusable = modal.querySelectorAll(
-    'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
+    'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [contenteditable="true"], [tabindex="0"]'
   )
   const visible = [...focusable].filter(el => el.offsetParent !== null)
   if (!visible.length) { e.preventDefault(); return }
@@ -339,56 +322,5 @@ function trapFocus(e) {
 .chip:focus {
   outline: 2px solid var(--blue);
   outline-offset: 1px;
-}.mdhint {
-  font-size: 11px;
-  color: var(--text2);
-  margin-top: 5px;
-}
-.mdprev {
-  margin-top: 8px;
-  padding: 8px 10px;
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--text);
-  background: var(--soft);
-  line-height: 1.45;
-}
-#mNote,
-#mNotePrev {
-  height: 126px;
-  line-height: 1.5;
-  font-size: 14px;
-  padding: 9px 10px;
-  box-sizing: border-box;
-  overflow-y: auto;
-}
-#mNote {
-  resize: none;
-  min-height: 0;
-}
-.mdprev ul {
-  margin: 4px 0;
-  padding-left: 18px;
-}
-.mdprev ol {
-  margin: 4px 0;
-  padding-left: 18px;
-}
-.mdprev code {
-  background: rgba(0,0,0,.06);
-  padding: 0 3px;
-  border-radius: 3px;
-  font-family: Menlo, Consolas, monospace;
-}
-.mdprev .md-h1 {
-  font-size: 15px;
-}
-.mdprev .md-h {
-  font-weight: 700;
-  margin: 2px 0;
-}
-.mdprev a {
-  color: var(--blue);
 }
 </style>
