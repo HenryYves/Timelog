@@ -507,34 +507,10 @@ function onKeydown(e) {
   const isTagLine = props.tagLine
   const hint = editorEl.value.querySelector('.tag-hint')
 
-  // Backspace/Delete with hint present: remove hint first
+  // Backspace/Delete with hint present: remove hint, let browser delete normally
   if (hint && (e.key === 'Backspace' || e.key === 'Delete')) {
-    // Let browser handle the deletion naturally — hint is a normal span now.
-    // But we need to ensure the hint is removed cleanly.
-    // For Backspace: cursor is before hint → delete character before cursor (not the hint)
-    // For Delete: remove the hint span
-    if (e.key === 'Delete') {
-      e.preventDefault()
-      hint.remove()
-      return
-    }
-    // Backspace: if hint is right after cursor, remove hint first
-    const sel = window.getSelection()
-    if (sel?.rangeCount) {
-      const range = sel.getRangeAt(0)
-      if (range.collapsed && range.startContainer.nodeType === 3) {
-        const node = range.startContainer
-        const offset = range.startOffset
-        // Check if hint is immediately after cursor position
-        if (offset === node.textContent.length && node.nextSibling === hint) {
-          e.preventDefault()
-          hint.remove()
-          return
-        }
-      }
-    }
-    // Otherwise let the browser handle normal deletion
-    return
+    hint.remove()
+    // Let event proceed — browser handles the actual deletion
   }
 
   // Enter: confirm tag hint (tagLine only)
