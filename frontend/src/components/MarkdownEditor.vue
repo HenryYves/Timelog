@@ -279,8 +279,7 @@ function scanAndHighlight() {
   const offset = saveCursorOffset(root)
   unwrapFormatting(root)
   root.normalize() // merge adjacent text nodes so scanner sees full patterns
-  let passes = 0
-  while (!scanContentEditable(root) && passes < 20) { passes++ }
+  while (!scanContentEditable(root)) {}
   restoreCursorOffset(root, offset)
 }
 
