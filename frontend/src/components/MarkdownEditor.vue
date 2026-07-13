@@ -176,8 +176,19 @@ function scanContentEditable(root) {
         return false
       }
 
+      // Helper: find unescaped closing marker, skipping \escaped ones
+      function findClosing(text, marker, from) {
+        let idx = from
+        while (true) {
+          idx = text.indexOf(marker, idx)
+          if (idx < 0 || idx === 0) return idx
+          if (text[idx - 1] !== '\\') return idx
+          idx += marker.length // skip this escaped marker
+        }
+      }
+
       if (ch === '`') {
-        const close = text.indexOf('`', i + 1)
+        const close = findClosing(text, '`', i + 1)
         if (close >= 0) {
           wrapInline(textNode, i, close + 1, 'code', 'code')
           return false
@@ -186,7 +197,7 @@ function scanContentEditable(root) {
       }
 
       if (ch === '=' && text[i + 1] === '=') {
-        const closeIdx = text.indexOf('==', i + 2)
+        const closeIdx = findClosing(text, '==', i + 2)
         if (closeIdx >= 0) {
           wrapInline(textNode, i, closeIdx + 2, 'mark', 'mark')
           return false
@@ -196,7 +207,7 @@ function scanContentEditable(root) {
       }
 
       if (ch === '~' && text[i + 1] === '~') {
-        const closeIdx = text.indexOf('~~', i + 2)
+        const closeIdx = findClosing(text, '~~', i + 2)
         if (closeIdx >= 0) {
           wrapInline(textNode, i, closeIdx + 2, 's', 's')
           return false
@@ -206,7 +217,7 @@ function scanContentEditable(root) {
       }
 
       if (ch === '*' && text[i + 1] === '*') {
-        const closeIdx = text.indexOf('**', i + 2)
+        const closeIdx = findClosing(text, '**', i + 2)
         if (closeIdx >= 0) {
           wrapBold(textNode, i, closeIdx + 2)
           return false
@@ -216,7 +227,7 @@ function scanContentEditable(root) {
       }
 
       if (ch === '*' && text[i + 1] !== '*') {
-        const closeIdx = text.indexOf('*', i + 1)
+        const closeIdx = findClosing(text, '*', i + 1)
         if (closeIdx >= 0) {
           wrapInline(textNode, i, closeIdx + 1, 'i', 'i')
           return false
