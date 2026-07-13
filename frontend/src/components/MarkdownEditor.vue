@@ -259,6 +259,9 @@ function wrapBold(textNode, start, end) {
 }
 
 function scanAndHighlight() {
+  // Only render Markdown on note lines — elsewhere let browser handle
+  const lineType = getCurrentLineType()
+  if (lineType < LineType.NOTE) return
   const root = editorEl.value
   if (!root) return
   const offset = saveCursorOffset(root)
