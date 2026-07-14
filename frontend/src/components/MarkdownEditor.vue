@@ -400,7 +400,9 @@ function continueList(prefix) {
   }
   const prefixText = prefix.indent + nextMarker + ' '
 
-  // Create new block after current
+  // Block browser's synchronous input event during DOM change,
+  // so onInput only runs with the correct cursor position.
+  inputLock++
   const newDiv = document.createElement('div')
   newDiv.textContent = prefixText
   if (block.nextSibling) {
@@ -416,8 +418,9 @@ function continueList(prefix) {
   sel.removeAllRanges()
   sel.addRange(range)
 
-  // Trigger scanning after DOM settles
-  nextTick(() => onInput())
+  // Allow our explicit onInput to run
+  inputLock--
+  onInput()
 }
 
 // ── Ordered list renumbering ──
@@ -820,29 +823,37 @@ function onKeydown(e) {
       if (range.collapsed) {
         let node = range.startContainer
 
-        // Case 1: cursor is inside an EditMarkdown element's text node
-        // (e.g. cursor at end of "\" inside <span class="EditMarkdown-escape">)
-        // Remove the element entirely — unescaping would leave the char
-        // and a second Backspace would expose the block boundary.
-        if (node.nodeType === 3) {
+        // Case 1 (Backspace only): cursor inside an EditMarkdown element
+        //  - escape → delete element + char
+        //  - marker/content → unwrap (preserve text)
+        if (e.key === 'Backspace' && node.nodeType === 3) {
           let el = node.parentNode
           while (el && el !== editorEl.value) {
-            if (el.className && /EditMarkdown-/.test(el.className)) {
+            if (el.className && el.className.includes('EditMarkdown-escape')) {
               e.preventDefault()
               const parent = el.parentNode
-              // Place cursor before removing
               const r = document.createRange()
-              if (el.nextSibling) {
-                r.setStartBefore(el.nextSibling)
-              } else if (el.previousSibling) {
-                r.setStartAfter(el.previousSibling)
-              } else {
-                r.selectNodeContents(parent)
-                r.collapse(true)
-              }
+              if (el.nextSibling) { r.setStartBefore(el.nextSibling) }
+              else if (el.previousSibling) { r.setStartAfter(el.previousSibling) }
+              else { r.selectNodeContents(parent); r.collapse(true) }
               r.collapse(true)
               el.remove()
               if (parent) parent.normalize()
+              sel.removeAllRanges()
+              sel.addRange(r)
+              return
+            }
+            // Marker/content elements: unwrap (preserve text)
+            if (el.className && /EditMarkdown-/.test(el.className)) {
+              e.preventDefault()
+              const parent = el.parentNode
+              const r = document.createRange()
+              if (el.nextSibling) { r.setStartBefore(el.nextSibling) }
+              else { r.selectNodeContents(parent); r.collapse(false) }
+              r.collapse(true)
+              while (el.firstChild) parent.insertBefore(el.firstChild, el)
+              parent.removeChild(el)
+              parent.normalize()
               sel.removeAllRanges()
               sel.addRange(r)
               return
@@ -930,8 +941,10 @@ function onKeydown(e) {
       const offset = getOffsetInBlock(block)
       const fullText = block ? (block.textContent || '') : ''
       const textAfter = fullText.slice(offset).trimStart()
+      console.log('[enter] offset:', offset, 'fullLen:', fullText.length, 'after:', JSON.stringify(textAfter), 'blkText:', JSON.stringify(block?.textContent?.slice(0,40)))
       if (textAfter && offset < fullText.trimEnd().length) {
         // Mid-line split: keep text before cursor, move rest to new line
+        inputLock++
         const textBefore = fullText.slice(0, offset)
         // Replace entire block content (scanAndHighlight will re-format on next input)
         block.textContent = textBefore
@@ -954,7 +967,8 @@ function onKeydown(e) {
         range.collapse(false)
         sel.removeAllRanges()
         sel.addRange(range)
-        nextTick(() => onInput())
+        inputLock--
+        onInput()
       } else {
         // End of line → continue list on new empty line
         continueList(prefix)
@@ -968,6 +982,7 @@ function onKeydown(e) {
       const im = text.match(/^(\s+)/)
       if (im && text.trim()) {
         e.preventDefault()
+        inputLock++
         const sel = window.getSelection()
         const newDiv = document.createElement('div')
         newDiv.textContent = im[1]
@@ -981,9 +996,29 @@ function onKeydown(e) {
         range.collapse(false)
         sel.removeAllRanges()
         sel.addRange(range)
-        nextTick(() => onInput())
+        inputLock--
+        onInput()
         return
       }
+      // No indent — still need a proper <div> break
+      e.preventDefault()
+      inputLock++
+      const sel2 = window.getSelection()
+      const newDiv2 = document.createElement('div')
+      newDiv2.appendChild(document.createElement('br')) // cursor anchor
+      if (block.nextSibling) {
+        block.parentNode.insertBefore(newDiv2, block.nextSibling)
+      } else {
+        block.parentNode.appendChild(newDiv2)
+      }
+      const range2 = document.createRange()
+      range2.selectNodeContents(newDiv2)
+      range2.collapse(false)
+      sel2.removeAllRanges()
+      sel2.addRange(range2)
+      inputLock--
+      onInput()
+      return
     }
   }
 

@@ -26,6 +26,44 @@ export function saveCursor(root) {
   if (!sel?.rangeCount) return null
   const range = sel.getRangeAt(0)
 
+  // Diagnostic: walk DOM in order, show cursor position with |
+  let _s = '', _done = false
+  function _walk(n) {
+    if (!_done && n === range.startContainer) {
+      if (range.startContainer.nodeType === 3) {
+        _s += n.textContent.slice(0, range.startOffset) + '|' + n.textContent.slice(range.startOffset)
+        _done = true
+        return
+      }
+      // Element: walk children, insert | at startOffset
+      _s += '<' + n.nodeName.toLowerCase()
+      if (n.className?.includes('EditMarkdown-')) _s += '.' + n.className.split(' ')[0]
+      _s += '>'
+      for (let i = 0; i < n.childNodes.length; i++) {
+        if (!_done && i === range.startOffset) { _s += '|'; _done = true }
+        _walk(n.childNodes[i])
+      }
+      if (!_done) { _s += '|'; _done = true }
+      _s += '</' + n.nodeName.toLowerCase() + '>'
+      return
+    }
+    if (n.nodeType === 3) {
+      _s += n.textContent
+      return
+    }
+    const tag = n.nodeName.toLowerCase()
+    const voidTags = { br:1, hr:1, img:1, input:1 }
+    _s += '<' + tag
+    if (n.className?.includes('EditMarkdown-')) _s += '.' + n.className.split(' ')[0]
+    _s += '>'
+    if (!voidTags[tag]) {
+      for (const c of n.childNodes) _walk(c)
+      _s += '</' + tag + '>'
+    }
+  }
+  _walk(root)
+  if (!_done) _s += '|'
+  console.log('[cursor]', _s.slice(0, 300))
   // Phase 1: TreeWalker — cursor in a text node?
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
   let offset = 0
@@ -61,26 +99,19 @@ export function saveCursor(root) {
     trail.push(el.tagName)
   }
 
-  // Walk backward through previousSibling → parentNode.previousSibling
-  // until we hit a node that contains text.
+  // Walk backward through previousSibling → parentNode to accumulate
+  // ALL text preceding the cursor (not just the first text sibling).
   while (el && el !== root) {
     let prev = el.previousSibling
     while (prev) {
       const textLen = countText(prev)
-      if (textLen > 0) {
-        offset += textLen
-        trail.reverse()
-        return { offset, trail }
-      }
-      if (isBlock(prev) && countText(prev) === 0) {
+      offset += textLen
+      if (isBlock(prev) && textLen === 0) {
         trail.push(prev.tagName)
       }
       prev = prev.previousSibling
     }
     el = el.parentNode
-    if (el && el !== root && isBlock(el) && countText(el) > 0) {
-      break
-    }
   }
 
   trail.reverse()
