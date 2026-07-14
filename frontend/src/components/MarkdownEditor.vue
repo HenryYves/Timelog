@@ -668,10 +668,69 @@ function onKeydown(e) {
   const isTagLine = props.tagLine
   const hint = editorEl.value.querySelector('.tag-hint')
 
-  // Backspace/Delete with hint present: remove hint, let browser delete normally
-  if (hint && (e.key === 'Backspace' || e.key === 'Delete')) {
-    hint.remove()
-    // Let event proceed — browser handles the actual deletion
+  // Backspace/Delete: handle EditMarkdown elements
+  if (e.key === 'Backspace' || e.key === 'Delete') {
+    // Remove hint if present
+    if (hint) hint.remove()
+
+    const sel = window.getSelection()
+    if (sel?.rangeCount) {
+      const range = sel.getRangeAt(0)
+      if (range.collapsed) {
+        let node = range.startContainer
+
+        // Case 1: cursor is inside an EditMarkdown element's text node
+        // (e.g. cursor at end of "\" inside <span class="EditMarkdown-escape">)
+        // Remove the element entirely — unescaping would leave the char
+        // and a second Backspace would expose the block boundary.
+        if (node.nodeType === 3) {
+          let el = node.parentNode
+          while (el && el !== editorEl.value) {
+            if (el.className && /EditMarkdown-/.test(el.className)) {
+              e.preventDefault()
+              const parent = el.parentNode
+              // Place cursor before removing
+              const r = document.createRange()
+              if (el.nextSibling) {
+                r.setStartBefore(el.nextSibling)
+              } else if (el.previousSibling) {
+                r.setStartAfter(el.previousSibling)
+              } else {
+                r.selectNodeContents(parent)
+                r.collapse(true)
+              }
+              r.collapse(true)
+              el.remove()
+              if (parent) parent.normalize()
+              sel.removeAllRanges()
+              sel.addRange(r)
+              return
+            }
+            el = el.parentNode
+          }
+        }
+
+        // Case 2: cursor at text node boundary next to an EditMarkdown sibling
+        if (node.nodeType === 3) {
+          if (e.key === 'Backspace' && range.startOffset === 0) {
+            const prev = node.previousSibling
+            if (prev && prev.nodeType === 1 && prev.className && /EditMarkdown-/.test(prev.className)) {
+              e.preventDefault()
+              prev.remove()
+              return
+            }
+          }
+          if (e.key === 'Delete' && range.startOffset === (node.textContent || '').length) {
+            const next = node.nextSibling
+            if (next && next.nodeType === 1 && next.className && /EditMarkdown-/.test(next.className)) {
+              e.preventDefault()
+              next.remove()
+              return
+            }
+          }
+        }
+      }
+    }
   }
 
   // Enter: confirm tag hint (tagLine only)
