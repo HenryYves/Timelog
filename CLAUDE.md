@@ -88,6 +88,8 @@ src-tauri/src/
 - **打包自动构建** — `tauri.conf.json` 里配了 `beforeBuildCommand`，确保不打包旧前端
 - **默认窗口隐藏** — `tauri.conf.json` 中 `visible: false`，状态恢复后再显示，消除启动闪烁
 - **WebView2 only** — 最终只跑在 Tauri WebView2，不考虑跨浏览器兼容。不需要考虑 Firefox/Safari/Chrome 差异，CSS/JS 只需对 WebView2 有效。不要因为跨浏览器顾虑增加额外方案或 fallback。
+- **WebView2 contenteditable 怪异行为** — 详见 `docs/webview2-contenteditable-quirks.md`，含 6 条踩坑记录。后续发现新的浏览器行为问题必须更新该文档。
+- **勿假设浏览器行为** — contenteditable 行为各浏览器实现不同。遇问题先加诊断日志验证实际行为，不要凭经验或标准文档猜测。`[cursor]` 日志格式见 `saveCursor` 内 `_walk`。
 
 ## 行为约束
 

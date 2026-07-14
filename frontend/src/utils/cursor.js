@@ -26,12 +26,14 @@ export function saveCursor(root) {
   if (!sel?.rangeCount) return null
   const range = sel.getRangeAt(0)
 
+  const origSc = range.startContainer
+  const origSo = range.startOffset
   // Diagnostic: walk DOM in order, show cursor position with |
   let _s = '', _done = false
   function _walk(n) {
-    if (!_done && n === range.startContainer) {
-      if (range.startContainer.nodeType === 3) {
-        _s += n.textContent.slice(0, range.startOffset) + '|' + n.textContent.slice(range.startOffset)
+    if (!_done && n === origSc) {
+      if (origSc.nodeType === 3) {
+        _s += n.textContent.slice(0, origSo) + '|' + n.textContent.slice(origSo)
         _done = true
         return
       }
@@ -40,7 +42,7 @@ export function saveCursor(root) {
       if (n.className?.includes('EditMarkdown-')) _s += '.' + n.className.split(' ')[0]
       _s += '>'
       for (let i = 0; i < n.childNodes.length; i++) {
-        if (!_done && i === range.startOffset) { _s += '|'; _done = true }
+        if (!_done && i === origSo) { _s += '|'; _done = true }
         _walk(n.childNodes[i])
       }
       if (!_done) { _s += '|'; _done = true }
@@ -63,14 +65,64 @@ export function saveCursor(root) {
   }
   _walk(root)
   if (!_done) _s += '|'
-  console.log('[cursor]', _s.slice(0, 300))
+  // console.log('[cursor]', _s.slice(0, 300))
+  // If cursor landed in an element (browser pushed it there), redirect
+  // to the nearest text node so offset computation is text-based.
+  // root.startOffset is a child index — convert to linear text offset.
+  let sc = range.startContainer
+  let so = range.startOffset
+  // Cursor at start of non-root element that follows a text node —
+  // browser push pattern from text boundary into adjacent element.
+  if (sc !== root && sc.nodeType === 1 && so === 0 && countText(sc) > 0) {
+    const prev = sc.previousSibling
+    if (prev && prev.nodeType === 3) {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
+      let n = walker.firstChild(), acc = 0
+      while (n) {
+        acc += (n.textContent || '').length
+        if (n === prev) { sc = prev; so = (prev.textContent || '').length; break }
+        n = walker.nextNode()
+      }
+    }
+  }
+  if (sc === root) {
+    let textOff = 0
+    for (let i = 0; i < so; i++) {
+      const child = root.childNodes[i]
+      if (child) textOff += countText(child)
+    }
+    so = textOff
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
+    let node = walker.firstChild(), accumulated = 0
+    while (node) {
+      const len = (node.textContent || '').length
+      if (accumulated + len > so || (accumulated + len === so && len === 0)) {
+        sc = node; so = so - accumulated; break
+      }
+      if (accumulated + len === so && len > 0) {
+        // At text boundary — root cursor between children, stay at end of prev text
+        sc = node; so = len; break
+      }
+      accumulated += len
+      node = walker.nextNode()
+    }
+    if (sc === root) {
+      const w2 = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
+      let last = null, n = w2.firstChild()
+      while (n) { last = n; n = w2.nextNode() }
+      if (last) { sc = last; so = (last.textContent || '').length }
+    }
+  }
+
   // Phase 1: TreeWalker — cursor in a text node?
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
   let offset = 0
   let node = walker.firstChild()
   while (node) {
-    if (node === range.startContainer) {
-      return { offset: offset + range.startOffset, trail: [] }
+    if (node === sc) {
+      const _r = { offset: offset + so, trail: [] }
+      // console.log('[cursor] save →', JSON.stringify(_r))
+      return _r
     }
     offset += (node.textContent || '').length
     node = walker.nextNode()
@@ -79,7 +131,7 @@ export function saveCursor(root) {
   // Phase 2: cursor in an element — backtrack to nearest text.
   // Record empty block elements between cursor and nearest text as trail.
   const trail = []
-  let el = range.startContainer
+  let el = sc
 
   // Reset offset: Phase 1 accumulated all text in the root, but the cursor
   // may be before some of that text (e.g. in an empty div that precedes a
@@ -88,7 +140,7 @@ export function saveCursor(root) {
 
   // Count text within the container up to startOffset
   if (el !== root) {
-    for (let i = 0; i < range.startOffset; i++) {
+    for (let i = 0; i < so; i++) {
       const child = el.childNodes[i]
       if (child) offset += countText(child)
     }
@@ -115,14 +167,43 @@ export function saveCursor(root) {
   }
 
   trail.reverse()
-  return { offset, trail }
+  const _r = { offset, trail }
+  // console.log('[cursor] save →', JSON.stringify(_r))
+  return _r
 }
 
 function placeAt(sel, root, node, offset) {
   const range = document.createRange()
-  if (node.nodeType === 3) {
-    const clamped = Math.min(offset, (node.textContent || '').length)
+  // Never land in root — redirect to nearest text node
+  if (node === root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
+    let target = null, n = walker.firstChild()
+    while (n) { target = n; n = walker.nextNode() }
+    if (target) {
+      range.setStart(target, (target.textContent || '').length)
+    } else {
+      range.selectNodeContents(root)
+      range.collapse(false)
+    }
+  } else if (node.nodeType === 3) {
+    const textLen = (node.textContent || '').length
+    const clamped = Math.min(offset, textLen)
     range.setStart(node, clamped)
+    range.collapse(true)
+    sel.removeAllRanges()
+    sel.addRange(range)
+    // Browser may push cursor at text boundary to parent element.
+    // Pull back to stay in text node. Empty text (len=0) can't be saved.
+    if (sel.rangeCount && textLen > 0) {
+      const actual = sel.getRangeAt(0)
+      if (actual.startContainer !== node) {
+        range.setStart(node, Math.max(0, clamped - 1))
+        range.collapse(true)
+        sel.removeAllRanges()
+        sel.addRange(range)
+      }
+    }
+    return
   } else {
     const clamped = Math.min(offset, node.childNodes.length)
     range.setStart(node, clamped)
@@ -166,6 +247,7 @@ function stepTrailFrom(parent, trail) {
 
 export function restoreCursor(root, state) {
   if (!state) return
+  // console.log('[cursor] restore ←', JSON.stringify(state))
   const { offset, trail } = state
   const sel = window.getSelection()
 
@@ -189,9 +271,13 @@ export function restoreCursor(root, state) {
     // Boundary: accumulated + len === offset && len > 0
     if (accumulated + len === offset) {
       if (trail.length === 0) {
-        // Cursor in text — prefer next text node at pos 0
+        // Prefer next text node only if it's empty (e.g. after marker span).
+        // Otherwise stay at end of current text — the cursor was at this
+        // boundary, not past it.
         const next = walker.nextNode()
-        if (next) { placeAt(sel, root, next, 0); return }
+        if (next && (next.textContent || '').length === 0) {
+          placeAt(sel, root, next, 0); return
+        }
       }
       // Cursor in element — find next block via trail
       if (trail.length > 0) {
@@ -219,7 +305,13 @@ export function restoreCursor(root, state) {
           return
         }
       }
-      placeAt(sel, root, node, len)
+      // Boundary without trail: prefer next sibling element over text end,
+      // because browser may push end-of-text cursor to parent (root).
+      if (node.nextSibling && node.nextSibling.nodeType === 1) {
+        placeAt(sel, root, node.nextSibling, 0)
+      } else {
+        placeAt(sel, root, node, len)
+      }
       return
     }
 
@@ -233,10 +325,23 @@ export function restoreCursor(root, state) {
     if (target) { placeAt(sel, root, target, 0); return }
   }
 
-  // Fallback: end of content
-  const range = document.createRange()
-  range.selectNodeContents(root)
-  range.collapse(false)
-  sel.removeAllRanges()
-  sel.addRange(range)
+  // Fallback: find last text node or last block, place cursor there
+  const walker2 = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
+  let lastText = null, n2 = walker2.firstChild()
+  while (n2) { lastText = n2; n2 = walker2.nextNode() }
+  if (lastText) {
+    placeAt(sel, root, lastText, (lastText.textContent || '').length)
+  } else {
+    // No text at all — put cursor in last block or root
+    const last = root.lastChild
+    if (last && last.nodeType === 1) {
+      placeAt(sel, root, last, last.childNodes.length)
+    } else {
+      const range = document.createRange()
+      range.selectNodeContents(root)
+      range.collapse(false)
+      sel.removeAllRanges()
+      sel.addRange(range)
+    }
+  }
 }
