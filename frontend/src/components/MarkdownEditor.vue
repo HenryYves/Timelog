@@ -391,6 +391,104 @@ function scanLists(root) {
   }
 }
 
+// ── List continuation helpers ──
+
+function getCurrentBlock() {
+  const sel = window.getSelection()
+  if (!sel?.rangeCount) return null
+  let block = sel.getRangeAt(0).startContainer
+  while (block && block.parentNode !== editorEl.value) {
+    block = block.parentNode
+  }
+  return block && block !== editorEl.value ? block : null
+}
+
+function getOffsetInBlock(block) {
+  if (!block) return 0
+  const sel = window.getSelection()
+  if (!sel?.rangeCount) return 0
+  const range = sel.getRangeAt(0)
+  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, null)
+  let pos = 0
+  let node = walker.firstChild()
+  while (node) {
+    if (node === range.startContainer) {
+      return pos + range.startOffset
+    }
+    pos += (node.textContent || '').length
+    node = walker.nextNode()
+  }
+  return pos
+}
+
+function getListPrefix() {
+  const block = getCurrentBlock()
+  if (!block) return null
+  const text = block.textContent || ''
+  const m = text.match(/^(\s*)([-*]|\d+\.)\s/)
+  if (!m) return null
+  return { full: m[0], indent: m[1], marker: m[2], content: text.slice(m[0].length) }
+}
+
+function continueList(prefix) {
+  const sel = window.getSelection()
+  const block = getCurrentBlock()
+  if (!block) return
+
+  // Determine next marker (increment ordered, repeat unordered)
+  let nextMarker = prefix.marker
+  const ordered = prefix.marker.match(/^(\d+)\.$/)
+  if (ordered) {
+    nextMarker = (parseInt(ordered[1]) + 1) + '.'
+  }
+  const prefixText = prefix.indent + nextMarker + ' '
+
+  // Create new block after current
+  const newDiv = document.createElement('div')
+  newDiv.textContent = prefixText
+  if (block.nextSibling) {
+    block.parentNode.insertBefore(newDiv, block.nextSibling)
+  } else {
+    block.parentNode.appendChild(newDiv)
+  }
+
+  // Move cursor to end of new div
+  const range = document.createRange()
+  range.selectNodeContents(newDiv)
+  range.collapse(false)
+  sel.removeAllRanges()
+  sel.addRange(range)
+
+  // Trigger scanning after DOM settles
+  nextTick(() => onInput())
+}
+
+// ── Ordered list renumbering ──
+function renumberLists(root) {
+  let counter = 0
+  for (const child of root.childNodes) {
+    if (child.nodeType !== 1 && child.nodeType !== 3) continue
+
+    const textNode = child.nodeType === 1 ? child.firstChild : child
+    if (!textNode || textNode.nodeType !== 3) continue
+    const text = textNode.textContent || ''
+
+    // Match ordered list marker: optional whitespace + digits + dot
+    const m = text.match(/^(\s*)(\d+)\.(\s.*|$)/)
+    if (m) {
+      counter++
+      const oldNum = m[2] + '.'
+      const newNum = counter + '.'
+      if (oldNum !== newNum) {
+        textNode.textContent = m[1] + newNum + m[3]
+      }
+    } else {
+      // Empty line or non-ordered content breaks the sequence
+      counter = 0
+    }
+  }
+}
+
 function scanAndHighlight() {
   // N 模式：仅备注行触发语法渲染；T 模式：全局触发
   if (props.tagLine && getCurrentLineType() < LineType.NOTE) return
@@ -399,6 +497,7 @@ function scanAndHighlight() {
   const offset = saveCursorOffset(root)
   unwrapFormatting(root)
   root.normalize() // merge adjacent text nodes so scanner sees full patterns
+  renumberLists(root) // re-number ordered lists before scanning
   scanLists(root)   // list markers: - / * / 1. at line start
   while (!scanContentEditable(root)) {}
   restoreCursorOffset(root, offset)
@@ -729,6 +828,36 @@ function onKeydown(e) {
             }
           }
         }
+
+        // Case 3: Backspace at position 1 in the first content text of a block.
+        // WebView2 merges blocks when deletion results in cursor at pos 0
+        // of a block's first text node. Handle ourselves to prevent the merge.
+        if (e.key === 'Backspace' && node.nodeType === 3 && range.startOffset === 1) {
+          const block = node.parentNode
+          if (block && block !== editorEl.value) {
+            // Check that only EditMarkdown elements precede this text node
+            let prev = node.previousSibling
+            let atBlockStart = true
+            while (prev) {
+              if (!(prev.nodeType === 1 && prev.className && /EditMarkdown-/.test(prev.className))) {
+                atBlockStart = false
+                break
+              }
+              prev = prev.previousSibling
+            }
+            if (atBlockStart && block.previousSibling) {
+              e.preventDefault()
+              const text = node.textContent || ''
+              node.textContent = text.slice(1) // delete first char
+              const r = document.createRange()
+              r.setStart(node, 0)
+              r.collapse(true)
+              sel.removeAllRanges()
+              sel.addRange(r)
+              return
+            }
+          }
+        }
       }
     }
   }
@@ -740,6 +869,80 @@ function onKeydown(e) {
     // Remove hint span before default Enter behavior inserts newline
     if (hint) hint.remove()
     return
+  }
+
+  // Enter: auto-continue list markers / indentation (non-tagLine mode)
+  if (e.key === 'Enter' && !isTagLine) {
+    const prefix = getListPrefix()
+    if (prefix) {
+      // Empty list item → end the list (clear the marker)
+      if (!prefix.content.trim()) {
+        e.preventDefault()
+        const block = getCurrentBlock()
+        if (block) block.textContent = ''
+        return
+      }
+      e.preventDefault()
+      // Check if cursor is mid-line: split and carry text after cursor to new line
+      const block = getCurrentBlock()
+      const offset = getOffsetInBlock(block)
+      const fullText = block ? (block.textContent || '') : ''
+      const textAfter = fullText.slice(offset).trimStart()
+      if (textAfter && offset < fullText.trimEnd().length) {
+        // Mid-line split: keep text before cursor, move rest to new line
+        const textBefore = fullText.slice(0, offset)
+        // Replace entire block content (scanAndHighlight will re-format on next input)
+        block.textContent = textBefore
+        // Create new block with list prefix + carried text
+        const sel = window.getSelection()
+        let nextMarker = prefix.marker
+        const ordered = prefix.marker.match(/^(\d+)\.$/)
+        if (ordered) {
+          nextMarker = (parseInt(ordered[1]) + 1) + '.'
+        }
+        const newDiv = document.createElement('div')
+        newDiv.textContent = prefix.indent + nextMarker + ' ' + textAfter
+        if (block.nextSibling) {
+          block.parentNode.insertBefore(newDiv, block.nextSibling)
+        } else {
+          block.parentNode.appendChild(newDiv)
+        }
+        const range = document.createRange()
+        range.selectNodeContents(newDiv)
+        range.collapse(false)
+        sel.removeAllRanges()
+        sel.addRange(range)
+        nextTick(() => onInput())
+      } else {
+        // End of line → continue list on new empty line
+        continueList(prefix)
+      }
+      return
+    }
+    // No list marker — inherit plain indentation if present
+    const block = getCurrentBlock()
+    if (block) {
+      const text = block.textContent || ''
+      const im = text.match(/^(\s+)/)
+      if (im && text.trim()) {
+        e.preventDefault()
+        const sel = window.getSelection()
+        const newDiv = document.createElement('div')
+        newDiv.textContent = im[1]
+        if (block.nextSibling) {
+          block.parentNode.insertBefore(newDiv, block.nextSibling)
+        } else {
+          block.parentNode.appendChild(newDiv)
+        }
+        const range = document.createRange()
+        range.selectNodeContents(newDiv)
+        range.collapse(false)
+        sel.removeAllRanges()
+        sel.addRange(range)
+        nextTick(() => onInput())
+        return
+      }
+    }
   }
 
   // Tab: tag hint cycling, nav mode tab-out, or indent
