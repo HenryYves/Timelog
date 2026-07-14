@@ -322,9 +322,31 @@ function scanAndHighlight() {
 // ── Plain text extraction ──
 
 function getPlainText() {
-  const clone = editorEl.value.cloneNode(true)
-  clone.querySelectorAll('.tag-hint').forEach(el => el.remove())
-  return clone.innerText || ''
+  const root = editorEl.value
+  if (!root) return ''
+  const parts = []
+  function walk(node) {
+    for (const child of node.childNodes) {
+      if (child.nodeType === 3) {
+        parts.push(child.textContent || '')
+      } else if (child.nodeType === 1) {
+        if (child.classList && child.classList.contains('tag-hint')) continue
+        const tag = child.tagName
+        if (tag === 'DIV') {
+          // contenteditable 用 <div> 换行，在每个 <div> 前插入 \n（首个除外）
+          if (parts.length > 0) parts.push('\n')
+          walk(child)
+        } else if (tag === 'BR') {
+          parts.push('\n')
+        } else {
+          // 行内元素（span/b/i/s/mark/code）——进入提取文字
+          walk(child)
+        }
+      }
+    }
+  }
+  walk(root)
+  return parts.join('')
 }
 
 // ── Cursor centering ──
