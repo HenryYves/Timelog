@@ -681,41 +681,6 @@ watch(() => store.dateKey, () => {
   opacity: .9;
   overflow: hidden;
 }
-.block .bnote > div,
-.block .bnote li {
-  white-space: normal;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.block .bnote ul,
-.block .bnote ol {
-  margin: 2px 0;
-  padding-left: 2px;
-  list-style-position: inside;
-}
-.block .bnote ul ul,
-.block .bnote ol ol,
-.block .bnote ul ol,
-.block .bnote ol ul {
-  padding-left: 14px;
-  margin-top: 0;
-  margin-bottom: 0;
-}
-.block .bnote code {
-  background: rgba(0,0,0,.07);
-  padding: 0 3px;
-  border-radius: 3px;
-  font-family: Menlo,Consolas,monospace;
-  font-size: 10px;
-}
-.block .bnote .md-h {
-  font-weight: 700;
-  margin: 1px 0;
-}
-.block .bnote a {
-  color: inherit;
-  text-decoration: underline;
-}
 .nowline {
   position: absolute;
   left: 0;
