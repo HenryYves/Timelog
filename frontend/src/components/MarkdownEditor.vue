@@ -363,6 +363,34 @@ function wrapLink(textNode, start, bracket, paren) {
   textNode.parentNode.replaceChild(frag, textNode)
 }
 
+// ── Scanner: List markers ──
+function scanLists(root) {
+  for (const child of root.childNodes) {
+    // Only block-level children: <div> or direct text nodes
+    if (child.nodeType !== 1 && child.nodeType !== 3) continue
+    if (child.className && /EditMarkdown-/.test(child.className)) continue
+
+    const textNode = child.nodeType === 1 ? child.firstChild : child
+    if (!textNode || textNode.nodeType !== 3) continue
+    const text = textNode.textContent || ''
+
+    // Match list markers: leading whitespace, then - / * / N.
+    const m = text.match(/^(\s*)([-*]|\d+\.)\s/)
+    if (!m) continue
+
+    const markerLen = m[0].length
+    const marker = m[0]
+    const rest = text.slice(markerLen)
+
+    const mSpan = document.createElement('span')
+    mSpan.className = 'EditMarkdown-marker'
+    mSpan.textContent = marker
+    const parent = child.nodeType === 1 ? child : child.parentNode
+    parent.insertBefore(mSpan, textNode)
+    textNode.textContent = rest
+  }
+}
+
 function scanAndHighlight() {
   // N 模式：仅备注行触发语法渲染；T 模式：全局触发
   if (props.tagLine && getCurrentLineType() < LineType.NOTE) return
@@ -371,6 +399,7 @@ function scanAndHighlight() {
   const offset = saveCursorOffset(root)
   unwrapFormatting(root)
   root.normalize() // merge adjacent text nodes so scanner sees full patterns
+  scanLists(root)   // list markers: - / * / 1. at line start
   while (!scanContentEditable(root)) {}
   restoreCursorOffset(root, offset)
 }
@@ -802,13 +831,26 @@ function onTaKeydown(e) {
   }
 }
 
+// ── Set editor content with proper <div> line structure ──
+function setEditorContent(text) {
+  const root = editorEl.value
+  root.innerHTML = ''
+  if (!text) return
+  const lines = text.split('\n')
+  for (const line of lines) {
+    const div = document.createElement('div')
+    div.textContent = line
+    root.appendChild(div)
+  }
+}
+
 // ── Lifecycle ──
 
 onMounted(() => {
   loadFreq()
   if (props.enableMd && props.modelValue) {
-    editorEl.value.textContent = props.modelValue
-    scanAndHighlight()
+    setEditorContent(props.modelValue)
+    nextTick(() => scanAndHighlight())
   }
   if (props.autoFocus) {
     nextTick(() => {
@@ -825,8 +867,11 @@ watch(() => props.modelValue, (val) => {
   if (current !== val) {
     // Only sync when truly different (e.g. modal opened with existing text, or reset)
     isUpdating.value = true
-    editorEl.value.textContent = val
-    nextTick(() => { isUpdating.value = false })
+    setEditorContent(val)
+    nextTick(() => {
+      scanAndHighlight()
+      isUpdating.value = false
+    })
   }
 })
 </script>
