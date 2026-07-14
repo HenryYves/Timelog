@@ -3,6 +3,26 @@ import { ref, computed } from 'vue'
 import { KEY_PREFIX, PX_MIN, DAY_MIN, EDGE } from '../constants.js'
 import { useSettingsStore } from './settings.js'
 import { logger } from '../utils/log.js'
+import { UndoManager } from '../utils/undo.js'
+
+export const storeUndo = new UndoManager()
+let _undoing = false
+
+function _pushUndo(entry) {
+  if (_undoing) return
+  storeUndo.push(entry)
+}
+
+function _wrapUndo(fn) {
+  _undoing = true
+  try { fn() } finally { _undoing = false }
+}
+
+// Wrap undo/redo so store mutations inside don't record new entries
+const _origUndo = storeUndo.undo.bind(storeUndo)
+const _origRedo = storeUndo.redo.bind(storeUndo)
+storeUndo.undo = () => { let r; _wrapUndo(() => { r = _origUndo() }); return r }
+storeUndo.redo = () => { let r; _wrapUndo(() => { r = _origRedo() }); return r }
 
 export function dkey(d) {
   return d.getFullYear() + '-' +
@@ -53,26 +73,51 @@ export const useTimelogStore = defineStore('timelog', () => {
   function addBlock(rec) {
     blocks.value.push(rec)
     saveBlocks()
+    _pushUndo({
+      undo: () => { blocks.value = blocks.value.filter(b => b.id !== rec.id); saveBlocks() },
+      redo: () => { blocks.value.push(rec); saveBlocks() }
+    })
   }
 
   function updateBlock(rec) {
     const idx = blocks.value.findIndex(b => b.id === rec.id)
+    const old = idx !== -1 ? { ...blocks.value[idx], tags: [...(blocks.value[idx].tags || [])] } : null
     if (idx !== -1) blocks.value[idx] = rec
     else blocks.value.push(rec)
     saveBlocks()
+    if (old) {
+      _pushUndo({
+        undo: () => { const i = blocks.value.findIndex(b => b.id === rec.id); if (i !== -1) { blocks.value[i] = old; saveBlocks() } },
+        redo: () => { const i = blocks.value.findIndex(b => b.id === rec.id); if (i !== -1) { blocks.value[i] = rec; saveBlocks() } }
+      })
+    }
   }
 
   function deleteBlock(id) {
+    const block = blocks.value.find(b => b.id === id)
+    if (!block) return
+    const rec = { ...block, tags: [...(block.tags || [])] }
     blocks.value = blocks.value.filter(b => b.id !== id)
     selectedBlocks.value.delete(id)
     saveBlocks()
+    _pushUndo({
+      undo: () => { blocks.value.push(rec); saveBlocks() },
+      redo: () => { blocks.value = blocks.value.filter(b => b.id !== id); selectedBlocks.value.delete(id); saveBlocks() }
+    })
   }
 
   function deleteSelectedBlocks() {
-    const ids = selectedBlocks.value
+    const ids = new Set(selectedBlocks.value)
+    const deleted = blocks.value.filter(b => ids.has(b.id)).map(b => ({ ...b, tags: [...(b.tags || [])] }))
     blocks.value = blocks.value.filter(b => !ids.has(b.id))
     selectedBlocks.value.clear()
     saveBlocks()
+    if (deleted.length) {
+      _pushUndo({
+        undo: () => { deleted.forEach(b => { blocks.value.push(b); selectedBlocks.value.add(b.id) }); saveBlocks() },
+        redo: () => { blocks.value = blocks.value.filter(b => !ids.has(b.id)); selectedBlocks.value.clear(); saveBlocks() }
+      })
+    }
   }
 
   function selectAll() {

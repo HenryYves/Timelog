@@ -106,7 +106,7 @@ import { ref, computed, watch, onMounted, onUnmounted, onErrorCaptured, nextTick
 import { invoke } from '@tauri-apps/api/core'
 import { tExport } from './utils/tauri.js'
 import { save } from '@tauri-apps/plugin-dialog'
-import { useTimelogStore, dkey } from './store/timelog.js'
+import { useTimelogStore, dkey, storeUndo } from './store/timelog.js'
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
 import { APP_VERSION, compareSemver } from './constants.js'
@@ -407,6 +407,20 @@ function onWindowKeyDown(e) {
   if (e.key === 'Escape') {
     if (confirmVisible.value) { e.preventDefault(); resolveConfirm(false); return }
     if (modalStack.value.length > 0) { e.preventDefault(); modalStack.value.pop()(); return }
+    return
+  }
+
+  // Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z — store undo/redo (editor handles its own)
+  if (e.ctrlKey && (e.key === 'z' || e.key === 'Z' || e.key === 'y' || e.key === 'Y')) {
+    const el = document.activeElement
+    if (el && (el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return // editor handles it
+    e.preventDefault()
+    if (e.key === 'z' || e.key === 'Z') {
+      if (e.shiftKey) storeUndo.redo()
+      else storeUndo.undo()
+    } else {
+      storeUndo.redo()
+    }
     return
   }
 

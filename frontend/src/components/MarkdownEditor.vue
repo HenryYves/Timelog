@@ -10,7 +10,8 @@
       @input="onInput"
       @keydown="onKeydown"
       @paste="onPaste"
-      @compositionend="onInput"
+      @compositionstart="isComposing = true"
+      @compositionend="isComposing = false; startUndoEntry(); onInput"
     />
     <textarea
       v-else
@@ -31,6 +32,7 @@ import { ref, nextTick, onMounted, watch } from 'vue'
 import { useSettingsStore } from '../store/settings.js'
 import { useTagStore } from '../store/tags.js'
 import { getTagHint as _getTagHint, getWordBeforeCursor, getDelimiters, getAllCandidates as _getAllCandidates, confirmTagInFreq, loadFreqFromStorage, saveFreqToStorage } from '../utils/editor.js'
+import { UndoManager, shouldMergeEditorEntry } from '../utils/undo.js'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -52,6 +54,9 @@ const taRef = ref(null)
 const isUpdating = ref(false)
 const navMode = ref(false)
 let inputLock = 0
+const editorUndo = new UndoManager()
+let pendingUndoEntry = null // snapshot taken before current input
+let isComposing = false    // IME composition in progress — skip undo tracking
 // lastLineIndex moved into centerCursor closure
 
 // ── Scanner: Cursor offset preservation ──
@@ -739,9 +744,64 @@ function confirmTag(word) {
   saveFreqToStorage(tagFreq)
 }
 
+// ── Undo ──
+
+function _undoSnapshot() {
+  return {
+    text: getPlainText(),
+    offset: saveCursorOffset(editorEl.value)
+  }
+}
+
+function restoreUndoState(state) {
+  if (!state) return
+  setEditorContent(state.text)
+  nextTick(() => {
+    scanAndHighlight()
+    if (state.offset != null) restoreCursorOffset(editorEl.value, state.offset)
+  })
+}
+
+function startUndoEntry() {
+  if (pendingUndoEntry || isComposing) return
+  pendingUndoEntry = { prev: _undoSnapshot(), next: null }
+}
+
+function commitUndoEntry() {
+  if (!pendingUndoEntry) return
+  pendingUndoEntry.next = _undoSnapshot()
+
+  // Ignore no-op changes
+  if (pendingUndoEntry.prev.text === pendingUndoEntry.next.text) {
+    pendingUndoEntry = null
+    return
+  }
+
+  const entry = pendingUndoEntry
+  const top = editorUndo.top()
+
+  if (top && shouldMergeEditorEntry(top._snapshot || top, entry)) {
+    // Merge: update the redo target of the previous entry
+    editorUndo.updateRedo(() => restoreUndoState(entry.next))
+    // Also store snapshot for future merge checks
+    top._snapshot = entry
+  } else {
+    editorUndo.push({
+      _snapshot: entry,
+      undo: () => restoreUndoState(entry.prev),
+      redo: () => restoreUndoState(entry.next)
+    })
+  }
+  pendingUndoEntry = null
+}
+
 function onInput() {
   if (inputLock > 0) return
   inputLock++
+
+  // Commit undo entry (snapshot after browser DOM change)
+  commitUndoEntry()
+
   try {
     scanAndHighlight()
     emit('update:modelValue', getPlainText())
@@ -766,6 +826,30 @@ function onPaste(e) {
 function onKeydown(e) {
   const isTagLine = props.tagLine
   const hint = editorEl.value.querySelector('.tag-hint')
+
+  // Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z — custom undo/redo
+  if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) {
+    e.preventDefault()
+    if (e.shiftKey || e.key === 'Y') {
+      editorUndo.redo()
+    } else {
+      editorUndo.undo()
+    }
+    return
+  }
+  if (e.ctrlKey && e.key === 'y') {
+    e.preventDefault()
+    editorUndo.redo()
+    return
+  }
+
+  // Start undo entry for undoable keys (before browser modifies DOM)
+  if (!e.ctrlKey && !e.metaKey) {
+    const k = e.key
+    if (k.length === 1 || k === 'Backspace' || k === 'Delete' || k === 'Enter') {
+      startUndoEntry()
+    }
+  }
 
   // Backspace/Delete: handle EditMarkdown elements
   if (e.key === 'Backspace' || e.key === 'Delete') {

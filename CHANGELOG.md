@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.7.10] - 2026-07-14
+
+### Added
+- 编辑器链接语法 `[text](url)` 实时渲染，转义 `\]` / `\)`
+- 编辑器列表标记实时渲染：`-` / `*` / `1.` 灰显
+- 列表续行：Enter 自动补标记 + 有序编号递增
+- 缩进继承：缩进行 Enter 新行带相同缩进
+- 有序列表自动重编号：插入/删除项后重新排序
+- 行中拆分：列表行中间 Enter 将后半文本带到新列表项
+- 时间块备注渲染 b/i/s 颜色区分，code 灰色背景
+
+### Changed
+- EditMarkdown 标记/转义色 `#a1afc9` 取代 opacity
+- 编辑器加粗/斜体色与时间块渲染统一（#f36838 / #ff7500）
+- `setEditorContent`：加载已有内容按行拆 `<div>`，重开编辑框列表正常
+
+### Fixed
+- N 模式 `getPlainText` 换行丢失：`cloneNode+innerText` 改为 DOM 遍历插入 `\n`
+- 编辑时 Delete/Backspace 误删时间块：`id!=='mNote'` 改为通用可编辑元素检测
+- 时间块渲染 `\` 转义无效：`mdInline` 添加 `\x`→实体 处理
+- `v-html` 生成元素不受 scoped CSS 影响：bnote 子元素样式全部移至全局 CSS
+- Backspace 在 EditMarkdown 元素内部/块首文本位置 1 时跳行
+
 ## [0.7.0] - 2026-07-13
 
 ### Added
