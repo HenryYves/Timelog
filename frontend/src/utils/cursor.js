@@ -121,11 +121,10 @@ function findBlockSibling(from) {
   return null
 }
 
-function stepTrailFrom(root, trail, startIdx) {
-  let node = root
+function stepTrailFrom(parent, trail) {
   let found = 0
-  for (let i = startIdx; i < root.childNodes.length; i++) {
-    const child = root.childNodes[i]
+  for (let i = 0; i < parent.childNodes.length; i++) {
+    const child = parent.childNodes[i]
     if (isBlock(child) && countText(child) === 0) {
       found++
       if (found >= trail.length) return child
@@ -170,8 +169,21 @@ export function restoreCursor(root, state) {
           if (trail.length === 1) {
             placeAt(sel, root, block, 0)
           } else {
-            const target = stepTrailFrom(block, trail.slice(1), 0)
-            if (target) { placeAt(sel, root, target, 0); return }
+            // Remaining trail entries match consecutive empty-block siblings
+            const parent = block.parentNode
+            const idx = Array.prototype.indexOf.call(parent.childNodes, block)
+            let found = 0
+            for (let i = idx + 1; i < parent.childNodes.length; i++) {
+              const child = parent.childNodes[i]
+              if (isBlock(child) && countText(child) === 0) {
+                found++
+                if (found >= trail.length - 1) {
+                  placeAt(sel, root, child, 0)
+                  return
+                }
+              }
+            }
+            placeAt(sel, root, block, 0)
           }
           return
         }
@@ -186,7 +198,7 @@ export function restoreCursor(root, state) {
 
   // Trail-based recovery: cursor was in empty block element(s)
   if (trail.length > 0) {
-    const target = stepTrailFrom(root, trail, 0)
+    const target = stepTrailFrom(root, trail)
     if (target) { placeAt(sel, root, target, 0); return }
   }
 

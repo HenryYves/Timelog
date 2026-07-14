@@ -131,6 +131,13 @@ describe('restoreCursor', () => {
     expect(sel.getRangeAt(0).startContainer).toBe(root.childNodes[1])
   })
 
+  it('S4b: restore to second empty div with preceding text', () => {
+    const root = setup('<div>text</div><div></div><div></div>')
+    restoreCursor(root, { offset: 4, trail: ['DIV', 'DIV'] })
+    const sel = window.getSelection()
+    expect(sel.getRangeAt(0).startContainer).toBe(root.childNodes[2])
+  })
+
   it('S5: restore to empty div at start', () => {
     const root = setup('<div></div><div>text</div>')
     restoreCursor(root, { offset: 0, trail: ['DIV'] })
