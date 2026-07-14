@@ -106,7 +106,7 @@ function restoreCursorOffset(root, offset) {
 // ── Scanner: Unwrap previous formatting ──
 
 function unwrapFormatting(root) {
-  const els = root.querySelectorAll('.EditMarkdown-marker, .EditMarkdown-escape, .EditMarkdown-bold, .EditMarkdown-italic, .EditMarkdown-strike, .EditMarkdown-code, .EditMarkdown-highlight')
+  const els = root.querySelectorAll('.EditMarkdown-marker, .EditMarkdown-escape, .EditMarkdown-bold, .EditMarkdown-italic, .EditMarkdown-strike, .EditMarkdown-code, .EditMarkdown-highlight, .EditMarkdown-link')
   for (let i = els.length - 1; i >= 0; i--) {
     const el = els[i]
     const parent = el.parentNode
@@ -198,6 +198,19 @@ function scanContentEditable(root) {
           return false
         }
         i++
+        continue
+      }
+
+      // [text](url) link — find ] then ( then )，用 findClosing 处理转义
+      if (ch === '[') {
+        const bracket = findClosing(text, ']', i + 1)
+        if (bracket > i + 1 && text[bracket + 1] === '(') {
+          const paren = findClosing(text, ')', bracket + 2)
+          if (paren >= 0) {
+            wrapLink(textNode, i, bracket, paren)
+            return false
+          }
+        }
         continue
       }
 
@@ -301,6 +314,49 @@ function wrapBold(textNode, start, end) {
   m2.className = 'EditMarkdown-marker'
   m2.textContent = lastMarker
   frag.appendChild(m2)
+
+  if (after) frag.appendChild(document.createTextNode(after))
+
+  textNode.parentNode.replaceChild(frag, textNode)
+}
+
+function wrapLink(textNode, start, bracket, paren) {
+  const text = textNode.textContent || ''
+  const before = text.slice(0, start)
+  const linkText = text.slice(start + 1, bracket)
+  const url = text.slice(bracket + 2, paren)
+  const after = text.slice(paren + 1)
+
+  const frag = document.createDocumentFragment()
+  if (before) frag.appendChild(document.createTextNode(before))
+
+  const m1 = document.createElement('span')
+  m1.className = 'EditMarkdown-marker'
+  m1.textContent = '['
+  frag.appendChild(m1)
+
+  const a = document.createElement('a')
+  a.className = 'EditMarkdown-link'
+  a.setAttribute('href', url)
+  a.setAttribute('target', '_blank')
+  a.setAttribute('rel', 'noopener')
+  a.textContent = linkText
+  frag.appendChild(a)
+
+  const m2 = document.createElement('span')
+  m2.className = 'EditMarkdown-marker'
+  m2.textContent = ']('
+  frag.appendChild(m2)
+
+  const urlSpan = document.createElement('span')
+  urlSpan.className = 'EditMarkdown-marker'
+  urlSpan.textContent = url
+  frag.appendChild(urlSpan)
+
+  const m3 = document.createElement('span')
+  m3.className = 'EditMarkdown-marker'
+  m3.textContent = ')'
+  frag.appendChild(m3)
 
   if (after) frag.appendChild(document.createTextNode(after))
 
@@ -833,5 +889,12 @@ watch(() => props.modelValue, (val) => {
 .md-fallback::placeholder {
   color: var(--text2);
   opacity: .6;
+}
+
+/* ── Link ── */
+.md-editor .EditMarkdown-link {
+  color: var(--blue);
+  text-decoration: underline;
+  cursor: pointer;
 }
 </style>
