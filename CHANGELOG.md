@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.7.11] - 2026-07-14
+
+### Added
+- `utils/cursor.js`：光标位置保存/恢复独立模块，`{offset, trail}` 数据格式
+- `normalizeBlocks`：扫描后将裸文本节点包 `<div>`，消除 WebView2 光标边界推送
+- 光标诊断日志（`_walk` 输出 DOM 树+光标位置）
+- `docs/webview2-contenteditable-quirks.md`：6 条浏览器怪异行为记录
+
+### Changed
+- T/N 模式 Enter 统一处理：全部创建 `<div>` 而非依赖浏览器
+- Backspace/Delete 在 EditMarkdown 元素内：escape 删除，其他展开
+- 空元素清除后补 `<br>` 防止浏览器合并
+- `placeAt` 拦截 root 光标，`saveCursor` 拦截 root 光标和元素边界推送
+- `restoreCursor` 边界逻辑：仅下一文本为空时才取后
+
+### Fixed
+- 方向键移动后 Backspace 光标跳行
+- 空列表项 Backspace 后行合并
+- `saveCursor` Phase 2 只累加第一个前驱文本（漏了 span）
+- N 模式 Enter 不创建 `<div>`（`return` 提前退出）
+- `<br>` 日志不闭合
+
 ## [0.7.10] - 2026-07-14
 
 ### Added

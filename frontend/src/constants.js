@@ -36,7 +36,7 @@ export const DEFAULT_EDITOR_FONT_SIZE = 14
 export const DEFAULT_CUSTOM_CSS = ''
 
 // ---------- UI ----------
-export const APP_VERSION = 'v0.7.10'
+export const APP_VERSION = 'v0.7.11'
 export const TOAST_DURATION = 3000
 
 export function compareSemver(a, b) {
