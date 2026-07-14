@@ -411,7 +411,8 @@ function onWindowKeyDown(e) {
   }
 
   // Delete/Backspace when modal is open and editing a block: delete the block
-  if ((e.key === 'Delete' || e.key === 'Backspace') && showModal.value && editingBlock.value && document.activeElement && document.activeElement.id !== 'mNote') {
+  // 排除聚焦在输入框或编辑器的情况——用户正在打字，不应删除
+  if ((e.key === 'Delete' || e.key === 'Backspace') && showModal.value && editingBlock.value && document.activeElement && !document.activeElement.isContentEditable && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
     e.preventDefault()
     store.deleteBlock(editingBlock.value.id)
     closeModal()
