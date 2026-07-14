@@ -6,6 +6,9 @@ export function esc(s) {
 
 export function mdInline(s) {
   s = esc(s)
+  // 处理 \ 转义：\x → &#charCode; 实体，防止被后续 markdown 正则误匹配
+  // 在 esc() 之后执行，这样引入的 & 不会被二次转义
+  s = s.replace(/\\(.)/g, (_, c) => `&#${c.charCodeAt(0)};`)
   s = s.replace(/`([^`]+)`/g, '<code>$1</code>')
   s = s.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
   s = s.replace(/==([^=]+)==/g, '<mark>$1</mark>')
