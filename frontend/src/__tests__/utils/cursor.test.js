@@ -65,4 +65,86 @@ describe('saveCursor', () => {
     const r = saveCursor(root)
     expect(r).toEqual({ offset: 4, trail: ['DIV'] })
   })
+
+  it('returns null when no selection', () => {
+    const root = setup('<div>text</div>')
+    window.getSelection().removeAllRanges()
+    expect(saveCursor(root)).toBeNull()
+  })
+
+  it('cursor at start of text', () => {
+    const root = setup('<div>hello</div>')
+    placeCursor(root, [0, 0], 0) // |hello
+    expect(saveCursor(root)).toEqual({ offset: 0, trail: [] })
+  })
+
+  it('cursor inside nested element (span inside div)', () => {
+    const root = setup('<div><span>text</span></div>')
+    placeCursor(root, [0, 0, 0], 2) // <span>te|xt</span>
+    expect(saveCursor(root)).toEqual({ offset: 2, trail: [] })
+  })
+})
+
+describe('restoreCursor', () => {
+  function cursorText(root) {
+    const sel = window.getSelection()
+    if (!sel?.rangeCount) return ''
+    const range = sel.getRangeAt(0)
+    if (range.startContainer.nodeType === 3) {
+      return range.startContainer.textContent.slice(0, range.startOffset) +
+             '|' +
+             range.startContainer.textContent.slice(range.startOffset)
+    }
+    return '<' + range.startContainer.nodeName + '>|'
+  }
+
+  it('S1: restore to middle of text', () => {
+    const root = setup('<div>hello world</div>')
+    restoreCursor(root, { offset: 5, trail: [] })
+    expect(cursorText(root)).toBe('hello| world')
+  })
+
+  it('S2: restore to empty text after marker span', () => {
+    const root = setup('<div><span>- </span></div>')
+    root.firstChild.appendChild(document.createTextNode(''))
+    restoreCursor(root, { offset: 2, trail: [] })
+    // Should land in the empty text, not in the span
+    const sel = window.getSelection()
+    const container = sel.getRangeAt(0).startContainer
+    expect(container.nodeType).toBe(3)
+    expect(container.textContent).toBe('')
+    expect(sel.getRangeAt(0).startOffset).toBe(0)
+  })
+
+  it('S3: restore to empty div after text', () => {
+    const root = setup('<div>text</div><div></div>')
+    restoreCursor(root, { offset: 4, trail: ['DIV'] })
+    const sel = window.getSelection()
+    expect(sel.getRangeAt(0).startContainer).toBe(root.childNodes[1])
+    expect(sel.getRangeAt(0).startOffset).toBe(0)
+  })
+
+  it('S4: restore to second consecutive empty div', () => {
+    const root = setup('<div></div><div></div>')
+    restoreCursor(root, { offset: 0, trail: ['DIV', 'DIV'] })
+    const sel = window.getSelection()
+    expect(sel.getRangeAt(0).startContainer).toBe(root.childNodes[1])
+  })
+
+  it('S5: restore to empty div at start', () => {
+    const root = setup('<div></div><div>text</div>')
+    restoreCursor(root, { offset: 0, trail: ['DIV'] })
+    const sel = window.getSelection()
+    expect(sel.getRangeAt(0).startContainer).toBe(root.childNodes[0])
+  })
+
+  it('S6: restore to empty div after text at root level', () => {
+    const root = setup('')
+    root.appendChild(document.createTextNode('text'))
+    const div = document.createElement('div')
+    root.appendChild(div)
+    restoreCursor(root, { offset: 4, trail: ['DIV'] })
+    const sel = window.getSelection()
+    expect(sel.getRangeAt(0).startContainer).toBe(root.childNodes[1])
+  })
 })

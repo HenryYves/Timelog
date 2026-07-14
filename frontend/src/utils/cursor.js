@@ -86,3 +86,114 @@ export function saveCursor(root) {
   trail.reverse()
   return { offset, trail }
 }
+
+function placeAt(sel, root, node, offset) {
+  const range = document.createRange()
+  if (node.nodeType === 3) {
+    const clamped = Math.min(offset, (node.textContent || '').length)
+    range.setStart(node, clamped)
+  } else {
+    const clamped = Math.min(offset, node.childNodes.length)
+    range.setStart(node, clamped)
+  }
+  range.collapse(true)
+  sel.removeAllRanges()
+  sel.addRange(range)
+}
+
+function findBlockSibling(from) {
+  let el = from
+  while (el) {
+    const next = el.nextSibling
+    if (isBlock(next)) return next
+    if (!el.nextSibling && el.parentNode) {
+      const pt = el.parentNode
+      if (isBlock(pt)) {
+        const pn = pt.nextSibling
+        if (isBlock(pn)) return pn
+        break
+      }
+      el = el.parentNode
+      continue
+    }
+    break
+  }
+  return null
+}
+
+function stepTrailFrom(root, trail, startIdx) {
+  let node = root
+  let found = 0
+  for (let i = startIdx; i < root.childNodes.length; i++) {
+    const child = root.childNodes[i]
+    if (isBlock(child) && countText(child) === 0) {
+      found++
+      if (found >= trail.length) return child
+    }
+  }
+  return null
+}
+
+export function restoreCursor(root, state) {
+  if (!state) return
+  const { offset, trail } = state
+  const sel = window.getSelection()
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
+  let accumulated = 0
+  let node = walker.firstChild()
+
+  while (node) {
+    const len = (node.textContent || '').length
+
+    // Cursor inside this text node (but if trail is non-empty, cursor was
+    // in an empty block, not in the text — fall through to trail handling)
+    if (accumulated + len > offset || (accumulated + len === offset && len === 0)) {
+      if (trail.length === 0) {
+        placeAt(sel, root, node, Math.min(offset - accumulated, len))
+        return
+      }
+      break
+    }
+
+    // Boundary: accumulated + len === offset && len > 0
+    if (accumulated + len === offset) {
+      if (trail.length === 0) {
+        // Cursor in text — prefer next text node at pos 0
+        const next = walker.nextNode()
+        if (next) { placeAt(sel, root, next, 0); return }
+      }
+      // Cursor in element — find next block via trail
+      if (trail.length > 0) {
+        const block = findBlockSibling(node)
+        if (block && block.tagName === trail[0]) {
+          if (trail.length === 1) {
+            placeAt(sel, root, block, 0)
+          } else {
+            const target = stepTrailFrom(block, trail.slice(1), 0)
+            if (target) { placeAt(sel, root, target, 0); return }
+          }
+          return
+        }
+      }
+      placeAt(sel, root, node, len)
+      return
+    }
+
+    accumulated += len
+    node = walker.nextNode()
+  }
+
+  // Trail-based recovery: cursor was in empty block element(s)
+  if (trail.length > 0) {
+    const target = stepTrailFrom(root, trail, 0)
+    if (target) { placeAt(sel, root, target, 0); return }
+  }
+
+  // Fallback: end of content
+  const range = document.createRange()
+  range.selectNodeContents(root)
+  range.collapse(false)
+  sel.removeAllRanges()
+  sel.addRange(range)
+}
