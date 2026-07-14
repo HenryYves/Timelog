@@ -11,7 +11,7 @@
       @keydown="onKeydown"
       @paste="onPaste"
       @compositionstart="isComposing = true"
-      @compositionend="isComposing = false; startUndoEntry(); onInput"
+      @compositionend="isComposing = false; startUndoEntry('insertText'); onInput"
     />
     <textarea
       v-else
@@ -33,6 +33,7 @@ import { useSettingsStore } from '../store/settings.js'
 import { useTagStore } from '../store/tags.js'
 import { getTagHint as _getTagHint, getWordBeforeCursor, getDelimiters, getAllCandidates as _getAllCandidates, confirmTagInFreq, loadFreqFromStorage, saveFreqToStorage } from '../utils/editor.js'
 import { UndoManager, shouldMergeEditorEntry } from '../utils/undo.js'
+import { saveCursor, restoreCursor } from '../utils/cursor.js'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -58,55 +59,6 @@ const editorUndo = new UndoManager()
 let pendingUndoEntry = null // snapshot taken before current input
 let isComposing = false    // IME composition in progress — skip undo tracking
 // lastLineIndex moved into centerCursor closure
-
-// ── Scanner: Cursor offset preservation ──
-
-function saveCursorOffset(root) {
-  const sel = window.getSelection()
-  if (!sel || !sel.rangeCount) return null
-  const range = sel.getRangeAt(0)
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
-  let offset = 0
-  let node = walker.firstChild()
-  while (node) {
-    if (node === range.startContainer) {
-      offset += range.startOffset
-      return offset
-    }
-    offset += (node.textContent || '').length
-    node = walker.nextNode()
-  }
-  return null
-}
-
-function restoreCursorOffset(root, offset) {
-  if (offset == null) return
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
-  let accumulated = 0
-  let node = walker.firstChild()
-  while (node) {
-    const len = (node.textContent || '').length
-    if (accumulated + len >= offset) {
-      const pos = Math.min(offset - accumulated, len)
-      const sel = window.getSelection()
-      const range = document.createRange()
-      range.setStart(node, pos)
-      range.collapse(true)
-      sel.removeAllRanges()
-      sel.addRange(range)
-      return
-    }
-    accumulated += len
-    node = walker.nextNode()
-  }
-  // Fallback: end of content
-  const sel = window.getSelection()
-  const range = document.createRange()
-  range.selectNodeContents(root)
-  range.collapse(false)
-  sel.removeAllRanges()
-  sel.addRange(range)
-}
 
 // ── Scanner: Unwrap previous formatting ──
 
@@ -499,13 +451,13 @@ function scanAndHighlight() {
   if (props.tagLine && getCurrentLineType() < LineType.NOTE) return
   const root = editorEl.value
   if (!root) return
-  const offset = saveCursorOffset(root)
+  const saved = saveCursor(root)
   unwrapFormatting(root)
   root.normalize() // merge adjacent text nodes so scanner sees full patterns
   renumberLists(root) // re-number ordered lists before scanning
   scanLists(root)   // list markers: - / * / 1. at line start
   while (!scanContentEditable(root)) {}
-  restoreCursorOffset(root, offset)
+  restoreCursor(root, saved)
 }
 
 // ── Plain text extraction ──
@@ -747,9 +699,10 @@ function confirmTag(word) {
 // ── Undo ──
 
 function _undoSnapshot() {
+  const root = editorEl.value
   return {
     text: getPlainText(),
-    offset: saveCursorOffset(editorEl.value)
+    offset: saveCursor(root)
   }
 }
 
@@ -758,13 +711,13 @@ function restoreUndoState(state) {
   setEditorContent(state.text)
   nextTick(() => {
     scanAndHighlight()
-    if (state.offset != null) restoreCursorOffset(editorEl.value, state.offset)
+    if (state.offset) restoreCursor(editorEl.value, state.offset)
   })
 }
 
-function startUndoEntry() {
+function startUndoEntry(inputType) {
   if (pendingUndoEntry || isComposing) return
-  pendingUndoEntry = { prev: _undoSnapshot(), next: null }
+  pendingUndoEntry = { prev: _undoSnapshot(), next: null, inputType }
 }
 
 function commitUndoEntry() {
@@ -780,10 +733,11 @@ function commitUndoEntry() {
   const entry = pendingUndoEntry
   const top = editorUndo.top()
 
-  if (top && shouldMergeEditorEntry(top._snapshot || top, entry)) {
+  // Only merge consecutive insertText (continuous typing). Structural
+  // changes (Enter, Backspace, Delete) always start a new undo entry.
+  if (top && entry.inputType === 'insertText' && top._snapshot?.inputType === 'insertText' && shouldMergeEditorEntry(top._snapshot || top, entry)) {
     // Merge: update the redo target of the previous entry
     editorUndo.updateRedo(() => restoreUndoState(entry.next))
-    // Also store snapshot for future merge checks
     top._snapshot = entry
   } else {
     editorUndo.push({
@@ -846,8 +800,12 @@ function onKeydown(e) {
   // Start undo entry for undoable keys (before browser modifies DOM)
   if (!e.ctrlKey && !e.metaKey) {
     const k = e.key
-    if (k.length === 1 || k === 'Backspace' || k === 'Delete' || k === 'Enter') {
-      startUndoEntry()
+    if (k.length === 1) {
+      startUndoEntry('insertText')
+    } else if (k === 'Enter') {
+      startUndoEntry('insertParagraph')
+    } else if (k === 'Backspace' || k === 'Delete') {
+      startUndoEntry('deleteContent')
     }
   }
 
@@ -1183,6 +1141,10 @@ function setEditorContent(text) {
   root.innerHTML = ''
   if (!text) return
   const lines = text.split('\n')
+  // Drop trailing empty string caused by \n at end of text
+  if (lines.length > 1 && lines[lines.length - 1] === '') {
+    lines.pop()
+  }
   for (const line of lines) {
     const div = document.createElement('div')
     div.textContent = line
