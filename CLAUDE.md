@@ -90,6 +90,7 @@ src-tauri/src/
 - **WebView2 only** — 最终只跑在 Tauri WebView2，不考虑跨浏览器兼容。不需要考虑 Firefox/Safari/Chrome 差异，CSS/JS 只需对 WebView2 有效。不要因为跨浏览器顾虑增加额外方案或 fallback。
 - **WebView2 contenteditable 怪异行为** — 详见 `docs/webview2-contenteditable-quirks.md`，含 6 条踩坑记录。后续发现新的浏览器行为问题必须更新该文档。
 - **勿假设浏览器行为** — contenteditable 行为各浏览器实现不同。遇问题先加诊断日志验证实际行为，不要凭经验或标准文档猜测。`[cursor]` 日志格式见 `saveCursor` 内 `_walk`。
+- **Vue scoped CSS 不对 JS 创建的元素生效** — `document.createElement` / `v-html` 产生的元素不带 `data-v-xxx` 属性，scoped 样式不会命中。即使写 `.parent .child` 后代选择器理论上能穿透，实际也遇到过不生效。这类样式一律放全局 `style.css`。
 
 ## 行为约束
 

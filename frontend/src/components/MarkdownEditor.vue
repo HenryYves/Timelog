@@ -28,12 +28,13 @@
 </template>
 
 <script setup>
-import { ref, nextTick, onMounted, watch } from 'vue'
+import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useSettingsStore } from '../store/settings.js'
 import { useTagStore } from '../store/tags.js'
 import { getTagHint as _getTagHint, getWordBeforeCursor, getDelimiters, getAllCandidates as _getAllCandidates, confirmTagInFreq, loadFreqFromStorage, saveFreqToStorage } from '../utils/editor.js'
 import { UndoManager, shouldMergeEditorEntry } from '../utils/undo.js'
 import { saveCursor, restoreCursor } from '../utils/cursor.js'
+import noEditSvg from '../assets/no-edit.svg'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -58,7 +59,6 @@ let inputLock = 0
 const editorUndo = new UndoManager()
 let pendingUndoEntry = null // snapshot taken before current input
 let isComposing = false    // IME composition in progress — skip undo tracking
-// lastLineIndex moved into centerCursor closure
 
 // ── Scanner: Unwrap previous formatting ──
 
@@ -515,26 +515,55 @@ function getPlainText() {
 
 // ── Cursor centering ──
 
-const centerCursor = (function() {
-  let lastLineIndex = -1
-  return function() {
-    const sel = window.getSelection()
-    if (!sel || !sel.rangeCount) return
-    const range = sel.getRangeAt(0)
-    const rect = range.getBoundingClientRect()
-    if (!rect || !rect.top) return
-    const editorRect = editorEl.value.getBoundingClientRect()
-    const z = (settingsStore.zoom || 100) / 100
-    const cursorY = (rect.top - editorRect.top) / z + editorEl.value.scrollTop
+let _centerLine = -1
+let _lineH = 0
 
-    const lineIndex = Math.floor(cursorY / 24)
-    if (lineIndex === lastLineIndex) return
-    lastLineIndex = lineIndex
-
-    const target = cursorY - editorEl.value.clientHeight / 2
-    editorEl.value.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
+function getEditorLineHeight() {
+  if (!_lineH && editorEl.value) {
+    _lineH = parseFloat(getComputedStyle(editorEl.value).lineHeight) || 24
   }
-})()
+  return _lineH || 24
+}
+
+function resetCenterCursor() {
+  _centerLine = -1
+}
+
+function centerCursor(force = false) {
+  const sel = window.getSelection()
+  if (!sel || !sel.rangeCount) return
+  const range = sel.getRangeAt(0)
+  const rect = range.getBoundingClientRect()
+  if (!rect || !rect.height) return  // height=0 means invalid/detached range
+
+  const editor = editorEl.value
+  const editorRect = editor.getBoundingClientRect()
+  const z = (settingsStore.zoom || 100) / 100
+  const cursorY = (rect.top - editorRect.top) / z + editor.scrollTop
+
+  // Line-index debounce — skip if still on same line (unless forced)
+  const lineH = getEditorLineHeight()
+  const lineIndex = Math.floor(cursorY / lineH)
+  if (!force && lineIndex === _centerLine) return
+  _centerLine = lineIndex
+
+  // Only scroll if cursor is outside the middle third of the viewport
+  const visibleTop = editor.scrollTop
+  const visibleBottom = visibleTop + editor.clientHeight
+  const third = editor.clientHeight / 3
+  if (cursorY > visibleTop + third && cursorY < visibleBottom - third) return
+
+  const target = cursorY - editor.clientHeight / 2
+  editor.scrollTo({ top: target, behavior: 'smooth' })
+}
+
+function onSelectionChange() {
+  const sel = window.getSelection()
+  if (!sel || !sel.rangeCount) return
+  if (!editorEl.value) return
+  if (!editorEl.value.contains(sel.anchorNode)) return
+  centerCursor()
+}
 
 // ── Tag hint ──
 
@@ -785,7 +814,7 @@ function onInput() {
   } finally {
     nextTick(() => {
       if (props.tagLine) updateInlineHint()
-      centerCursor()
+      centerCursor(true)
     })
     // Unlock after a macro-task — ensures all microtask-level input events
     // triggered by DOM mutations in the scanner have been processed
@@ -1209,15 +1238,21 @@ function onTaKeydown(e) {
 function setEditorContent(text) {
   const root = editorEl.value
   root.innerHTML = ''
-  if (!text) return
-  const lines = text.split('\n')
-  // Drop trailing empty string caused by \n at end of text
-  if (lines.length > 1 && lines[lines.length - 1] === '') {
-    lines.pop()
-  }
+  resetCenterCursor()
+  // Set CSS vars for ::before/::after pseudo-element spacers
+  const lineH = parseFloat(getComputedStyle(root).lineHeight) || (props.fontSize * 1.6)
+  root.style.setProperty('--spacer-h', Math.round(lineH * 5) + 'px')
+  // Use the SVG directly as data URI — Vite returns it as inline data
+  root.style.setProperty('--no-edit-bg', `url("${noEditSvg}")`)
+  const lines = text ? text.split('\n') : ['']
+  if (lines.length > 1 && lines[lines.length - 1] === '') lines.pop()
   for (const line of lines) {
     const div = document.createElement('div')
-    div.textContent = line
+    if (line) {
+      div.textContent = line
+    } else {
+      div.appendChild(document.createElement('br'))
+    }
     root.appendChild(div)
   }
 }
@@ -1226,9 +1261,28 @@ function setEditorContent(text) {
 
 onMounted(() => {
   loadFreq()
-  if (props.enableMd && props.modelValue) {
+  if (props.enableMd) {
+    document.addEventListener('selectionchange', onSelectionChange)
     setEditorContent(props.modelValue)
-    nextTick(() => scanAndHighlight())
+    nextTick(() => {
+      scanAndHighlight()
+      // Ensure cursor is in the first content block on init
+      const root = editorEl.value
+      if (!root) return
+      const sel = window.getSelection()
+      if (!sel?.rangeCount || !root.contains(sel.anchorNode)) {
+        for (const child of root.childNodes) {
+          if (child.nodeType === 1 && child.tagName === 'DIV') {
+            const r = document.createRange()
+            r.selectNodeContents(child)
+            r.collapse(true)
+            sel?.removeAllRanges()
+            sel?.addRange(r)
+            break
+          }
+        }
+      }
+    })
   }
   if (props.autoFocus) {
     nextTick(() => {
@@ -1236,6 +1290,10 @@ onMounted(() => {
       if (el) el.focus()
     })
   }
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('selectionchange', onSelectionChange)
 })
 
 // modelValue → editor sync (one-way, from parent to child only on initial load or reset)

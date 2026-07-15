@@ -14,7 +14,9 @@ function countText(node) {
  * Check if an element is a block-level container for trail purposes.
  */
 function isBlock(el) {
-  return el && el.nodeType === 1 && (el.tagName === 'DIV' || el.tagName === 'P')
+  return el && el.nodeType === 1 &&
+    (el.tagName === 'DIV' || el.tagName === 'P') &&
+    el.contentEditable !== 'false'
 }
 
 /**
@@ -174,6 +176,22 @@ export function saveCursor(root) {
 
 function placeAt(sel, root, node, offset) {
   const range = document.createRange()
+  // Redirect from non-editable elements (e.g. spacers) to nearest text
+  if (node.nodeType === 1 && node.contentEditable === 'false') {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
+    let target = null, n = walker.firstChild()
+    while (n) { target = n; n = walker.nextNode() }
+    if (target) {
+      node = target
+      offset = (target.textContent || '').length
+    } else {
+      range.selectNodeContents(root)
+      range.collapse(false)
+      sel.removeAllRanges()
+      sel.addRange(range)
+      return
+    }
+  }
   // Never land in root — redirect to nearest text node
   if (node === root) {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
@@ -325,15 +343,18 @@ export function restoreCursor(root, state) {
     if (target) { placeAt(sel, root, target, 0); return }
   }
 
-  // Fallback: find last text node or last block, place cursor there
+  // Fallback: find last text node or last editable block, place cursor there
   const walker2 = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
   let lastText = null, n2 = walker2.firstChild()
   while (n2) { lastText = n2; n2 = walker2.nextNode() }
   if (lastText) {
     placeAt(sel, root, lastText, (lastText.textContent || '').length)
   } else {
-    // No text at all — put cursor in last block or root
-    const last = root.lastChild
+    // No text at all — find last editable block (skip non-editable spacers)
+    let last = root.lastChild
+    while (last && last.nodeType === 1 && last.contentEditable === 'false') {
+      last = last.previousSibling
+    }
     if (last && last.nodeType === 1) {
       placeAt(sel, root, last, last.childNodes.length)
     } else {

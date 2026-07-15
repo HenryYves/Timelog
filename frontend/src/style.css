@@ -206,6 +206,22 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
   cursor: pointer;
 }
 
+/* ── Editor spacer ::before/::after (not in DOM, can't be deleted/selected) ── */
+.md-editor::before,
+.md-editor::after {
+  content: '';
+  display: block;
+  height: var(--spacer-h, 112px);
+  pointer-events: none;
+  background-color: #d4dcda;
+  background-image: var(--no-edit-bg, none);
+  background-size: 40px;
+  background-repeat: repeat;
+  opacity: 0.25;
+}
+.md-editor::before { background-position: 8px 8px; }
+.md-editor::after  { background-position: 28px 28px; }
+
 /* ── 时间块备注渲染 ── */
 .block .bnote b {
   font-weight: 800;
