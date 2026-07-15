@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.7.16] - 2026-07-15
+
+### Added
+- 编辑器 `::before`/`::after` 伪元素占位 5 行（#d4dcda 底色 + 禁止猫水印平铺），不可删除、不可选中
+- 光标居中：`selectionchange` + 1 行容忍策略 + 元素 rect 回退（quirk #8）
+- `docs/webview2-contenteditable-quirks.md`：#8 rect.height=0、#9 scanner 搬迁 `\` 偏移、#10-12 实现细节
+
+### Changed
+- 扫描器解耦到 `utils/scanner.js`（~330 行，7 函数）
+- 光标设置**必须用 `sel.collapse()`** 替代 `removeAllRanges+addRange`（quirk #6 程序化路径会被推）
+- `saveCursor` Phase 2 往上走补记父级空 block（#3 修复关键）
+- `restoreCursor` 跨 div 边界检查（offset 相同时区分不同行）
+
+### Fixed
+- Backspace/Delete 在格式化元素内不再拆格式（#2）：删标记字符走自然路径
+- Enter 后光标不跳回上一行（#3）：`sel.collapse` + Phase 2 trail
+- N 模式 scanner 限 NOTE 行（不格式化标题/标签/时间）
+- 编辑器不抢焦点：失焦时跳过 `saveCursor`/`restoreCursor`
+
 ## [0.7.11] - 2026-07-14
 
 ### Added
