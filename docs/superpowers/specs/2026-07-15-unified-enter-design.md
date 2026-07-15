@@ -11,14 +11,16 @@ cleanup(empty divs)
 onInput → scanAndHighlight → 自动重格式化
 ```
 
-| 场景 | textAfter | prefix | 新光标 |
-|------|:---:|--------|--------|
-| 列表续行 | ✗ | `- ` / `1. ` | prefix 后面 |
-| 列表 mid-split | ✓ | `- ` / `1. ` | prefix 后面 |
-| 缩进继承 | ✗ | 原行缩进 | prefix 后面 |
-| 普通行尾 | ✗ | 无 | `<br>` 后面 |
-| 普通 mid-split | ✓ | 无 | textAfter 开头 |
-| 行首 | ✓(全文本) | 无 | textAfter 开头 |
+| 场景 | textAfter | prefix |
+|------|:---:|--------|
+| 列表续行 | ✗ | `- ` / `1. ` |
+| 列表 mid-split | ✓ | `- ` / `1. ` |
+| 缩进继承 | ✗ | 原行缩进 |
+| 普通行尾 | ✗ | 无 |
+| 普通 mid-split | ✓ | 无 |
+| 行首 | ✓(全文本) | 无 |
+
+**新光标统一规则**：在新 div 内容开头。有 prefix 时在 prefix 后面。
 
 **永远不变**：新 div 插入到 `block.nextSibling` 前面。不需要判断行首/行尾/行中。
 
