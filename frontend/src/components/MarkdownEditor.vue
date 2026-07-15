@@ -1010,6 +1010,7 @@ onMounted(() => {
   if (props.enableMd) {
     document.addEventListener('selectionchange', onSelectionChange)
     setEditorContent(props.modelValue)
+    nextTick(() => scanAndHighlight()) // format content without stealing focus
   }
   if (props.autoFocus) {
     nextTick(() => {
