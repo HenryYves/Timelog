@@ -33,7 +33,7 @@ import { useSettingsStore } from '../store/settings.js'
 import { useTagStore } from '../store/tags.js'
 import { getTagHint as _getTagHint, getWordBeforeCursor, getDelimiters, getAllCandidates as _getAllCandidates, confirmTagInFreq, loadFreqFromStorage, saveFreqToStorage } from '../utils/editor.js'
 import { UndoManager, shouldMergeEditorEntry } from '../utils/undo.js'
-import { saveCursor, restoreCursor, placeAt } from '../utils/cursor.js'
+import { saveCursor, restoreCursor } from '../utils/cursor.js'
 import { unwrapFormatting, scanContentEditable, scanLists, renumberLists } from '../utils/scanner.js'
 import noEditSvg from '../assets/no-edit.svg'
 
@@ -109,43 +109,6 @@ function getListPrefix() {
   return { full: m[0], indent: m[1], marker: m[2], content: text.slice(m[0].length) }
 }
 
-function continueList(prefix) {
-  const sel = window.getSelection()
-  const block = getCurrentBlock()
-  if (!block) return
-
-  // Determine next marker (increment ordered, repeat unordered)
-  let nextMarker = prefix.marker
-  const ordered = prefix.marker.match(/^(\d+)\.$/)
-  if (ordered) {
-    nextMarker = (parseInt(ordered[1]) + 1) + '.'
-  }
-  const prefixText = prefix.indent + nextMarker + ' '
-
-  // Block browser's synchronous input event during DOM change,
-  // so onInput only runs with the correct cursor position.
-  inputLock++
-  const newDiv = document.createElement('div')
-  newDiv.textContent = prefixText
-  const parent = block === editorEl.value ? editorEl.value : block.parentNode
-  if (block === editorEl.value || !block.nextSibling) {
-    parent.appendChild(newDiv)
-  } else {
-    parent.insertBefore(newDiv, block.nextSibling)
-  }
-
-  // Move cursor to end of new div
-  const range = document.createRange()
-  range.selectNodeContents(newDiv)
-  range.collapse(false)
-  sel.removeAllRanges()
-  sel.addRange(range)
-
-  // Allow our explicit onInput to run
-  inputLock--
-  onInput()
-}
-
 
 function scanAndHighlight() {
   // N 模式：仅备注行触发语法渲染；T 模式：全局触发
@@ -156,7 +119,6 @@ function scanAndHighlight() {
   try {
     const focused = document.activeElement === root
     const saved = focused ? saveCursor(root) : null
-    console.log('[scan] saveCursor → ' + (saved ? JSON.stringify(saved) : null))
     unwrapFormatting(root)
     root.normalize() // merge adjacent text nodes so scanner sees full patterns
     renumberLists(root, props.tagLine) // re-number ordered lists before scanning
@@ -186,16 +148,7 @@ function scanAndHighlight() {
       }
       _i++
     }
-    if (saved) {
-      restoreCursor(root, saved)
-      const rs = window.getSelection()
-      if (rs?.rangeCount) {
-        const rr = rs.getRangeAt(0)
-        console.log('[scan] after restore: anchor=' +
-          (rr.startContainer.nodeType === 3 ? 'TXT"' + (rr.startContainer.textContent||'').slice(0,15) + '"' : '<' + rr.startContainer.nodeName + '>') +
-          ' offset=' + rr.startOffset)
-      }
-    }
+    if (saved) restoreCursor(root, saved)
   } finally {
     _scanning = false
   }
@@ -631,7 +584,6 @@ function onKeydown(e) {
                   const newOff = range.startOffset - 1
                   node.textContent = t.slice(0, newOff) + t.slice(range.startOffset)
                   sel.collapse(node, newOff)
-                  console.log('[bs#2] collapse offset=' + newOff + ' anchor=' + (sel.anchorNode === node))
                   inputLock--
                   onInput()
                 }
@@ -794,146 +746,75 @@ function onKeydown(e) {
     if (hint) hint.remove()
   }
 
-  // Enter: auto-continue list markers / indentation / div break (both modes)
+  // Enter: unified split + insert + cleanup + scanAll paths (list / indent / plain)
+  // use the same formula: split text at cursor, insert new block after.
   if (e.key === 'Enter') {
     const prefix = getListPrefix()
-    if (prefix) {
-      // Empty list item → end the list (clear the marker).
-      // Add <br> to prevent browser from merging the empty block with previous.
-      if (!prefix.content.trim()) {
-        e.preventDefault()
-        const block = getCurrentBlock()
-        if (block) {
-          block.textContent = ''
-          // textContent assignment clears all children — just add br
-          block.appendChild(document.createElement('br'))
-        }
-        return
-      }
+    // Empty list item → end the list
+    if (prefix && !prefix.content.trim()) {
       e.preventDefault()
-      // Check if cursor is mid-line: split and carry text after cursor to new line
       const block = getCurrentBlock()
-      const offset = getOffsetInBlock(block)
-      const fullText = block ? (block.textContent || '') : ''
-      const textAfter = fullText.slice(offset).trimStart()
-      if (textAfter && offset < fullText.trimEnd().length) {
-        // Mid-line split: keep text before cursor, move rest to new line
-        inputLock++
-        const textBefore = fullText.slice(0, offset)
-        // Replace entire block content (scanAndHighlight will re-format on next input)
-        block.textContent = textBefore
-        // Create new block with list prefix + carried text
-        const sel = window.getSelection()
-        let nextMarker = prefix.marker
-        const ordered = prefix.marker.match(/^(\d+)\.$/)
-        if (ordered) {
-          nextMarker = (parseInt(ordered[1]) + 1) + '.'
-        }
-        const newDiv = document.createElement('div')
-        const markerPrefix = prefix.indent + nextMarker + ' '
-        newDiv.textContent = markerPrefix + textAfter
-        const parent = block === editorEl.value ? editorEl.value : block.parentNode
-        if (block === editorEl.value || !block.nextSibling) {
-          parent.appendChild(newDiv)
-        } else {
-          parent.insertBefore(newDiv, block.nextSibling)
-        }
-        // Place cursor after marker prefix, before carried text
-        const range = document.createRange()
-        range.setStart(newDiv.firstChild, markerPrefix.length)
-        range.collapse(true)
-        sel.removeAllRanges()
-        sel.addRange(range)
-        inputLock--
-        onInput()
-      } else {
-        // End of line → continue list on new empty line
-        continueList(prefix)
-      }
+      if (block) { block.textContent = ''; block.appendChild(document.createElement('br')) }
       return
     }
-    // No list marker — check for mid-line split first
     const block = getCurrentBlock()
-    if (block) {
-      const offset = getOffsetInBlock(block)
-      const fullText = block.textContent || ''
-      const contentStart = fullText.length - fullText.trimStart().length
-      const contentEnd = fullText.trimEnd().length
-      // Cursor within actual text (not just whitespace) and text after
-      // cursor is non-empty after trimming → split
-      const textAfter = fullText.slice(offset).trimStart()
-      if (offset > contentStart && offset < contentEnd && textAfter) {
-        e.preventDefault()
-        inputLock++
-        const textBefore = fullText.slice(0, offset)
-        block.textContent = textBefore
-        const newDiv = document.createElement('div')
-        newDiv.textContent = fullText.slice(offset)
-        const parent = block === editorEl.value ? editorEl.value : block.parentNode
-        if (block === editorEl.value || !block.nextSibling) {
-          parent.appendChild(newDiv)
-        } else {
-          parent.insertBefore(newDiv, block.nextSibling)
-        }
-        const range = document.createRange()
-        range.selectNodeContents(newDiv)
-        range.collapse(true)
-        const sel = window.getSelection()
-        sel.removeAllRanges()
-        sel.addRange(range)
-        inputLock--
-        onInput()
-        return
-      }
-    }
-    // Cursor at line end — inherit plain indentation if present
-    if (block) {
-      const text = block.textContent || ''
-      const im = text.match(/^(\s+)/)
-      if (im && text.trim()) {
-        e.preventDefault()
-        inputLock++
-        const newDiv = document.createElement('div')
-        newDiv.textContent = im[1]
-        const parent = block === editorEl.value ? editorEl.value : block.parentNode
-        if (block === editorEl.value || !block.nextSibling) {
-          parent.appendChild(newDiv)
-        } else {
-          parent.insertBefore(newDiv, block.nextSibling)
-        }
-        const range = document.createRange()
-        range.selectNodeContents(newDiv)
-        range.collapse(false)
-        const sel = window.getSelection()
-        sel.removeAllRanges()
-        sel.addRange(range)
-        inputLock--
-        onInput()
-        return
-      }
-      // No indent — still need a proper <div> break
+    // Empty line → fallback appendChild
+    if (!block || !block.textContent) {
       e.preventDefault()
       inputLock++
-      const newDiv2 = document.createElement('div')
-      newDiv2.appendChild(document.createElement('br')) // prevents empty-div merge (quirk #4)
-      const parent = block === editorEl.value ? editorEl.value : block.parentNode
-      if (block === editorEl.value || !block.nextSibling) {
-        parent.appendChild(newDiv2)
-      } else {
-        parent.insertBefore(newDiv2, block.nextSibling)
-      }
-      // Use sel.collapse (native path) instead of removeAllRanges+addRange
-      // (programmatic path) — quirk #6 says the latter is pushed by browser
-      const sel2 = window.getSelection()
-      sel2.collapse(newDiv2.firstChild, 0)
-      // Diagnostic: did browser push?
-      const sc = sel2.anchorNode
-      const inNew = newDiv2.contains(sc)
-      console.log('[enter#3] collapse br=0 sc=' + (sc?.nodeType === 3 ? 'TXT"' + (sc.textContent||'').slice(0,10) + '"' : '<'+(sc?.nodeName||'?')+'>') + ' inNew=' + inNew)
+      const newDiv = document.createElement('div')
+      newDiv.appendChild(document.createElement('br'))
+      editorEl.value.appendChild(newDiv)
+      const sel = window.getSelection()
+      sel.collapse(newDiv.firstChild, 0)
       inputLock--
       onInput()
       return
     }
+    e.preventDefault()
+    inputLock++
+    const offset = getOffsetInBlock(block)
+    const fullText = block.textContent || ''
+    const textBefore = fullText.slice(0, offset)
+    const textAfter = fullText.slice(offset)
+    // Determine prefix for new line
+    let newPrefix = ''
+    if (prefix) {
+      let nextMarker = prefix.marker
+      const ordered = prefix.marker.match(/^(\d+)\.$/)
+      if (ordered) nextMarker = (parseInt(ordered[1]) + 1) + '.'
+      newPrefix = prefix.indent + nextMarker + ' '
+    } else {
+      const im = fullText.match(/^(\s+)/)
+      if (im && fullText.trim()) newPrefix = im[1]
+    }
+    const parent = editorEl.value
+    const refNode = block.nextSibling
+    // Current block: keep if has content, remove if empty
+    if (textBefore.trim()) {
+      block.textContent = textBefore
+    } else {
+      block.remove()
+    }
+    // <br> div needed when no content after OR cursor at line start
+    const sel = window.getSelection()
+    const content = newPrefix + textAfter
+    const needBr = !content || !textBefore.trim()
+    if (needBr) {
+      const brDiv = document.createElement('div')
+      brDiv.appendChild(document.createElement('br'))
+      parent.insertBefore(brDiv, refNode)
+      if (!content) sel.collapse(brDiv.firstChild, 0)
+    }
+    if (content) {
+      const contentDiv = document.createElement('div')
+      contentDiv.textContent = content
+      parent.insertBefore(contentDiv, refNode)
+      sel.collapse(contentDiv.firstChild, newPrefix ? newPrefix.length : 0)
+    }
+    inputLock--
+    onInput()
+    return
   }
 
   // Tab: tag hint cycling, nav mode tab-out, or indent
