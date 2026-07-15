@@ -60,9 +60,9 @@
 
 `sel.removeAllRanges()` + `sel.addRange(range)` 设置的 cursor 与用户打字时浏览器自然移动的 cursor，渲染路径不同。前者可能在文本末尾时被推走，后者稳定。
 
-**影响**：`restoreCursor` 恢复的光标位置可能被浏览器覆盖。
+**影响**：`restoreCursor` 恢复的光标位置可能被浏览器覆盖；Enter 后光标从 `<BR>` 推到上一行文本。见 #3（Enter 光标丢失）和 #2（Backspace 光标消失）。
 
-**方案**：见第 2 条。
+**方案**：用 `sel.collapse(node, offset)` 替代 `removeAllRanges + addRange`——collape 走浏览器原生选区坍缩路径，不触发 push。严格规则：**所有程序化光标设置优先用 `collapse`，不用 `removeAllRanges + addRange`**。
 
 ---
 
@@ -89,3 +89,30 @@
 **影响**：在格式化文本内连续键入 `\` 时 restoreCursor 定位错误。见 `==123\\\==` 案例。
 
 **方案**：待定。思路——saveCursor 在 unwrap 之后、scan 之前执行；或在 escape span 搬迁前先修正 offset。
+
+---
+
+## saveCursor/restoreCursor 关键实现细节
+
+以下非浏览器 quirks，但是容易回归的关键修复点。
+
+### 10. Phase 2 trail 必须检查父级空 block
+
+当光标在 void 元素（如 `<BR>`）上时，Phase 2 起始 `el=<BR>` 不是 block，不记 trail。往上走到 `<div>` 时原本没有再次检查空 block。会导致 `restoreCursor` 无法区分"在空 div 的 `<BR>` 上"和"在前一 div 文本末尾"——offset 相同。
+
+**修复**：Phase 2 的 while 循环中，`el = el.parentNode` 之后检查父级是否为空的 block div。如果是，push 到 trail。参见 commit `1d3b66c`。
+
+### 11. restoreCursor 跨 div 边界定位
+
+当 offset 落在 text node 边界（`accumulated + len === offset`），且 `walker.nextNode()`（下一 text node）与当前 text node 在不同 `<div>` 中时，光标应该在下一 div 开头，而非当前 text 末尾。否则 `saveCursor(offset=5)` 无法区分 `==1==|`（第一行末尾）和 `|*2*`（第二行开头）。
+
+**修复**：`restoreCursor` 边界检查中，若下一 text node 的最近祖先 `<div>` 与当前不同，`placeAt(next, 0)`。参见 commit `1d3b66c`。
+
+### 12. Case 1 Backspace/Delete 规则
+
+Backspace/Delete 处理 EditMarkdown 元素时的规则（`onKeydown` Case 1/1b）：
+
+- **offset=0（Backspace）或 offset=len（Delete）**：删前一/后一 text node 的边界字符。用 `inputLock` 保护 + 显式 `onInput`。
+- **offset>0 在标记/escape span 内**：手动删当前位置字符。用 `sel.collapse`（不用 `removeAllRanges+addRange`——防止 quirk #6 push）。
+- **offset>0 在内容包装器（`<b>`/`<i>`/`<mark>` 等）内**：break，交浏览器原生处理。
+- 所有手动 DOM 修改必须用 `inputLock++`/`inputLock--` 包裹 + 显式调 `onInput()`。
