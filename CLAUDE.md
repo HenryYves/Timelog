@@ -22,37 +22,43 @@ Tauri v2 桌面应用，Vue 3 + Vite + Pinia 前端，Rust 后端。
 
 ```
 frontend/src/
-├── main.js              ← createApp + Pinia
-├── App.vue              ← 壳（header + 模态栈 + 错误边界）
-├── style.css            ← 全局 CSS 变量、overlay、ghost
-├── constants.js         ← 常量 + APP_VERSION + compareSemver
-├── strings.js           ← 界面文案集中管理（STR）
-├── components/
-│   ├── Timeline.vue       ← 时间轴渲染 + 拖拽
-│   ├── EditModal.vue      ← 创建/编辑 + 标签选择
-│   ├── TagManager.vue     ← 标签管理
-│   ├── SettingsPanel.vue  ← 设置
-│   ├── ExportPanel.vue    ← 导出/文本导入/JSON 导入
-│   ├── DataManager.vue    ← 数据管理
-│   ├── HelpPanel.vue      ← 帮助（? 键）
-│   ├── Toast.vue
-│   └── ConfirmDialog.vue  ← confirm() Promise API
-├── store/
-│   ├── timelog.js         ← 时间块 CRUD + colorOf + fmt
-│   ├── tags.js            ← 标签分组/颜色
-│   └── settings.js        ← 所有设置项
-├── utils/
-│   ├── markdown.js        ← mdToHtml
-│   ├── backup.js          ← 自动备份 + 天级轮转（最多 4 份）
-│   ├── tauri.js           ← Tauri API 封装
-│   └── log.js
-└── composables/
-    ├── useToast.js
-    └── useConfirm.js      ← confirm() Promise API
+  main.js              — createApp + Pinia
+  App.vue              — 壳（header + 模态栈 + 错误边界）
+  style.css            — 全局 CSS 变量、overlay、ghost
+  constants.js         — 常量 + APP_VERSION + compareSemver
+  strings.js           — 界面文案集中管理（STR）
+  components/
+    Timeline.vue       — 时间轴渲染 + 拖拽
+    EditModal.vue      — 创建/编辑 + 标签选择
+    TagManager.vue     — 标签管理
+    SettingsPanel.vue  — 设置
+    ExportPanel.vue    — 导出/文本导入/JSON 导入
+    DataManager.vue    — 数据管理
+    HelpPanel.vue      — 帮助（? 键）
+    Toast.vue
+    ConfirmDialog.vue  — confirm() Promise API
+  store/
+    timelog.js         — 时间块 CRUD + colorOf + fmt
+    tags.js            — 标签分组/颜色
+    settings.js        — 所有设置项
+  assets/
+    no-edit.svg        — 编辑器伪元素占位水印
+  utils/
+    scanner.js         — Markdown 扫描器(~330行): unwrap/scan/列表/重编号
+    cursor.js          — 光标保存/恢复/放置 + WebView2 防御(~370行)
+    undo.js            — UndoManager 撤销栈
+    editor.js          — 标签提示 + 频率
+    markdown.js        — mdToHtml
+    backup.js          — 自动备份 + 天级轮转（最多 4 份）
+    tauri.js           — Tauri API 封装
+    log.js             — 日志
+  composables/
+    useToast.js
+    useConfirm.js      — confirm() Promise API
 
 src-tauri/src/
-├── lib.rs                 ← commands: fetch_latest_json, check_update, download_update
-└── main.rs
+  lib.rs               — commands: fetch_latest_json, check_update, download_update
+  main.rs
 ```
 
 旧版单文件 `src/index.html` 保留参考，不再使用。
@@ -88,7 +94,7 @@ src-tauri/src/
 - **打包自动构建** — `tauri.conf.json` 里配了 `beforeBuildCommand`，确保不打包旧前端
 - **默认窗口隐藏** — `tauri.conf.json` 中 `visible: false`，状态恢复后再显示，消除启动闪烁
 - **WebView2 only** — 最终只跑在 Tauri WebView2，不考虑跨浏览器兼容。不需要考虑 Firefox/Safari/Chrome 差异，CSS/JS 只需对 WebView2 有效。不要因为跨浏览器顾虑增加额外方案或 fallback。
-- **WebView2 contenteditable 怪异行为** — 详见 `docs/webview2-contenteditable-quirks.md`，含 6 条踩坑记录。后续发现新的浏览器行为问题必须更新该文档。
+- **WebView2 contenteditable 怪异行为** — 详见 `docs/webview2-contenteditable-quirks.md`，含 8 条踩坑记录。后续发现新的浏览器行为问题必须更新该文档。
 - **勿假设浏览器行为** — contenteditable 行为各浏览器实现不同。遇问题先加诊断日志验证实际行为，不要凭经验或标准文档猜测。`[cursor]` 日志格式见 `saveCursor` 内 `_walk`。
 - **Vue scoped CSS 不对 JS 创建的元素生效** — `document.createElement` / `v-html` 产生的元素不带 `data-v-xxx` 属性，scoped 样式不会命中。即使写 `.parent .child` 后代选择器理论上能穿透，实际也遇到过不生效。这类样式一律放全局 `style.css`。
 
