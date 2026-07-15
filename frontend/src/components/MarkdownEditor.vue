@@ -59,6 +59,7 @@ let inputLock = 0
 const editorUndo = new UndoManager()
 let pendingUndoEntry = null // snapshot taken before current input
 let isComposing = false    // IME composition in progress — skip undo tracking
+let _scanning = false     // scanAndHighlight in progress — suppress selectionchange
 
 // ── Scanner: Unwrap previous formatting ──
 
@@ -461,26 +462,31 @@ function scanAndHighlight() {
   if (props.tagLine && getCurrentLineType() < LineType.NOTE) return
   const root = editorEl.value
   if (!root) return
-  const saved = saveCursor(root)
-  unwrapFormatting(root)
-  root.normalize() // merge adjacent text nodes so scanner sees full patterns
-  renumberLists(root) // re-number ordered lists before scanning
-  scanLists(root)   // list markers: - / * / 1. at line start
-  while (!scanContentEditable(root)) {}
-  // Wrap bare text nodes in root with <div> — stabilizes cursor against
-  // browser boundary-push behavior in WebView2's flat DOM mode.
-  let _i = 0
-  while (_i < root.childNodes.length) {
-    const child = root.childNodes[_i]
-    if (child.nodeType === 3) {
-      const div = document.createElement('div')
-      root.insertBefore(div, child)
-      div.appendChild(child)
-      continue // _i stays, next iteration sees the new <div>
+  _scanning = true
+  try {
+    const saved = saveCursor(root)
+    unwrapFormatting(root)
+    root.normalize() // merge adjacent text nodes so scanner sees full patterns
+    renumberLists(root) // re-number ordered lists before scanning
+    scanLists(root)   // list markers: - / * / 1. at line start
+    while (!scanContentEditable(root)) {}
+    // Wrap bare text nodes in root with <div> — stabilizes cursor against
+    // browser boundary-push behavior in WebView2's flat DOM mode.
+    let _i = 0
+    while (_i < root.childNodes.length) {
+      const child = root.childNodes[_i]
+      if (child.nodeType === 3) {
+        const div = document.createElement('div')
+        root.insertBefore(div, child)
+        div.appendChild(child)
+        continue // _i stays, next iteration sees the new <div>
+      }
+      _i++
     }
-    _i++
+    restoreCursor(root, saved)
+  } finally {
+    _scanning = false
   }
-  restoreCursor(root, saved)
 }
 
 // ── Plain text extraction ──
@@ -533,31 +539,34 @@ function centerCursor(force = false) {
   const sel = window.getSelection()
   if (!sel || !sel.rangeCount) return
   const range = sel.getRangeAt(0)
-  const rect = range.getBoundingClientRect()
-  if (!rect || !rect.height) return  // height=0 means invalid/detached range
+  let rect = range.getBoundingClientRect()
+  // WebView2 quirk: collapsed range on element boundary may return height=0.
+  // Fall back to the element's own bounding rect.
+  if (rect.height === 0 && range.startContainer.nodeType === 1) {
+    rect = range.startContainer.getBoundingClientRect()
+  }
+  if (!rect || !rect.height) return
 
   const editor = editorEl.value
   const editorRect = editor.getBoundingClientRect()
   const z = (settingsStore.zoom || 100) / 100
   const cursorY = (rect.top - editorRect.top) / z + editor.scrollTop
 
-  // Line-index debounce — skip if still on same line (unless forced)
   const lineH = getEditorLineHeight()
   const lineIndex = Math.floor(cursorY / lineH)
   if (!force && lineIndex === _centerLine) return
   _centerLine = lineIndex
 
-  // Only scroll if cursor is outside the middle third of the viewport
-  const visibleTop = editor.scrollTop
-  const visibleBottom = visibleTop + editor.clientHeight
-  const third = editor.clientHeight / 3
-  if (cursorY > visibleTop + third && cursorY < visibleBottom - third) return
+  // Only scroll if cursor is more than 1 line away from viewport center
+  const visibleCenter = editor.scrollTop + editor.clientHeight / 2
+  if (Math.abs(cursorY - visibleCenter) < lineH) return
 
   const target = cursorY - editor.clientHeight / 2
   editor.scrollTo({ top: target, behavior: 'smooth' })
 }
 
 function onSelectionChange() {
+  if (_scanning) return  // suppress during scan — nextTick handles it after
   const sel = window.getSelection()
   if (!sel || !sel.rangeCount) return
   if (!editorEl.value) return
@@ -814,6 +823,9 @@ function onInput() {
   } finally {
     nextTick(() => {
       if (props.tagLine) updateInlineHint()
+    })
+    // Use rAF so layout is complete before reading cursor bounding rect
+    requestAnimationFrame(() => {
       centerCursor(true)
     })
     // Unlock after a macro-task — ensures all microtask-level input events
@@ -1242,7 +1254,6 @@ function setEditorContent(text) {
   // Set CSS vars for ::before/::after pseudo-element spacers
   const lineH = parseFloat(getComputedStyle(root).lineHeight) || (props.fontSize * 1.6)
   root.style.setProperty('--spacer-h', Math.round(lineH * 5) + 'px')
-  // Use the SVG directly as data URI — Vite returns it as inline data
   root.style.setProperty('--no-edit-bg', `url("${noEditSvg}")`)
   const lines = text ? text.split('\n') : ['']
   if (lines.length > 1 && lines[lines.length - 1] === '') lines.pop()
