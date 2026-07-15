@@ -81,3 +81,11 @@
 **影响**：`centerCursor` 无法获取有效光标 Y 坐标，居中失效。发生在 `restoreCursor` 将光标放在元素边界时（如刚创建的 `<div>` 的 `firstChild` 位置）。
 
 **方案**：回退到 `range.startContainer`（元素）自身的 `getBoundingClientRect()`。见 `centerCursor`。
+
+### 9. scanner 搬迁 `\` 到 escape span 后字符数少 1，saveCursor/restoreCursor 偏移错位
+
+`scanContentEditable` 处理 `\` 转义时把 `\` 从 text node 搬到 `<span class="EditMarkdown-escape">`。TreeWalker 不计数 span 内文本（已在 `unwrapFormatting` 后），字符总数少 1。但 `saveCursor` 在 scan 前计数（包含 `\`），`restoreCursor` 用旧 offset 在新 DOM 找位置→偏差 1 位。每次插 `\` 偏差累加。
+
+**影响**：在格式化文本内连续键入 `\` 时 restoreCursor 定位错误。见 `==123\\\==` 案例。
+
+**方案**：待定。思路——saveCursor 在 unwrap 之后、scan 之前执行；或在 escape span 搬迁前先修正 offset。

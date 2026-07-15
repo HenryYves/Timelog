@@ -166,6 +166,11 @@ export function saveCursor(root) {
       prev = prev.previousSibling
     }
     el = el.parentNode
+    // Check parent after walking up: starting element may not be a block
+    // (e.g. <br>), but its parent (empty <div>) is an empty block.
+    if (el && el !== root && isBlock(el) && countText(el) === 0) {
+      trail.push(el.tagName)
+    }
   }
 
   trail.reverse()
@@ -174,7 +179,7 @@ export function saveCursor(root) {
   return _r
 }
 
-function placeAt(sel, root, node, offset) {
+export function placeAt(sel, root, node, offset) {
   const range = document.createRange()
   // Redirect from non-editable elements (e.g. spacers) to nearest text
   if (node.nodeType === 1 && node.contentEditable === 'false') {
@@ -225,6 +230,21 @@ function placeAt(sel, root, node, offset) {
   } else {
     const clamped = Math.min(offset, node.childNodes.length)
     range.setStart(node, clamped)
+    range.collapse(true)
+    sel.removeAllRanges()
+    sel.addRange(range)
+    // WebView2 may push cursor from element boundary to previous text node.
+    // Pull back: force cursor to the start of this element's content.
+    if (sel.rangeCount) {
+      const actual = sel.getRangeAt(0)
+      if (!node.contains(actual.startContainer)) {
+        range.selectNodeContents(node)
+        range.collapse(true)
+        sel.removeAllRanges()
+        sel.addRange(range)
+      }
+    }
+    return
   }
   range.collapse(true)
   sel.removeAllRanges()
@@ -295,6 +315,15 @@ export function restoreCursor(root, state) {
         const next = walker.nextNode()
         if (next && (next.textContent || '').length === 0) {
           placeAt(sel, root, next, 0); return
+        }
+        // If next text is in a different block div, cursor was at
+        // the START of that block, not at end of current text.
+        if (next) {
+          const curBlock = node.parentNode?.closest?.('div')
+          const nextBlock = next.parentNode?.closest?.('div')
+          if (curBlock && nextBlock && curBlock !== nextBlock) {
+            placeAt(sel, root, next, 0); return
+          }
         }
       }
       // Cursor in element — find next block via trail

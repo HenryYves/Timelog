@@ -33,7 +33,7 @@ import { useSettingsStore } from '../store/settings.js'
 import { useTagStore } from '../store/tags.js'
 import { getTagHint as _getTagHint, getWordBeforeCursor, getDelimiters, getAllCandidates as _getAllCandidates, confirmTagInFreq, loadFreqFromStorage, saveFreqToStorage } from '../utils/editor.js'
 import { UndoManager, shouldMergeEditorEntry } from '../utils/undo.js'
-import { saveCursor, restoreCursor } from '../utils/cursor.js'
+import { saveCursor, restoreCursor, placeAt } from '../utils/cursor.js'
 import { unwrapFormatting, scanContentEditable, scanLists, renumberLists } from '../utils/scanner.js'
 import noEditSvg from '../assets/no-edit.svg'
 
@@ -156,6 +156,7 @@ function scanAndHighlight() {
   try {
     const focused = document.activeElement === root
     const saved = focused ? saveCursor(root) : null
+    console.log('[scan] saveCursor → ' + (saved ? JSON.stringify(saved) : null))
     unwrapFormatting(root)
     root.normalize() // merge adjacent text nodes so scanner sees full patterns
     renumberLists(root, props.tagLine) // re-number ordered lists before scanning
@@ -185,7 +186,16 @@ function scanAndHighlight() {
       }
       _i++
     }
-    if (saved) restoreCursor(root, saved)
+    if (saved) {
+      restoreCursor(root, saved)
+      const rs = window.getSelection()
+      if (rs?.rangeCount) {
+        const rr = rs.getRangeAt(0)
+        console.log('[scan] after restore: anchor=' +
+          (rr.startContainer.nodeType === 3 ? 'TXT"' + (rr.startContainer.textContent||'').slice(0,15) + '"' : '<' + rr.startContainer.nodeName + '>') +
+          ' offset=' + rr.startOffset)
+      }
+    }
   } finally {
     _scanning = false
   }
@@ -606,22 +616,111 @@ function onKeydown(e) {
               sel.addRange(r)
               return
             }
-            // Marker/content elements: unwrap (preserve text)
+            // Marker/content elements:
+            //  - offset=0 → delete char from previous text node (marker edge)
+            //  - offset>0 in marker/escape → manual delete at cursor position
+            //  - offset>0 in content wrapper (<b>/<i>/etc.) → browser native
             if (el.className && /EditMarkdown-/.test(el.className)) {
-              e.preventDefault()
-              const parent = el.parentNode
-              const r = document.createRange()
-              if (el.nextSibling) { r.setStartBefore(el.nextSibling) }
-              else { r.selectNodeContents(parent); r.collapse(false) }
-              r.collapse(true)
-              while (el.firstChild) parent.insertBefore(el.firstChild, el)
-              parent.removeChild(el)
-              parent.normalize()
-              sel.removeAllRanges()
-              sel.addRange(r)
+              if (range.startOffset > 0) {
+                if (el.classList?.contains('EditMarkdown-marker') ||
+                    el.classList?.contains('EditMarkdown-escape')) {
+                  // Mid-marker: delete char before cursor ourselves
+                  e.preventDefault()
+                  inputLock++
+                  const t = node.textContent || ''
+                  const newOff = range.startOffset - 1
+                  node.textContent = t.slice(0, newOff) + t.slice(range.startOffset)
+                  sel.collapse(node, newOff)
+                  console.log('[bs#2] collapse offset=' + newOff + ' anchor=' + (sel.anchorNode === node))
+                  inputLock--
+                  onInput()
+                }
+                // content wrapper mid-text → break, let browser handle
+                break
+              }
+              // offset=0: delete char from previous text node
+              let prev = node.previousSibling
+              while (prev) {
+                if (prev.nodeType === 3) break
+                prev = prev.previousSibling
+              }
+              if (prev && prev.nodeType === 3) {
+                const text = prev.textContent || ''
+                if (text.length > 0) {
+                  e.preventDefault()
+                  inputLock++
+                  prev.textContent = text.slice(0, -1)
+                  if (!prev.textContent) {
+                    const span = prev.parentNode
+                    if (span && span.nodeType === 1 && span !== el.parentNode) span.remove()
+                  }
+                  node.parentNode.normalize?.()
+                  inputLock--
+                  onInput()
+                }
+              }
               return
             }
             el = el.parentNode
+          }
+        }
+
+        // Case 1b (Delete): cursor at end of text inside EditMarkdown element.
+        // Delete first character of next text node (mirror of Backspace logic).
+        if (e.key === 'Delete' && node.nodeType === 3) {
+          const textLen = (node.textContent || '').length
+          if (range.startOffset < textLen) {
+            // Mid-text in marker/escape: delete char at cursor position
+            let elM = node.parentNode
+            while (elM && elM !== editorEl.value) {
+              if (elM.classList?.contains('EditMarkdown-marker') ||
+                  elM.classList?.contains('EditMarkdown-escape')) {
+                e.preventDefault()
+                inputLock++
+                const t = node.textContent || ''
+                node.textContent = t.slice(0, range.startOffset) + t.slice(range.startOffset + 1)
+                sel.removeAllRanges()
+                const r = document.createRange()
+                r.setStart(node, range.startOffset)
+                r.collapse(true)
+                sel.addRange(r)
+                inputLock--
+                onInput()
+                return
+              }
+              elM = elM.parentNode
+            }
+          }
+          // Cursor at text end inside EditMarkdown: delete first char
+          // of next text node (mirror of Backspace offset=0 logic).
+          if (range.startOffset === textLen && textLen > 0) {
+            let el = node.parentNode
+            while (el && el !== editorEl.value) {
+              if (el.className && /EditMarkdown-/.test(el.className)) {
+                let next = node.nextSibling
+                while (next) {
+                  if (next.nodeType === 3) break
+                  next = next.nextSibling
+                }
+                if (next && next.nodeType === 3) {
+                  const text = next.textContent || ''
+                  if (text.length > 0) {
+                    e.preventDefault()
+                    inputLock++
+                    next.textContent = text.slice(1)
+                    if (!next.textContent) {
+                      const span = next.parentNode
+                      if (span && span.nodeType === 1 && span !== el.parentNode) span.remove()
+                    }
+                    node.parentNode.normalize?.()
+                    inputLock--
+                    onInput()
+                  }
+                }
+                return
+              }
+              el = el.parentNode
+            }
           }
         }
 
@@ -760,16 +859,16 @@ function onKeydown(e) {
       const fullText = block.textContent || ''
       const contentStart = fullText.length - fullText.trimStart().length
       const contentEnd = fullText.trimEnd().length
-      // Cursor within actual content (not just leading whitespace) and
-      // not at end — split and carry text after cursor to new line.
-      if (offset > contentStart && offset < contentEnd) {
+      // Cursor within actual text (not just whitespace) and text after
+      // cursor is non-empty after trimming → split
+      const textAfter = fullText.slice(offset).trimStart()
+      if (offset > contentStart && offset < contentEnd && textAfter) {
         e.preventDefault()
         inputLock++
         const textBefore = fullText.slice(0, offset)
-        const textAfter = fullText.slice(offset)
         block.textContent = textBefore
         const newDiv = document.createElement('div')
-        newDiv.textContent = textAfter
+        newDiv.textContent = fullText.slice(offset)
         const parent = block === editorEl.value ? editorEl.value : block.parentNode
         if (block === editorEl.value || !block.nextSibling) {
           parent.appendChild(newDiv)
@@ -778,7 +877,7 @@ function onKeydown(e) {
         }
         const range = document.createRange()
         range.selectNodeContents(newDiv)
-        range.collapse(true) // cursor at start — before carried text
+        range.collapse(true)
         const sel = window.getSelection()
         sel.removeAllRanges()
         sel.addRange(range)
@@ -786,8 +885,10 @@ function onKeydown(e) {
         onInput()
         return
       }
-      // Cursor at content end — inherit plain indentation if present
-      const text = fullText
+    }
+    // Cursor at line end — inherit plain indentation if present
+    if (block) {
+      const text = block.textContent || ''
       const im = text.match(/^(\s+)/)
       if (im && text.trim()) {
         e.preventDefault()
@@ -814,19 +915,21 @@ function onKeydown(e) {
       e.preventDefault()
       inputLock++
       const newDiv2 = document.createElement('div')
-      newDiv2.appendChild(document.createElement('br')) // cursor anchor
+      newDiv2.appendChild(document.createElement('br')) // prevents empty-div merge (quirk #4)
       const parent = block === editorEl.value ? editorEl.value : block.parentNode
       if (block === editorEl.value || !block.nextSibling) {
         parent.appendChild(newDiv2)
       } else {
         parent.insertBefore(newDiv2, block.nextSibling)
       }
-      const range2 = document.createRange()
-      range2.selectNodeContents(newDiv2)
-      range2.collapse(false)
+      // Use sel.collapse (native path) instead of removeAllRanges+addRange
+      // (programmatic path) — quirk #6 says the latter is pushed by browser
       const sel2 = window.getSelection()
-      sel2.removeAllRanges()
-      sel2.addRange(range2)
+      sel2.collapse(newDiv2.firstChild, 0)
+      // Diagnostic: did browser push?
+      const sc = sel2.anchorNode
+      const inNew = newDiv2.contains(sc)
+      console.log('[enter#3] collapse br=0 sc=' + (sc?.nodeType === 3 ? 'TXT"' + (sc.textContent||'').slice(0,10) + '"' : '<'+(sc?.nodeName||'?')+'>') + ' inNew=' + inNew)
       inputLock--
       onInput()
       return

@@ -37,6 +37,7 @@ export function scanContentEditable(root) {
 
   for (const textNode of nodes) {
     const text = textNode.textContent || ''
+    if (text.length > 0) console.log('[scan] text="' + text.slice(0, 40) + '"')
     for (let i = 0; i < text.length; i++) {
       const ch = text[i]
 

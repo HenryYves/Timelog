@@ -101,6 +101,8 @@ src-tauri/src/
 ## 行为约束
 
 - **改前必问** — 任何 Write / Edit / Bash 改文件 / git checkout / git revert 都必须先说方案、等用户明确同意（"行"/"OK"/"可以"）
+- **🚫 严禁未经同意修改代码 🚫** — 讨论期间、诊断期间、用户思考期间，绝对不允许改代码。只有在用户明确授权后才能动手。这条规则优先级最高，违反就是对用户的不尊重。被提醒过一次还要再犯是不可接受的。
+- **回退前先查状态** — `git checkout` / `git reset` / `git revert` 之前必须先 `git diff --stat` 看未提交改动范围，确认只会损失预期的代码。避免一整个文件被覆盖。
 - Commit message：英文前缀 + 中文描述（Conventional Commits）— `feat:` / `fix:` / `docs:` / `refactor:` / `chore:` / `release:`
 - 写 message 前先 `git diff --stat` 看全部改动，概括整体而非只描述最后一条
 - 提交前必须先把 message 给用户过目，同意后再提交
