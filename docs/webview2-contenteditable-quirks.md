@@ -73,3 +73,11 @@
 **影响**：N 模式 `getPlainText` 全部变成一行 → 批量解析失败。
 
 **方案**：不用 `innerText` + clone。改为手动 DOM 遍历，遇到 `<div>` / `<br>` 时插入 `\n`。见 `getPlainText`。
+
+### 8. 元素边界上 collapsed range 的 getBoundingClientRect 返回 height=0
+
+`range.getBoundingClientRect()` 在光标位于元素节点（nodeType=1）而非文本节点时，返回 `height=0`——即使该元素有文本子节点。
+
+**影响**：`centerCursor` 无法获取有效光标 Y 坐标，居中失效。发生在 `restoreCursor` 将光标放在元素边界时（如刚创建的 `<div>` 的 `firstChild` 位置）。
+
+**方案**：回退到 `range.startContainer`（元素）自身的 `getBoundingClientRect()`。见 `centerCursor`。

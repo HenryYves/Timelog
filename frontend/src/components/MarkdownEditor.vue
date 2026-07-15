@@ -323,10 +323,21 @@ function wrapLink(textNode, start, bracket, paren) {
 
 // ── Scanner: List markers ──
 function scanLists(root) {
+  let lineNo = 0
   for (const child of root.childNodes) {
     // Only block-level children: <div> or direct text nodes
     if (child.nodeType !== 1 && child.nodeType !== 3) continue
     if (child.className && /EditMarkdown-/.test(child.className)) continue
+
+    // N mode: count lines, skip TITLE/TAG/TIME (first 3 lines per block)
+    if (props.tagLine) {
+      const t = (child.textContent || '').trim()
+      if (/^---$/.test(t)) { lineNo = 0; continue }
+      if (child.nodeType === 1 || (child.nodeType === 3 && child.textContent.trim())) {
+        lineNo++
+      }
+      if (lineNo <= 3) continue
+    }
 
     const textNode = child.nodeType === 1 ? child.firstChild : child
     if (!textNode || textNode.nodeType !== 3) continue
@@ -433,9 +444,19 @@ function continueList(prefix) {
 
 // ── Ordered list renumbering ──
 function renumberLists(root) {
-  let counter = 0
+  let counter = 0, lineNo = 0
   for (const child of root.childNodes) {
     if (child.nodeType !== 1 && child.nodeType !== 3) continue
+
+    // N mode: count lines, skip TITLE/TAG/TIME (first 3 lines per block)
+    if (props.tagLine) {
+      const t = (child.textContent || '').trim()
+      if (/^---$/.test(t)) { lineNo = 0; continue }
+      if (child.nodeType === 1 || (child.nodeType === 3 && child.textContent.trim())) {
+        lineNo++
+      }
+      if (lineNo <= 3) continue
+    }
 
     const textNode = child.nodeType === 1 ? child.firstChild : child
     if (!textNode || textNode.nodeType !== 3) continue
@@ -469,7 +490,18 @@ function scanAndHighlight() {
     root.normalize() // merge adjacent text nodes so scanner sees full patterns
     renumberLists(root) // re-number ordered lists before scanning
     scanLists(root)   // list markers: - / * / 1. at line start
-    while (!scanContentEditable(root)) {}
+    // N mode: only scan NOTE lines (4+); T mode: scan all
+    if (props.tagLine) {
+      let lineNo = 0
+      for (const child of root.childNodes) {
+        const t = (child.textContent || '').trim()
+        if (/^---$/.test(t)) { lineNo = 0; continue }
+        if (child.nodeType === 1) lineNo++
+        if (lineNo > 3) while (!scanContentEditable(child)) {}
+      }
+    } else {
+      while (!scanContentEditable(root)) {}
+    }
     // Wrap bare text nodes in root with <div> — stabilizes cursor against
     // browser boundary-push behavior in WebView2's flat DOM mode.
     let _i = 0
@@ -1029,16 +1061,18 @@ function onKeydown(e) {
           nextMarker = (parseInt(ordered[1]) + 1) + '.'
         }
         const newDiv = document.createElement('div')
-        newDiv.textContent = prefix.indent + nextMarker + ' ' + textAfter
+        const markerPrefix = prefix.indent + nextMarker + ' '
+        newDiv.textContent = markerPrefix + textAfter
         const parent = block === editorEl.value ? editorEl.value : block.parentNode
         if (block === editorEl.value || !block.nextSibling) {
           parent.appendChild(newDiv)
         } else {
           parent.insertBefore(newDiv, block.nextSibling)
         }
+        // Place cursor after marker prefix, before carried text
         const range = document.createRange()
-        range.selectNodeContents(newDiv)
-        range.collapse(false)
+        range.setStart(newDiv.firstChild, markerPrefix.length)
+        range.collapse(true)
         sel.removeAllRanges()
         sel.addRange(range)
         inputLock--
@@ -1049,15 +1083,45 @@ function onKeydown(e) {
       }
       return
     }
-    // No list marker — inherit plain indentation if present
+    // No list marker — check for mid-line split first
     const block = getCurrentBlock()
     if (block) {
-      const text = block.textContent || ''
+      const offset = getOffsetInBlock(block)
+      const fullText = block.textContent || ''
+      const contentStart = fullText.length - fullText.trimStart().length
+      const contentEnd = fullText.trimEnd().length
+      // Cursor within actual content (not just leading whitespace) and
+      // not at end — split and carry text after cursor to new line.
+      if (offset > contentStart && offset < contentEnd) {
+        e.preventDefault()
+        inputLock++
+        const textBefore = fullText.slice(0, offset)
+        const textAfter = fullText.slice(offset)
+        block.textContent = textBefore
+        const newDiv = document.createElement('div')
+        newDiv.textContent = textAfter
+        const parent = block === editorEl.value ? editorEl.value : block.parentNode
+        if (block === editorEl.value || !block.nextSibling) {
+          parent.appendChild(newDiv)
+        } else {
+          parent.insertBefore(newDiv, block.nextSibling)
+        }
+        const range = document.createRange()
+        range.selectNodeContents(newDiv)
+        range.collapse(true) // cursor at start — before carried text
+        const sel = window.getSelection()
+        sel.removeAllRanges()
+        sel.addRange(range)
+        inputLock--
+        onInput()
+        return
+      }
+      // Cursor at content end — inherit plain indentation if present
+      const text = fullText
       const im = text.match(/^(\s+)/)
       if (im && text.trim()) {
         e.preventDefault()
         inputLock++
-        const sel = window.getSelection()
         const newDiv = document.createElement('div')
         newDiv.textContent = im[1]
         const parent = block === editorEl.value ? editorEl.value : block.parentNode
@@ -1069,6 +1133,7 @@ function onKeydown(e) {
         const range = document.createRange()
         range.selectNodeContents(newDiv)
         range.collapse(false)
+        const sel = window.getSelection()
         sel.removeAllRanges()
         sel.addRange(range)
         inputLock--
@@ -1078,7 +1143,6 @@ function onKeydown(e) {
       // No indent — still need a proper <div> break
       e.preventDefault()
       inputLock++
-      const sel2 = window.getSelection()
       const newDiv2 = document.createElement('div')
       newDiv2.appendChild(document.createElement('br')) // cursor anchor
       const parent = block === editorEl.value ? editorEl.value : block.parentNode
@@ -1090,6 +1154,7 @@ function onKeydown(e) {
       const range2 = document.createRange()
       range2.selectNodeContents(newDiv2)
       range2.collapse(false)
+      const sel2 = window.getSelection()
       sel2.removeAllRanges()
       sel2.addRange(range2)
       inputLock--
