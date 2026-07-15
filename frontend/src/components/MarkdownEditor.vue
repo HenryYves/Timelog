@@ -154,7 +154,8 @@ function scanAndHighlight() {
   if (!root) return
   _scanning = true
   try {
-    const saved = saveCursor(root)
+    const focused = document.activeElement === root
+    const saved = focused ? saveCursor(root) : null
     unwrapFormatting(root)
     root.normalize() // merge adjacent text nodes so scanner sees full patterns
     renumberLists(root, props.tagLine) // re-number ordered lists before scanning
@@ -184,7 +185,7 @@ function scanAndHighlight() {
       }
       _i++
     }
-    restoreCursor(root, saved)
+    if (saved) restoreCursor(root, saved)
   } finally {
     _scanning = false
   }
@@ -1009,25 +1010,6 @@ onMounted(() => {
   if (props.enableMd) {
     document.addEventListener('selectionchange', onSelectionChange)
     setEditorContent(props.modelValue)
-    nextTick(() => {
-      scanAndHighlight()
-      // Ensure cursor is in the first content block on init
-      const root = editorEl.value
-      if (!root) return
-      const sel = window.getSelection()
-      if (!sel?.rangeCount || !root.contains(sel.anchorNode)) {
-        for (const child of root.childNodes) {
-          if (child.nodeType === 1 && child.tagName === 'DIV') {
-            const r = document.createRange()
-            r.selectNodeContents(child)
-            r.collapse(true)
-            sel?.removeAllRanges()
-            sel?.addRange(r)
-            break
-          }
-        }
-      }
-    })
   }
   if (props.autoFocus) {
     nextTick(() => {
