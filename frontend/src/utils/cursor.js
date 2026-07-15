@@ -352,13 +352,7 @@ export function restoreCursor(root, state) {
           return
         }
       }
-      // Boundary without trail: prefer next sibling element over text end,
-      // because browser may push end-of-text cursor to parent (root).
-      if (node.nextSibling && node.nextSibling.nodeType === 1) {
-        placeAt(sel, root, node.nextSibling, 0)
-      } else {
-        placeAt(sel, root, node, len)
-      }
+      placeAt(sel, root, node, len)
       return
     }
 
