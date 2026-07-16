@@ -83,6 +83,7 @@ function trapFocus(e) {
 </script>
 
 <style scoped>
+.modal { max-height: calc(82vh / var(--zoom, 1)); overflow: auto; }
 .help-section {
   margin: 12px 0;
   position: relative;

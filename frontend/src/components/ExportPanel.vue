@@ -333,6 +333,7 @@ watch(() => [props.mode, props.jsonImportData], ([mode, data]) => {
 </script>
 
 <style scoped>
+.modal { max-height: calc(82vh / var(--zoom, 1)); overflow: auto; }
 .exportbox {
   width: 100%;
   min-height: 360px;
