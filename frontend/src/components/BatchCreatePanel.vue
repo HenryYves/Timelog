@@ -175,4 +175,5 @@ async function onCancel() {
 </script>
 
 <style scoped>
+.modal { max-height: calc(86vh / var(--zoom, 1)); overflow: auto; }
 </style>

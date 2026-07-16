@@ -284,6 +284,7 @@ function trapFocus(e) {
   justify-content: space-between;
 }
 .modal-head h2 { margin: 0; }
+.modal { max-height: calc(82vh / var(--zoom, 1)); overflow: auto; }
 .duration {
   font-size: 13px;
   color: var(--text2);
