@@ -404,7 +404,7 @@ function pieGradientFor(data) {
 /* Bar */
 .bar-chart { display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .bar-row { display: flex; align-items: center; gap: 8px; }
-.bar-label { width: 60px; font-size: 13px; text-align: right; flex-shrink: 0; }
+.bar-label { min-width: 60px; max-width: 100px; font-size: 13px; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bar-track { flex: 1; height: 18px; background: var(--soft); border-radius: 4px; overflow: hidden; }
 .bar-fill { height: 100%; border-radius: 4px; min-width: 2px; }
 .bar-data, .bar-pct { font-size: 12px; color: var(--text2); min-width: 40px; }
