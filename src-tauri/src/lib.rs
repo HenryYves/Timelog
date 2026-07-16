@@ -28,16 +28,7 @@ pub enum DownloadEvent {
 
 // ── State ──
 
-struct ResetFlag(Mutex<bool>);
 struct MinimizedFlag(bool);
-
-#[tauri::command]
-fn get_reset_flag(flag: tauri::State<'_, ResetFlag>) -> bool {
-    let mut v = flag.0.lock().unwrap();
-    let was = *v;
-    *v = false;
-    was
-}
 
 
 /// Holds an optional downloaded update paired with its raw bytes.
@@ -173,9 +164,17 @@ pub fn run(reset_settings: bool, minimized: bool) {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
-        .manage(ResetFlag(Mutex::new(reset)))
-        .setup(|app| {
+        .setup(move |app| {
             app.manage(PendingUpdate(Mutex::new(None)));
+
+            // CLI --reset-settings: clear localStorage before page loads
+            if reset {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.eval(
+                        "for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith('timelog:'))localStorage.removeItem(k)}"
+                    );
+                }
+            }
 
             // Handle exit-time install
             let handle = app.handle().clone();
@@ -212,7 +211,6 @@ pub fn run(reset_settings: bool, minimized: bool) {
             check_update,
             download_update,
             install_update,
-            get_reset_flag,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
