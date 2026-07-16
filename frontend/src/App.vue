@@ -15,6 +15,7 @@
         <div class="dropdown" :class="{ open: showMore }" @keydown.escape.stop="showMore = false">
           <button class="dropdown-item" @click="showSettings = true; showMore = false"><img src="/icons/settings.svg" alt="">设置</button>
           <button class="dropdown-item" @click="showTagMgr = true; showMore = false"><img src="/icons/tag.svg" alt="">标签</button>
+          <button class="dropdown-item" @click="showStats = true; showMore = false"><img src="/icons/stats.svg" alt="">统计</button>
           <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><img src="/icons/text-import.svg" alt="">文本导入</button>
           <button class="dropdown-item" @click="doImport(); showMore = false"><img src="/icons/import.svg" alt="">导入</button>
           <button class="dropdown-item" @click="doExportJson(); showMore = false"><img src="/icons/export.svg" alt="">导出备份</button>
@@ -98,6 +99,11 @@
       :show="showBatchCreate"
       @close="showBatchCreate = false"
     />
+    <StatsPanel
+      v-if="showStats"
+      :show="showStats"
+      @close="showStats = false"
+    />
   </div>
 </template>
 
@@ -126,6 +132,7 @@ import ConfirmDialog from './components/ConfirmDialog.vue'
 import HelpPanel from './components/HelpPanel.vue'
 import UpdateDialog from './components/UpdateDialog.vue'
 import BatchCreatePanel from './components/BatchCreatePanel.vue'
+import StatsPanel from './components/StatsPanel.vue'
 import { useToast } from './composables/useToast.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { logger } from './utils/log.js'
@@ -255,6 +262,8 @@ const updateClose = useModal(showUpdate)
 // Batch create panel
 const showBatchCreate = ref(false)
 const batchCreateClose = useModal(showBatchCreate)
+const showStats = ref(false)
+const statsClose = useModal(showStats)
 
 // More dropdown actions
 function doImport() {
