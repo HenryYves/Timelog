@@ -558,7 +558,7 @@ function onWillInstallOnExit(version) {
 }
 
 onMounted(async () => {
-  // CLI: --reset-settings — clear all localStorage timelog data
+  // CLI: --reset-settings — clear localStorage before stores read it
   if (window.__TAURI__) {
     try {
       const reset = await invoke('get_reset_flag')
@@ -569,6 +569,9 @@ onMounted(async () => {
           if (k && k.startsWith('timelog:')) keys.push(k)
         }
         keys.forEach(k => localStorage.removeItem(k))
+        // Stores already loaded with old values — reload to pick up defaults
+        location.reload()
+        return
       }
     } catch {}
   }
