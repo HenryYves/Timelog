@@ -228,7 +228,7 @@
             <div class="row">
               <label>{{ STR.settings.zoom }} <span class="val-hint">{{ settings.zoom }}%</span></label>
               <div>
-                <button class="zoom-btn" @click="showZoomPopup = true">调整 ({{ settings.zoom }}%)</button>
+                <button class="small-btn" @click="showZoomPopup = true">调整 ({{ settings.zoom }}%)</button>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setZoom(DEFAULT_ZOOM)">
                   <img src="/icons/restore.svg" alt="">
                 </button>
@@ -239,7 +239,7 @@
                   <div class="zoom-popup-head">{{ STR.settings.zoom }}: {{ settings.zoom }}%</div>
                   <input type="range" min="25" max="400" :value="settings.zoom"
                     @input="settings.setZoom($event.target.value)" />
-                  <button @click="showZoomPopup = false">关闭</button>
+                  <button type="button" @click="showZoomPopup = false">{{ STR.btn.close }}</button>
                 </div>
               </div>
             </div>
@@ -652,8 +652,6 @@ select:disabled { opacity: .5; cursor: default; }
 /* ── Misc ── */
 .small-btn { font-size: 12.5px; padding: 4px 10px; }
 .settings-modal { width: 64.5vw; max-width: 95vw; height: calc(81vh / var(--zoom, 1)); max-height: calc(90vh / var(--zoom, 1)); overflow: auto; }
-.zoom-btn { border: 1px solid var(--border); border-radius: 4px; padding: 2px 10px; background: var(--canvas); cursor: pointer; font-size: 13px; }
-.zoom-btn:hover { background: var(--soft); }
 .zoom-popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 1000; display: flex; align-items: center; justify-content: center; }
 .zoom-popup { background: var(--canvas); border-radius: 8px; padding: 20px 24px; width: calc(240px / var(--zoom, 1)); text-align: center; display: flex; flex-direction: column; gap: 12px; }
 .zoom-popup-head { font-size: 14px; font-weight: 600; }
