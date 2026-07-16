@@ -61,7 +61,7 @@
               <div v-if="(cardTagData[card.id] || []).length === 0" class="no-data">{{ STR.stats.noData }}</div>
               <div v-else class="bar-chart">
                 <div class="bar-row" v-for="d in (cardTagData[card.id] || [])" :key="d.tag">
-                  <span class="bar-label">{{ d.tag }}</span>
+                  <span class="bar-label" :title="d.tag">{{ d.tag }}</span>
                   <span class="bar-track">
                     <span class="bar-fill" :style="{ width: barWidth(cardTagData[card.id] || [], d.minutes) + '%', background: d.color }"></span>
                   </span>
@@ -334,8 +334,13 @@ const cardTagData = computed(() => {
       }
     }
     const total = Object.values(tagMap).reduce((s, v) => s + v, 0) || 1
+    const PAL = ['#A1AFC9','#F0C7C1','#C4E0D4','#B5D8A8','#FCE38A','#F36838','#9370DB','#20B2AA','#FF7F50','#87CEEB']
     map[card.id] = Object.entries(tagMap)
-      .map(([tag, minutes]) => ({ tag, minutes, color: tagStore.colorOf(tag)?.hex || '#A1AFC9' }))
+      .map(([tag, minutes], idx) => {
+        const c = tagStore.colorOf(tag)
+        const color = c?.hex && c.hex !== '#C4C3C0' ? c.hex : PAL[idx % PAL.length]
+        return { tag, minutes, color }
+      })
       .sort((a, b) => b.minutes - a.minutes)
   }
   return map
@@ -377,7 +382,7 @@ function pieGradientFor(data) {
 </script>
 
 <style scoped>
-.stats-modal { max-width: 680px; width: 90vw; max-height: 80vh; overflow-y: auto; }
+.stats-modal { width: 72vw; max-width: 880px; height: calc(81vh / var(--zoom, 1)); max-height: calc(90vh / var(--zoom, 1)); overflow: auto; }
 .stats-filter { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
 .filter-dropdown { position: relative; }
 .filter-btn { border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; background: var(--canvas); cursor: pointer; font-size: 13px; }
@@ -404,7 +409,7 @@ function pieGradientFor(data) {
 /* Bar */
 .bar-chart { display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .bar-row { display: flex; align-items: center; gap: 8px; }
-.bar-label { min-width: 60px; max-width: 100px; font-size: 13px; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-label { width: 90px; font-size: 13px; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bar-track { flex: 1; height: 18px; background: var(--soft); border-radius: 4px; overflow: hidden; }
 .bar-fill { height: 100%; border-radius: 4px; min-width: 2px; }
 .bar-data, .bar-pct { font-size: 12px; color: var(--text2); min-width: 40px; }
