@@ -15,7 +15,6 @@
         <div class="dropdown" :class="{ open: showMore }" @keydown.escape.stop="showMore = false">
           <button class="dropdown-item" @click="showSettings = true; showMore = false"><img src="/icons/settings.svg" alt="">设置</button>
           <button class="dropdown-item" @click="showTagMgr = true; showMore = false"><img src="/icons/tag.svg" alt="">标签</button>
-          <button class="dropdown-item" @click="showStats = true; showMore = false"><img src="/icons/stats.svg" alt="">统计</button>
           <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><img src="/icons/text-import.svg" alt="">文本导入</button>
           <button class="dropdown-item" @click="doImport(); showMore = false"><img src="/icons/import.svg" alt="">导入</button>
           <button class="dropdown-item" @click="doExportJson(); showMore = false"><img src="/icons/export.svg" alt="">导出备份</button>
@@ -24,6 +23,7 @@
           <div style="font-size:11px;color:var(--text2);padding:4px 12px 2px;">{{ bkStatusText }}</div>
         </div>
       </div>
+      <button id="statsBtn" class="primary" @click="showStats = true">统计</button>
       <button id="exportBtn" class="primary" @click="showMore = false; showExport = true; exportMode = 'export'">导出文本</button>
       <span class="win-ctrls" :class="{ on: winCtrlActive }" id="winCtrls">
         <button class="win-btn" id="winMin" title="最小化" @click="onWinMin"><img src="/icons/win-min.svg" alt=""></button>

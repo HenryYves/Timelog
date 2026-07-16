@@ -37,22 +37,22 @@
             <!-- Pie chart -->
             <div v-if="card.type === 'pie'" class="pie-wrap">
               <div v-if="tagData.length === 0" class="no-data">{{ STR.stats.noData }}</div>
-              <div v-else class="pie-chart" :style="{ background: pieGradient }"></div>
+              <div v-else class="pie-chart" :style="{ background: pieGradientFor(cardTagData[card.id] || []) }"></div>
               <!-- Legend -->
               <div v-if="card.showLegend" class="legend">
-                <div v-for="d in tagData" :key="d.tag" class="legend-item">
+                <div v-for="d in (cardTagData[card.id] || [])" :key="d.tag" class="legend-item">
                   <span class="legend-dot" :style="{ background: d.color }"></span>
                   <span class="legend-name">{{ d.tag }}</span>
                   <span v-if="card.legendData" class="legend-val">{{ fmtDur(d.minutes) }}</span>
-                  <span v-if="card.legendPercent" class="legend-pct">{{ pct(d.minutes) }}</span>
+                  <span v-if="card.legendPercent" class="legend-pct">{{ pctOf(cardTagData[card.id] || [], d.minutes) }}</span>
                 </div>
               </div>
               <!-- In-chart labels -->
               <div v-if="card.chartData || card.chartPercent" class="chart-labels">
-                <div v-for="d in tagData" :key="d.tag">
+                <div v-for="d in (cardTagData[card.id] || [])" :key="d.tag">
                   {{ d.tag }}
                   <span v-if="card.chartData">{{ fmtDur(d.minutes) }}</span>
-                  <span v-if="card.chartPercent">{{ pct(d.minutes) }}</span>
+                  <span v-if="card.chartPercent">{{ pctOf(cardTagData[card.id] || [], d.minutes) }}</span>
                 </div>
               </div>
             </div>
@@ -60,22 +60,22 @@
             <div v-else class="bar-wrap">
               <div v-if="tagData.length === 0" class="no-data">{{ STR.stats.noData }}</div>
               <div v-else class="bar-chart">
-                <div class="bar-row" v-for="d in tagData" :key="d.tag">
+                <div class="bar-row" v-for="d in (cardTagData[card.id] || [])" :key="d.tag">
                   <span class="bar-label">{{ d.tag }}</span>
                   <span class="bar-track">
-                    <span class="bar-fill" :style="{ width: barPct(d.minutes) + '%', background: d.color }"></span>
+                    <span class="bar-fill" :style="{ width: barWidth(cardTagData[card.id] || [], d.minutes) + '%', background: d.color }"></span>
                   </span>
                   <span v-if="card.chartData" class="bar-data">{{ fmtDur(d.minutes) }}</span>
-                  <span v-if="card.chartPercent" class="bar-pct">{{ pct(d.minutes) }}</span>
+                  <span v-if="card.chartPercent" class="bar-pct">{{ pctOf(cardTagData[card.id] || [], d.minutes) }}</span>
                 </div>
               </div>
               <!-- Legend -->
               <div v-if="card.showLegend" class="legend">
-                <div v-for="d in tagData" :key="d.tag" class="legend-item">
+                <div v-for="d in (cardTagData[card.id] || [])" :key="d.tag" class="legend-item">
                   <span class="legend-dot" :style="{ background: d.color }"></span>
                   <span class="legend-name">{{ d.tag }}</span>
                   <span v-if="card.legendData">{{ fmtDur(d.minutes) }}</span>
-                  <span v-if="card.legendPercent">{{ pct(d.minutes) }}</span>
+                  <span v-if="card.legendPercent">{{ pctOf(cardTagData[card.id] || [], d.minutes) }}</span>
                 </div>
               </div>
             </div>
@@ -283,32 +283,32 @@ function loadDayBlocks(dateKey) {
   return raw ? JSON.parse(raw) : []
 }
 
-const tagData = computed(() => {
+// Per-card data: each card has its own onlyFirstTag setting
+const cardTagData = computed(() => {
   const days = getDaysInRange()
-  const tagMap = {}
-  // Use first card's onlyFirstTag setting for now — all cards share data
-  const onlyFirst = cards.value.length > 0 ? cards.value[0].onlyFirstTag : true
-  for (const day of days) {
-    const blocks = loadDayBlocks(day)
-    for (const b of blocks) {
-      const dur = b.end - b.start
-      if (onlyFirst) {
-        const t = b.tags[0]
-        if (t) tagMap[t] = (tagMap[t] || 0) + dur
-      } else {
-        for (const t of (b.tags || [])) {
-          tagMap[t] = (tagMap[t] || 0) + dur
+  const blocksByDay = days.map(d => loadDayBlocks(d))
+  const map = {}
+  for (const card of cards.value) {
+    const tagMap = {}
+    for (let di = 0; di < days.length; di++) {
+      for (const b of blocksByDay[di]) {
+        const dur = b.end - b.start
+        if (card.onlyFirstTag) {
+          const t = b.tags[0]
+          if (t) tagMap[t] = (tagMap[t] || 0) + dur
+        } else {
+          for (const t of (b.tags || [])) {
+            tagMap[t] = (tagMap[t] || 0) + dur
+          }
         }
       }
     }
+    const total = Object.values(tagMap).reduce((s, v) => s + v, 0) || 1
+    map[card.id] = Object.entries(tagMap)
+      .map(([tag, minutes]) => ({ tag, minutes, color: tagStore.colorOf(tag)?.hex || '#A1AFC9' }))
+      .sort((a, b) => b.minutes - a.minutes)
   }
-  const total = Object.values(tagMap).reduce((s, v) => s + v, 0) || 1
-  return Object.entries(tagMap).map(([tag, minutes]) => ({
-    tag,
-    minutes,
-    color: tagStore.colorOf(tag)?.hex || '#A1AFC9',
-    pct: ((minutes / total) * 100).toFixed(1),
-  })).sort((a, b) => b.minutes - a.minutes)
+  return map
 })
 
 // ── Formatting ──
@@ -321,28 +321,29 @@ function fmtDur(min) {
   return `${min}m`
 }
 
-function pct(min) {
-  const total = tagData.value.reduce((s, d) => s + d.minutes, 0) || 1
+function pctOf(data, min) {
+  const total = data.reduce((s, d) => s + d.minutes, 0) || 1
   return ((min / total) * 100).toFixed(1) + '%'
 }
 
-function barPct(min) {
-  const max = Math.max(...tagData.value.map(d => d.minutes), 1)
+function barWidth(data, min) {
+  const max = Math.max(...data.map(d => d.minutes), 1)
   return (min / max) * 100
 }
 
-const pieGradient = computed(() => {
-  if (tagData.value.length === 0) return 'transparent'
-  const total = tagData.value.reduce((s, d) => s + d.minutes, 0)
+function pieGradientFor(cardTagData[card.id] || [])For(data) {
+  if (data.length === 0) return 'transparent'
+  const total = data.reduce((s, d) => s + d.minutes, 0)
+  if (total === 0) return 'transparent'
   let acc = 0
-  const parts = tagData.value.map(d => {
+  const parts = data.map(d => {
     const start = (acc / total) * 360
     acc += d.minutes
     const end = (acc / total) * 360
     return `${d.color} ${start.toFixed(1)}deg ${end.toFixed(1)}deg`
   })
   return `conic-gradient(${parts.join(', ')})`
-})
+}
 </script>
 
 <style scoped>
