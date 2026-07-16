@@ -323,7 +323,7 @@ const cardTagData = computed(() => {
         for (const t of tags) {
           if (!exclude.has(t)) {
             // Filter by group if set
-            if (groups && !groups.has(tagStore.tagGroup(t))) continue
+            if (groups && !groups.has(tagGroup(t))) continue
             tagMap[t] = (tagMap[t] || 0) + dur
             counted = true
           }
