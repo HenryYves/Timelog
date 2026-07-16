@@ -653,7 +653,7 @@ select:disabled { opacity: .5; cursor: default; }
 .small-btn { font-size: 12.5px; padding: 4px 10px; }
 .settings-modal { width: 64.5vw; max-width: 95vw; height: calc(81vh / var(--zoom, 1)); max-height: calc(90vh / var(--zoom, 1)); overflow: auto; }
 .zoom-popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 1000; display: flex; align-items: center; justify-content: center; }
-.zoom-popup { background: var(--canvas); border-radius: 8px; padding: 20px 24px; width: calc(240px / var(--zoom, 1)); text-align: center; display: flex; flex-direction: column; gap: 12px; }
+.zoom-popup { background: var(--canvas); border-radius: 8px; padding: 24px 28px; width: calc(320px / var(--zoom, 1)); height: calc(140px / var(--zoom, 1)); text-align: center; display: flex; flex-direction: column; gap: 14px; justify-content: center; }
 .zoom-popup-head { font-size: 14px; font-weight: 600; }
 .zoom-popup input[type="range"] { width: 100%; }
 .settings-content .small { margin-top: 2px; margin-bottom: 0; }
