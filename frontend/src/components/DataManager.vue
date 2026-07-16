@@ -16,6 +16,7 @@
       <div class="divider"></div>
 
       <label>所有日期</label>
+      <div class="day-list">
       <div v-if="days.length === 0" class="small">暂无数据</div>
       <div v-for="d in days" :key="d.date" class="dayrow">
         <div class="dinfo">
@@ -23,6 +24,7 @@
           <span class="dmeta">{{ d.count }} 条 · {{ d.hours.toFixed(1) }} 小时</span>
         </div>
         <button class="del" @click="deleteDate(d.date)">删除整天</button>
+      </div>
       </div>
 
       <div style="margin-top:12px;">
@@ -205,6 +207,7 @@ async function onFileSelected(e) {
 
 <style scoped>
 .modal { max-height: calc(82vh / var(--zoom, 1)); overflow: auto; }
+.day-list { max-height: 45vh; overflow-y: auto; }
 .dayrow {
   display: flex;
   align-items: center;

@@ -156,6 +156,7 @@ async function onSave() {
 </script>
 <style scoped>
 .modal { max-height: calc(82vh / var(--zoom, 1)); overflow: auto; }
+#tagList { max-height: 50vh; overflow-y: auto; }
 </style>
 
 
