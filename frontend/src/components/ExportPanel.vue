@@ -117,6 +117,10 @@ function trapFocus(e) {
 // --- Export ---
 const exText = ref('')
 const copiedMsg = ref(false)
+const importText = ref('')
+const importDate = ref('')
+const importMode = ref('merge')
+const importPreview = ref(null)
 
 function buildExport() {
   return timelogStore.blocks.slice().sort((a, b) => a.start - b.start).map(ev => {
@@ -155,10 +159,6 @@ async function copyText() {
 }
 
 // --- Import ---
-const importText = ref('')
-const importDate = ref('')
-const importMode = ref('merge') // 'merge' | 'replace'
-const importPreview = ref(null)
 
 function parseImportText(text) {
   const lines = (text || '').replace(/\r/g, '').split('\n')

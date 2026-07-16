@@ -207,7 +207,7 @@ async function onFileSelected(e) {
 
 <style scoped>
 .modal { max-height: calc(82vh / var(--zoom, 1)); overflow: auto; }
-.day-list { max-height: 45vh; overflow-y: auto; }
+.day-list { max-height: 35vh; overflow-y: auto; }
 .dayrow {
   display: flex;
   align-items: center;
