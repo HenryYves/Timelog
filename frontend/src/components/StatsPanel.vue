@@ -100,6 +100,16 @@
           <option value="bar">{{ STR.stats.bar }}</option>
         </select>
         <label><input type="checkbox" v-model="configOnlyFirst">{{ STR.stats.onlyFirstTag }}</label>
+        <label><input type="checkbox" v-model="configIncludeUntagged">{{ STR.stats.includeUntagged }}</label>
+        <label>{{ STR.stats.excludeTags }}
+          <input type="text" v-model="configExcludeTags" class="tag-input" />
+        </label>
+        <div class="config-groups">
+          <span>{{ STR.stats.filterGroups }}</span>
+          <label v-for="g in tagGroups" :key="g">
+            <input type="checkbox" :value="g" v-model="configFilterGroups" />{{ g }}
+          </label>
+        </div>
         <label><input type="checkbox" v-model="configShowLegend">{{ STR.stats.showLegend }}</label>
         <label><input type="checkbox" v-model="configLegendData">{{ STR.stats.legendData }}</label>
         <label><input type="checkbox" v-model="configLegendPercent">{{ STR.stats.legendPercent }}</label>
@@ -125,6 +135,8 @@ const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close'])
 
 const tagStore = useTagStore()
+const tagGroups = computed(() => [...new Set(tagStore.tags.map(t => t.group).filter(Boolean))])
+function tagGroup(name) { const t = tagStore.tags.find(x => x.name === name); return t?.group || '' }
 
 // ── Time range ──
 const timeOptions = [
@@ -155,6 +167,9 @@ const showSettingsIdx = ref(null)
 const editingCard = computed(() => showSettingsIdx.value !== null ? cards.value[showSettingsIdx.value] : null)
 const configType = ref('pie')
 const configOnlyFirst = ref(true)
+const configIncludeUntagged = ref(false)
+const configExcludeTags = ref('')
+const configFilterGroups = ref([])
 const configShowLegend = ref(true)
 const configLegendData = ref(false)
 const configLegendPercent = ref(true)
@@ -165,6 +180,9 @@ function openSettings(idx) {
   const c = cards.value[idx]
   configType.value = c.type
   configOnlyFirst.value = c.onlyFirstTag
+  configIncludeUntagged.value = c.includeUntagged || false
+  configExcludeTags.value = (c.excludeTags || []).join(',')
+  configFilterGroups.value = c.filterGroups || []
   configShowLegend.value = c.showLegend
   configLegendData.value = c.legendData
   configLegendPercent.value = c.legendPercent
@@ -183,6 +201,9 @@ function saveConfig() {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     type: configType.value,
     onlyFirstTag: configOnlyFirst.value,
+    includeUntagged: configIncludeUntagged.value,
+    excludeTags: configExcludeTags.value ? configExcludeTags.value.split(',').map(s => s.trim()).filter(Boolean) : [],
+    filterGroups: configFilterGroups.value,
     showLegend: configShowLegend.value,
     legendData: configLegendData.value,
     legendPercent: configLegendPercent.value,
@@ -290,16 +311,25 @@ const cardTagData = computed(() => {
   const map = {}
   for (const card of cards.value) {
     const tagMap = {}
+    const exclude = new Set(card.excludeTags || [])
+    const groups = card.filterGroups?.length > 0 ? new Set(card.filterGroups) : null
     for (let di = 0; di < days.length; di++) {
       for (const b of blocksByDay[di]) {
         const dur = b.end - b.start
-        if (card.onlyFirstTag) {
-          const t = b.tags[0]
-          if (t) tagMap[t] = (tagMap[t] || 0) + dur
-        } else {
-          for (const t of (b.tags || [])) {
+        const tags = card.onlyFirstTag
+          ? [b.tags[0]].filter(Boolean)
+          : (b.tags || [])
+        let counted = false
+        for (const t of tags) {
+          if (!exclude.has(t)) {
+            // Filter by group if set
+            if (groups && !groups.has(tagStore.tagGroup(t))) continue
             tagMap[t] = (tagMap[t] || 0) + dur
+            counted = true
           }
+        }
+        if (!counted && card.includeUntagged) {
+          tagMap[STR.stats.untagged] = (tagMap[STR.stats.untagged] || 0) + dur
         }
       }
     }
@@ -392,7 +422,10 @@ function pieGradientFor(data) {
 .config-modal { max-width: 360px; }
 .config-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
 .config-form label { font-size: 14px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
-.config-form select { border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: 14px; }
+.config-form select, .tag-input { border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: 14px; }
+.config-groups { display: flex; flex-wrap: wrap; gap: 8px; }
+.config-groups span { width: 100%; font-size: 14px; font-weight: 500; }
+.config-groups label { font-size: 13px; gap: 4px; }
 
 .actions { display: flex; gap: 8px; align-items: center; }
 .spacer { flex: 1; }
