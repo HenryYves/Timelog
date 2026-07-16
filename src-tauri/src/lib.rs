@@ -171,7 +171,7 @@ pub fn run(reset_settings: bool, minimized: bool) {
             if reset {
                 if let Some(window) = app.get_webview_window("main") {
                     let _ = window.eval(
-                        "for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.startsWith('timelog:'))localStorage.removeItem(k)}"
+                        "for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(!k||!k.startsWith('timelog:'))continue;const n=k.slice(8);if(/^\\d{4}-\\d{2}-\\d{2}$/.test(n)||n==='tags'||n.startsWith('stats-'))continue;localStorage.removeItem(k)}"
                     );
                 }
             }
