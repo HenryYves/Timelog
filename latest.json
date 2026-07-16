@@ -1,11 +1,11 @@
 {
-  "version": "v0.7.11",
-  "notes": "新增：utils/cursor.js光标独立模块+{offset,trail}格式、normalizeBlocks消除光标推送、光标诊断日志\n变更：T/N Enter统一<div>、Backspace区分escape删/标记展、空块补<br>防合并、placeAt/saveCursor拦截浏览器推光标\n修复：方向键后Backspace跳行、空列表Backspace合并、saveCursor Phase2漏计span、N模式Enter不创<div>",
-  "pub_date": "2026-07-14T14:00:00Z",
+  "version": "v0.7.20",
+  "notes": "新增：伪元素占位5行+水印、光标居中selectionchange、统一Enter split+insert+cleanup\n变更：扫描器解耦scanner.js、sel.collapse替代addRange、saveCursor跨div trail、restoreCursor仅trail非空跨div\n修复：Backspace/Delete不拆格式、Enter光标不跳行、findClosing反斜杠计数、escape注释分隔防合并、N模式scanner限NOTE行、编辑器不抢焦点",
+  "pub_date": "2026-07-16T07:22:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbU1oblBHZWJ2VzNWaFhrbFcyZFJhTjdKREN2M3RqUmZZb2pxYkNUYzBOTzR4N1R4M0xSLzcwem5ZZkZQd1RIc0VPSFpmbGlpeHBiaFBlOTM5Nkh0amdzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0MDM2NDc5CWZpbGU6dGltZWxvZ18wLjcuMTFfeDY0X2VuLVVTLm1zaQpEN0wrVlUxQmp1SnhDVkc4aGFzM1JuZkRCK1ZFd3owNnBqTk4rUGU3eE85NmIvRnNDc3d5emRMN1E4UlNMUDBvZTUxV1BKR1Fhc0FnN24zKzFWZUtCZz09Cg==",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.7.11/timelog_0.7.11_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUdtR3Z5VzF5U1hHM3RFa0prSUc4MGNmMGh6TkFrKytGaGZGYkhjR201OXdrc3dpeTZnTDB2R0Z4R1F1YzJmVW5HcEIrOFdlT2ZFZlZ5ekduUGp0SHd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0MTg2NTQ3CWZpbGU6dGltZWxvZ18wLjcuMjBfeDY0X2VuLVVTLm1zaQphZndzZEVQM3FVRXJnOTdtd21KRHlNVnYzekhmQ1RPb0RqMEg1U05ZK1dwaHA0NncyMkNOd2ZrenBWZW9tSWhEU1BVc0NWYUlmZVRiTjNOTUhwVEZDQT09Cg==",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.7.20/timelog_0.7.20_x64_en-US.msi"
     }
   }
 }
