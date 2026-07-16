@@ -16,6 +16,13 @@ export function unwrapFormatting(root) {
     }
     parent.removeChild(el)
   }
+  // Remove comment separators left by escape processing — they're
+  // only needed for one scan cycle. Normalize below re-merges adjacent text.
+  const cwalker = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT)
+  const comments = []
+  let c = cwalker.firstChild()
+  while (c) { comments.push(c); c = cwalker.nextNode() }
+  for (const cm of comments) cm.remove()
 }
 export function scanContentEditable(root) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
@@ -53,6 +60,9 @@ export function scanContentEditable(root) {
           parent.insertBefore(escSpan, textNode)
           const literal = document.createTextNode(escapedChar)
           parent.insertBefore(literal, textNode)
+          // Prevent normalize() from merging literal with following text
+          // (e.g. \= + = → ==, which would re-form a highlight marker)
+          parent.insertBefore(document.createComment(''), textNode)
           textNode.nodeValue = text.slice(2) // remove \ + escaped char
         } else {
           const after = textNode.splitText(i)
@@ -61,6 +71,8 @@ export function scanContentEditable(root) {
           after.nodeValue = after.nodeValue.slice(2)
           const literal = document.createTextNode(escapedChar)
           parent.insertBefore(literal, after)
+          // Prevent normalize() from merging literal with following text
+          parent.insertBefore(document.createComment(''), after)
           parent.insertBefore(escSpan, literal) // \ before escaped char
         }
         return false
@@ -72,10 +84,12 @@ export function scanContentEditable(root) {
         while (true) {
           idx = text.indexOf(marker, idx)
           if (idx < 0 || idx === 0) return idx
-          if (text[idx - 1] !== '\\') return idx
-          // Previous char is \ — but \\x means the \ itself is escaped, marker is not
-          if (idx >= 2 && text[idx - 2] === '\\') return idx
-          idx += marker.length // \x: skip this truly escaped marker
+          // Count consecutive backslashes before marker.
+          // Odd count → marker is escaped → skip. Even → marker is real.
+          let bsCount = 0, p = idx - 1
+          while (p >= 0 && text[p] === '\\') { bsCount++; p-- }
+          if (bsCount % 2 === 0) return idx // even → not escaped
+          idx += marker.length // odd → escaped, skip
         }
       }
 
