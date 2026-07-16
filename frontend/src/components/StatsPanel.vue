@@ -441,7 +441,7 @@ function pieGradientFor(data) {
 .stats-modal { width: 72vw; max-width: 880px; max-height: 82vh; overflow: auto; }
 .expand-btn { font-size: 12px; border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; background: none; cursor: pointer; margin-left: 8px; vertical-align: middle; }
 .expand-btn:hover { background: var(--soft); }
-.stats-expanded { width: 50vw; height: 50vh; max-width: 95vw; max-height: 90vh; overflow: auto; }
+.stats-expanded { width: calc(50vw / var(--zoom, 1)); height: calc(50vh / var(--zoom, 1)); max-width: 95vw; max-height: 90vh; overflow: auto; }
 .close-expand { border: none; background: none; font-size: 20px; cursor: pointer; vertical-align: middle; }
 .bar-label-exp { width: 120px; font-size: 13px; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stats-filter { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
