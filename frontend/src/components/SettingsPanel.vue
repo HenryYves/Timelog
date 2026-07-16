@@ -228,10 +228,19 @@
             <div class="row">
               <label>{{ STR.settings.zoom }} <span class="val-hint">{{ settings.zoom }}%</span></label>
               <div>
-                <input type="range" min="25" max="400" :value="settings.zoom" @input="settings.setZoom($event.target.value)" style="width:180px;">
+                <button class="zoom-btn" @click="showZoomPopup = true">调整 ({{ settings.zoom }}%)</button>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setZoom(DEFAULT_ZOOM)">
                   <img src="/icons/restore.svg" alt="">
                 </button>
+              </div>
+              <!-- Zoom popup — fixed size, zoom-compensated -->
+              <div v-if="showZoomPopup" class="zoom-popup-overlay" @mousedown.self="showZoomPopup = false">
+                <div class="zoom-popup">
+                  <div class="zoom-popup-head">{{ STR.settings.zoom }}: {{ settings.zoom }}%</div>
+                  <input type="range" min="25" max="400" :value="settings.zoom"
+                    @input="settings.setZoom($event.target.value)" />
+                  <button @click="showZoomPopup = false">关闭</button>
+                </div>
               </div>
             </div>
             <div class="small">{{ STR.settings.descZoom }}</div>
@@ -363,6 +372,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'checkUpdateResult'])
 
 const settings = useSettingsStore()
+const showZoomPopup = ref(false)
 const { showConfirm } = useConfirm()
 const { toast } = useToast()
 
@@ -642,6 +652,12 @@ select:disabled { opacity: .5; cursor: default; }
 /* ── Misc ── */
 .small-btn { font-size: 12.5px; padding: 4px 10px; }
 .settings-modal { width: 64.5vw; max-width: 95vw; height: calc(81vh / var(--zoom, 1)); max-height: calc(90vh / var(--zoom, 1)); overflow: auto; }
+.zoom-btn { border: 1px solid var(--border); border-radius: 4px; padding: 2px 10px; background: var(--canvas); cursor: pointer; font-size: 13px; }
+.zoom-btn:hover { background: var(--soft); }
+.zoom-popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.zoom-popup { background: var(--canvas); border-radius: 8px; padding: 20px 24px; width: calc(240px / var(--zoom, 1)); text-align: center; display: flex; flex-direction: column; gap: 12px; }
+.zoom-popup-head { font-size: 14px; font-weight: 600; }
+.zoom-popup input[type="range"] { width: 100%; }
 .settings-content .small { margin-top: 2px; margin-bottom: 0; }
 .settings-content label { display: inline; font-size: inherit; color: inherit; margin: 0; font-weight: inherit; }
 .settings-content input[type="checkbox"] { vertical-align: middle; }
