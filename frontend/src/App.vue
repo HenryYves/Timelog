@@ -558,6 +558,21 @@ function onWillInstallOnExit(version) {
 }
 
 onMounted(async () => {
+  // CLI: --reset-settings — clear all localStorage timelog data
+  if (window.__TAURI__) {
+    try {
+      const reset = await invoke('get_reset_flag')
+      if (reset) {
+        const keys = []
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i)
+          if (k && k.startsWith('timelog:')) keys.push(k)
+        }
+        keys.forEach(k => localStorage.removeItem(k))
+      }
+    } catch {}
+  }
+
   window.addEventListener('keydown', onWindowKeyDown)
   window.addEventListener('backup:restored', onBackupRestored)
   document.addEventListener('click', closeMore)

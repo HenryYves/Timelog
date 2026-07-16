@@ -28,6 +28,15 @@ pub enum DownloadEvent {
 
 // ── State ──
 
+struct ResetFlag(bool);
+struct MinimizedFlag(bool);
+
+#[tauri::command]
+fn get_reset_flag(flag: tauri::State<'_, ResetFlag>) -> bool {
+    flag.0
+}
+
+
 /// Holds an optional downloaded update paired with its raw bytes.
 /// - After `check_update`: bytes is `Vec::new()` (not yet downloaded).
 /// - After `download_update`: bytes contains the full binary.
@@ -150,22 +159,31 @@ async fn install_update(
 // ── App Entry ──
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+pub fn run(reset_settings: bool, minimized: bool) {
+    let reset = reset_settings;
+
     tauri::Builder::default()
+        .manage(MinimizedFlag(minimized))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
+        .manage(ResetFlag(reset))
         .setup(|app| {
             app.manage(PendingUpdate(Mutex::new(None)));
 
             // Handle exit-time install
             let handle = app.handle().clone();
             if let Some(window) = app.get_webview_window("main") {
-                // Show window after state restoration to avoid flash
-                let _ = window.show();
+                let min = app.state::<MinimizedFlag>().0;
+                if min {
+                    let _ = window.minimize();
+                } else {
+                    // Show window after state restoration to avoid flash
+                    let _ = window.show();
+                }
                 window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                         let pending = handle.state::<PendingUpdate>();
@@ -191,6 +209,7 @@ pub fn run() {
             check_update,
             download_update,
             install_update,
+            get_reset_flag,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
