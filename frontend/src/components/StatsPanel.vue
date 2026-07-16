@@ -331,7 +331,7 @@ function barWidth(data, min) {
   return (min / max) * 100
 }
 
-function pieGradientFor(cardTagData[card.id] || [])For(data) {
+function pieGradientFor(data) {
   if (data.length === 0) return 'transparent'
   const total = data.reduce((s, d) => s + d.minutes, 0)
   if (total === 0) return 'transparent'
