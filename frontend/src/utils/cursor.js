@@ -119,13 +119,26 @@ export function saveCursor(root) {
   // Phase 1: TreeWalker — cursor in a text node?
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
   let offset = 0
+  let prevText = null
   let node = walker.firstChild()
   while (node) {
     if (node === sc) {
-      const _r = { offset: offset + so, trail: [] }
+      const trail = []
+      // Cursor at start of text node AND previous text is in a different
+      // <div> — record the block boundary so restoreCursor can distinguish
+      // "end of prev line" from "start of this line" at the same offset.
+      if (so === 0 && prevText) {
+        let p = prevText.parentNode
+        while (p && p !== root && p.tagName !== 'DIV') p = p.parentNode
+        let c = node.parentNode
+        while (c && c !== root && c.tagName !== 'DIV') c = c.parentNode
+        if (p && c && p !== c) trail.push('DIV')
+      }
+      const _r = { offset: offset + so, trail }
       // console.log('[cursor] save →', JSON.stringify(_r))
       return _r
     }
+    prevText = node
     offset += (node.textContent || '').length
     node = walker.nextNode()
   }
@@ -308,22 +321,11 @@ export function restoreCursor(root, state) {
 
     // Boundary: accumulated + len === offset && len > 0
     if (accumulated + len === offset) {
+      const next = walker.nextNode()
       if (trail.length === 0) {
         // Prefer next text node only if it's empty (e.g. after marker span).
-        // Otherwise stay at end of current text — the cursor was at this
-        // boundary, not past it.
-        const next = walker.nextNode()
         if (next && (next.textContent || '').length === 0) {
           placeAt(sel, root, next, 0); return
-        }
-        // If next text is in a different block div, cursor was at
-        // the START of that block, not at end of current text.
-        if (next) {
-          const curBlock = node.parentNode?.closest?.('div')
-          const nextBlock = next.parentNode?.closest?.('div')
-          if (curBlock && nextBlock && curBlock !== nextBlock) {
-            placeAt(sel, root, next, 0); return
-          }
         }
       }
       // Cursor in element — find next block via trail
@@ -350,6 +352,15 @@ export function restoreCursor(root, state) {
             placeAt(sel, root, block, 0)
           }
           return
+        }
+      }
+      // When trail records a block boundary (Phase 1), next text in a
+      // different div means cursor was at block start, not text end.
+      if (trail.length > 0 && next) {
+        const curBlock = node.parentNode?.closest?.('div')
+        const nextBlock = next.parentNode?.closest?.('div')
+        if (curBlock && nextBlock && curBlock !== nextBlock) {
+          placeAt(sel, root, next, 0); return
         }
       }
       placeAt(sel, root, node, len)
