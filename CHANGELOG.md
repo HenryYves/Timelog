@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.20] - 2026-07-16
+
+### Added
+- 统一 Enter 处理：split + insert `<div><br>` + cleanup 替代 4 个特判路径
+
+### Changed
+- `saveCursor` Phase 1：跨 div 边界记录 trail `['DIV']`
+
+### Fixed
+- Backspace/Delete 在格式化元素内不再拆格式：`sel.collapse` 替代 `addRange`
+- Enter 后光标不跳回上一行：Phase 2 父级空 block trail
+- `restoreCursor` 边界跨 div 仅 trail 非空时触发（修复行尾打字跳下行）
+- `findClosing` 反斜杠计数修正——连续奇数个 `\` 才算转义
+- escape 处理后插 `<!--->` 防 `normalize` 合并相邻 text
+
 ## [0.7.16] - 2026-07-15
 
 ### Added
