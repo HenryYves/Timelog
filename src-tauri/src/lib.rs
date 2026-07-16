@@ -28,12 +28,15 @@ pub enum DownloadEvent {
 
 // ── State ──
 
-struct ResetFlag(bool);
+struct ResetFlag(Mutex<bool>);
 struct MinimizedFlag(bool);
 
 #[tauri::command]
 fn get_reset_flag(flag: tauri::State<'_, ResetFlag>) -> bool {
-    flag.0
+    let mut v = flag.0.lock().unwrap();
+    let was = *v;
+    *v = false;
+    was
 }
 
 
@@ -170,7 +173,7 @@ pub fn run(reset_settings: bool, minimized: bool) {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
-        .manage(ResetFlag(reset))
+        .manage(ResetFlag(Mutex::new(reset)))
         .setup(|app| {
             app.manage(PendingUpdate(Mutex::new(None)));
 
