@@ -36,7 +36,7 @@
           <div class="card-body">
             <!-- Pie chart -->
             <div v-if="card.type === 'pie'" class="pie-wrap">
-              <div v-if="tagData.length === 0" class="no-data">{{ STR.stats.noData }}</div>
+              <div v-if="(cardTagData[card.id] || []).length === 0" class="no-data">{{ STR.stats.noData }}</div>
               <div v-else class="pie-chart" :style="{ background: pieGradientFor(cardTagData[card.id] || []) }"></div>
               <!-- Legend -->
               <div v-if="card.showLegend" class="legend">
@@ -58,7 +58,7 @@
             </div>
             <!-- Bar chart -->
             <div v-else class="bar-wrap">
-              <div v-if="tagData.length === 0" class="no-data">{{ STR.stats.noData }}</div>
+              <div v-if="(cardTagData[card.id] || []).length === 0" class="no-data">{{ STR.stats.noData }}</div>
               <div v-else class="bar-chart">
                 <div class="bar-row" v-for="d in (cardTagData[card.id] || [])" :key="d.tag">
                   <span class="bar-label">{{ d.tag }}</span>
