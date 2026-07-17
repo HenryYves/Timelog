@@ -186,6 +186,7 @@ export const STR = {
     time7d: '最近 7 天',
     timeMonth: '本月',
     timeCustom: '自定义',
+    invalidDate: '日期格式无效，请输入 yyyy-mm-dd',
     createTitle: '新建视图',
     chartType: '图表类型',
     pie: '饼图',

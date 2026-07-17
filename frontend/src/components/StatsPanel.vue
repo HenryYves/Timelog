@@ -23,9 +23,10 @@
             </button>
           </div>
         </div>
-        <input v-if="timeRange === 'custom'" type="date" v-model="customStart" class="date-input" />
+        <input v-if="timeRange === 'custom'" type="text" v-model="customStart" class="date-input" placeholder="yyyy-mm-dd" maxlength="10" @blur="validateDates" />
         <span v-if="timeRange === 'custom'">—</span>
-        <input v-if="timeRange === 'custom'" type="date" v-model="customEnd" class="date-input" />
+        <input v-if="timeRange === 'custom'" type="text" v-model="customEnd" class="date-input" placeholder="yyyy-mm-dd" maxlength="10" @blur="validateDates" />
+        <span v-if="dateError" class="date-error">{{ dateError }}</span>
       </div>
 
       <!-- Card list -->
@@ -126,9 +127,10 @@
             <button class="filter-item" @click="timeRange = 'custom'; showTimeMenu2 = false">{{ STR.stats.timeCustom }}</button>
           </div>
         </div>
-        <input v-if="timeRange === 'custom'" type="date" v-model="customStart" class="date-input" />
+        <input v-if="timeRange === 'custom'" type="text" v-model="customStart" class="date-input" placeholder="yyyy-mm-dd" maxlength="10" @blur="validateDates" />
         <span v-if="timeRange === 'custom'">—</span>
-        <input v-if="timeRange === 'custom'" type="date" v-model="customEnd" class="date-input" />
+        <input v-if="timeRange === 'custom'" type="text" v-model="customEnd" class="date-input" placeholder="yyyy-mm-dd" maxlength="10" @blur="validateDates" />
+        <span v-if="dateError" class="date-error">{{ dateError }}</span>
       </div>
       <div class="stats-cards" v-if="cards.length > 0">
         <div class="stat-card" v-for="card in cards" :key="card.id">
@@ -243,11 +245,27 @@ const showTimeMenu = ref(false)
 const showTimeMenu2 = ref(false)
 const customStart = ref('')
 const customEnd = ref('')
+const dateError = ref('')
+
+function validateDates() {
+  dateError.value = ''
+  const re = /^\d{4}-\d{2}-\d{2}$/
+  if (customStart.value && !re.test(customStart.value)) { dateError.value = STR.stats.invalidDate; return }
+  if (customEnd.value && !re.test(customEnd.value)) { dateError.value = STR.stats.invalidDate; return }
+  if (customStart.value) {
+    const s = new Date(customStart.value)
+    if (isNaN(s.getTime())) { dateError.value = STR.stats.invalidDate; return }
+  }
+  if (customEnd.value) {
+    const e = new Date(customEnd.value)
+    if (isNaN(e.getTime())) { dateError.value = STR.stats.invalidDate; return }
+  }
+}
 const timeLabel = computed(() => {
   const opt = timeOptions.find(o => o.value === timeRange.value)
   return opt ? opt.label : STR.stats.timeCustom
 })
-watch(timeRange, (v) => localStorage.setItem('timelog:stats-time-range', v))
+watch(timeRange, (v) => { localStorage.setItem('timelog:stats-time-range', v); if (v !== 'custom') dateError.value = '' })
 
 // ── Cards ──
 const cards = ref(JSON.parse(localStorage.getItem('timelog:stats-cards') || '[]'))
@@ -580,6 +598,7 @@ function onSliceLeave() {
 .filter-item { display: block; width: 100%; text-align: left; padding: 6px 12px; border: none; background: none; cursor: pointer; font-size: 13px; }
 .filter-item:hover, .filter-item.active { background: var(--soft); }
 .date-input { border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 13px; }
+.date-error { color: var(--red); font-size: 12px; }
 
 .stats-cards { display: flex; flex-direction: column; gap: 16px; }
 .stat-card { border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; background: var(--canvas); }
