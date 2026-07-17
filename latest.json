@@ -1,11 +1,11 @@
 {
-  "version": "v0.7.20",
-  "notes": "新增：伪元素占位5行+水印、光标居中selectionchange、统一Enter split+insert+cleanup\n变更：扫描器解耦scanner.js、sel.collapse替代addRange、saveCursor跨div trail、restoreCursor仅trail非空跨div\n修复：Backspace/Delete不拆格式、Enter光标不跳行、findClosing反斜杠计数、escape注释分隔防合并、N模式scanner限NOTE行、编辑器不抢焦点",
-  "pub_date": "2026-07-16T07:22:00Z",
+  "version": "v0.8.8",
+  "notes": "新增：饼图SVG重写+引导线标注、图表hover交互、视图自定义名称、导出/导入按内容选择（数据/标签/统计视图/设置）\n变更：统计面板视觉美化（卡片装饰条、柱状图渐变、筛选pill、动画）、日期输入text类型+校验、自动备份纳入统计和设置\n修复：柱状图display高度0、饼图大扇区引导线方向、导入设置store刷新、属性面板焦点+滚轮",
+  "pub_date": "2026-07-17T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUdtR3Z5VzF5U1hHM3RFa0prSUc4MGNmMGh6TkFrKytGaGZGYkhjR201OXdrc3dpeTZnTDB2R0Z4R1F1YzJmVW5HcEIrOFdlT2ZFZlZ5ekduUGp0SHd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0MTg2NTQ3CWZpbGU6dGltZWxvZ18wLjcuMjBfeDY0X2VuLVVTLm1zaQphZndzZEVQM3FVRXJnOTdtd21KRHlNVnYzekhmQ1RPb0RqMEg1U05ZK1dwaHA0NncyMkNOd2ZrenBWZW9tSWhEU1BVc0NWYUlmZVRiTjNOTUhwVEZDQT09Cg==",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.7.20/timelog_0.7.20_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUNudGVyZnhKZW1qMzRJZFhMNk5KYTlSc0JtMHNTTytQT2ZYU3pRZXp4OVpWQkM5VHpTUE9rODZaUkM2ZUwzbHl0TVU4SFhGQzYyVTV0SmsvSmhSN3drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0MjU5ODYwCWZpbGU6dGltZWxvZ18wLjguOF94NjRfZW4tVVMubXNpCnNXK250ajdrTlhzcFFVRGZ6SlFEQ3ZvQzQydm9Dd3hsZzRad3FINlJiVmpCMVRaWmhBaldIK0xITnMvblkxSUVzYnVyUFpiWW4vMC9OZG9mNGgwY0RBPT0K",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.8.8/timelog_0.8.8_x64_en-US.msi"
     }
   }
 }
