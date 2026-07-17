@@ -33,6 +33,13 @@
         <div class="stat-card" v-for="(card, idx) in cards" :key="card.id">
           <div class="card-header">
             <span class="card-title">{{ card.type === 'pie' ? STR.stats.pie : STR.stats.bar }}</span>
+            <span v-if="hovered && hovered.cardId === card.id" class="hover-badge">
+              <span class="hover-dot" :style="{ background: hovered.color }"></span>
+              {{ hovered.tag }}
+              <span class="hover-val">{{ hovered.dataText }}</span>
+              <span class="hover-pct">{{ hovered.pctText }}</span>
+            </span>
+            <span class="spacer"></span>
             <button class="card-settings" @click="openSettings(idx)">⚙</button>
           </div>
           <div class="card-body">
@@ -55,16 +62,6 @@
                   <tspan v-if="card.chartData" fill="var(--text2)"> {{ l.dataText }}</tspan>
                   <tspan v-if="card.chartPercent" fill="var(--text2)"> {{ l.pctText }}</tspan>
                 </text>
-                <g v-if="hovered && hovered.cardId === card.id">
-                  <rect x="5" y="4" width="119" height="48" rx="6"
-                    fill="var(--canvas)" stroke="var(--border)" stroke-width="1" />
-                  <text x="64" y="22" text-anchor="middle" font-size="12" font-weight="600">
-                    <tspan :fill="hovered.color">{{ hovered.tag }}</tspan>
-                  </text>
-                  <text x="64" y="40" text-anchor="middle" font-size="12" fill="var(--text)">
-                    {{ hovered.dataText }}  {{ hovered.pctText }}
-                  </text>
-                </g>
               </svg>
               <!-- Legend -->
               <div v-if="card.showLegend" class="legend">
@@ -80,7 +77,9 @@
             <div v-else class="bar-wrap">
               <div v-if="(cardTagData[card.id] || []).length === 0" class="no-data">{{ STR.stats.noData }}</div>
               <div v-else class="bar-chart">
-                <div class="bar-row" v-for="d in (cardTagData[card.id] || [])" :key="d.tag">
+                <div class="bar-row" v-for="d in (cardTagData[card.id] || [])" :key="d.tag"
+                  @mouseenter="onSliceEnter(card, d)"
+                  @mouseleave="onSliceLeave">
                   <span class="bar-label" :title="d.tag">{{ d.tag }}</span>
                   <span class="bar-track">
                     <span class="bar-fill" :style="{ width: barWidth(cardTagData[card.id] || [], d.minutes) + '%', background: d.color }"></span>
@@ -155,22 +154,14 @@
                   <tspan v-if="card.chartData" fill="var(--text2)"> {{ l.dataText }}</tspan>
                   <tspan v-if="card.chartPercent" fill="var(--text2)"> {{ l.pctText }}</tspan>
                 </text>
-                <g v-if="hovered && hovered.cardId === card.id">
-                  <rect x="5" y="4" width="119" height="48" rx="6"
-                    fill="var(--canvas)" stroke="var(--border)" stroke-width="1" />
-                  <text x="64" y="22" text-anchor="middle" font-size="12" font-weight="600">
-                    <tspan :fill="hovered.color">{{ hovered.tag }}</tspan>
-                  </text>
-                  <text x="64" y="40" text-anchor="middle" font-size="12" fill="var(--text)">
-                    {{ hovered.dataText }}  {{ hovered.pctText }}
-                  </text>
-                </g>
               </svg>
             </div>
             <div v-else class="bar-wrap">
               <div v-if="(cardTagData[card.id] || []).length === 0" class="no-data">{{ STR.stats.noData }}</div>
               <div v-else class="bar-chart">
-                <div class="bar-row" v-for="d in (cardTagData[card.id] || [])" :key="d.tag">
+                <div class="bar-row" v-for="d in (cardTagData[card.id] || [])" :key="d.tag"
+                  @mouseenter="onSliceEnter(card, d)"
+                  @mouseleave="onSliceLeave">
                   <span class="bar-label-exp" :title="d.tag">{{ d.tag }}</span>
                   <span class="bar-track">
                     <span class="bar-fill" :style="{ width: barWidth(cardTagData[card.id] || [], d.minutes) + '%', background: d.color }"></span>
@@ -442,7 +433,10 @@ const cardTagData = computed(() => {
     map[card.id] = Object.entries(tagMap)
       .map(([tag, minutes], idx) => {
         const c = tagStore.colorOf(tag)
-        const color = c?.hex && c.hex !== '#C4C3C0' ? c.hex : PAL[idx % PAL.length]
+        let color = PAL[idx % PAL.length]
+        if (c && c.hex && /^#[0-9A-Fa-f]{6}$/.test(c.hex) && c.hex.toUpperCase() !== '#C4C3C0') {
+          color = c.hex
+        }
         return { tag, minutes, color }
       })
       .sort((a, b) => b.minutes - a.minutes)
@@ -593,6 +587,9 @@ function onSliceLeave() {
 .card-title { font-weight: 600; font-size: 14px; }
 .card-settings { border: none; background: none; cursor: pointer; font-size: 16px; padding: 2px 6px; border-radius: 4px; }
 .card-settings:hover { background: var(--soft); }
+.hover-badge { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; }
+.hover-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.hover-val, .hover-pct { color: var(--text2); font-size: 12px; }
 
 .no-data, .no-charts { color: var(--text2); text-align: center; padding: 24px 0; font-size: 14px; }
 .add-view-btn { display: block; width: 100%; padding: 12px; border: 2px dashed var(--border); border-radius: 8px; background: none; cursor: pointer; font-size: 14px; color: var(--text2); margin-top: 12px; }
@@ -611,7 +608,7 @@ function onSliceLeave() {
 .bar-row { display: flex; align-items: center; gap: 8px; }
 .bar-label { width: 90px; font-size: 13px; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bar-track { flex: 1; height: 18px; background: var(--soft); border-radius: 4px; overflow: hidden; }
-.bar-fill { height: 100%; border-radius: 4px; min-width: 2px; }
+.bar-fill { display: block; height: 100%; border-radius: 4px; min-width: 2px; }
 .bar-data, .bar-pct { font-size: 12px; color: var(--text2); min-width: 40px; }
 
 /* Legend */
