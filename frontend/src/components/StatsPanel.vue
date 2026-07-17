@@ -39,7 +39,33 @@
             <!-- Pie chart -->
             <div v-if="card.type === 'pie'" class="pie-wrap">
               <div v-if="(cardTagData[card.id] || []).length === 0" class="no-data">{{ STR.stats.noData }}</div>
-              <div v-else class="pie-chart" :style="{ background: pieGradientFor(cardTagData[card.id] || []) }"></div>
+              <svg v-else class="pie-svg" viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
+                <path v-for="s in (pieCharts[card.id] || {}).slices" :key="s.tag"
+                  :d="s.path" :fill="s.color"
+                  :class="['pie-slice', { interactive: card.interactive }]"
+                  @mouseenter="onSliceEnter(card, s)"
+                  @mouseleave="onSliceLeave" />
+                <polyline v-for="l in (pieCharts[card.id] || {}).labels" :key="'ln'+l.tag"
+                  :points="l.linePoints" :stroke="l.color" fill="none"
+                  stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                <text v-for="l in (pieCharts[card.id] || {}).labels" :key="'tx'+l.tag"
+                  :x="l.textX" :y="l.textY" :text-anchor="l.anchor"
+                  class="pie-label" font-size="12">
+                  <tspan :fill="l.color" font-weight="500">{{ l.tag }}</tspan>
+                  <tspan v-if="card.chartData" fill="var(--text2)"> {{ l.dataText }}</tspan>
+                  <tspan v-if="card.chartPercent" fill="var(--text2)"> {{ l.pctText }}</tspan>
+                </text>
+                <g v-if="hovered && hovered.cardId === card.id">
+                  <rect x="5" y="4" width="119" height="48" rx="6"
+                    fill="var(--canvas)" stroke="var(--border)" stroke-width="1" />
+                  <text x="64" y="22" text-anchor="middle" font-size="12" font-weight="600">
+                    <tspan :fill="hovered.color">{{ hovered.tag }}</tspan>
+                  </text>
+                  <text x="64" y="40" text-anchor="middle" font-size="12" fill="var(--text)">
+                    {{ hovered.dataText }}  {{ hovered.pctText }}
+                  </text>
+                </g>
+              </svg>
               <!-- Legend -->
               <div v-if="card.showLegend" class="legend">
                 <div v-for="d in (cardTagData[card.id] || [])" :key="d.tag" class="legend-item">
@@ -47,14 +73,6 @@
                   <span class="legend-name">{{ d.tag }}</span>
                   <span v-if="card.legendData" class="legend-val">{{ fmtDur(d.minutes) }}</span>
                   <span v-if="card.legendPercent" class="legend-pct">{{ pctOf(cardTagData[card.id] || [], d.minutes) }}</span>
-                </div>
-              </div>
-              <!-- In-chart labels -->
-              <div v-if="card.chartData || card.chartPercent" class="chart-labels">
-                <div v-for="d in (cardTagData[card.id] || [])" :key="d.tag">
-                  {{ d.tag }}
-                  <span v-if="card.chartData">{{ fmtDur(d.minutes) }}</span>
-                  <span v-if="card.chartPercent">{{ pctOf(cardTagData[card.id] || [], d.minutes) }}</span>
                 </div>
               </div>
             </div>
@@ -121,7 +139,33 @@
           <div class="card-body">
             <div v-if="card.type === 'pie'" class="pie-wrap">
               <div v-if="(cardTagData[card.id] || []).length === 0" class="no-data">{{ STR.stats.noData }}</div>
-              <div v-else class="pie-chart" :style="{ background: pieGradientFor(cardTagData[card.id] || []) }"></div>
+              <svg v-else class="pie-svg" viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
+                <path v-for="s in (pieCharts[card.id] || {}).slices" :key="s.tag"
+                  :d="s.path" :fill="s.color"
+                  :class="['pie-slice', { interactive: card.interactive }]"
+                  @mouseenter="onSliceEnter(card, s)"
+                  @mouseleave="onSliceLeave" />
+                <polyline v-for="l in (pieCharts[card.id] || {}).labels" :key="'ln'+l.tag"
+                  :points="l.linePoints" :stroke="l.color" fill="none"
+                  stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                <text v-for="l in (pieCharts[card.id] || {}).labels" :key="'tx'+l.tag"
+                  :x="l.textX" :y="l.textY" :text-anchor="l.anchor"
+                  class="pie-label" font-size="12">
+                  <tspan :fill="l.color" font-weight="500">{{ l.tag }}</tspan>
+                  <tspan v-if="card.chartData" fill="var(--text2)"> {{ l.dataText }}</tspan>
+                  <tspan v-if="card.chartPercent" fill="var(--text2)"> {{ l.pctText }}</tspan>
+                </text>
+                <g v-if="hovered && hovered.cardId === card.id">
+                  <rect x="5" y="4" width="119" height="48" rx="6"
+                    fill="var(--canvas)" stroke="var(--border)" stroke-width="1" />
+                  <text x="64" y="22" text-anchor="middle" font-size="12" font-weight="600">
+                    <tspan :fill="hovered.color">{{ hovered.tag }}</tspan>
+                  </text>
+                  <text x="64" y="40" text-anchor="middle" font-size="12" fill="var(--text)">
+                    {{ hovered.dataText }}  {{ hovered.pctText }}
+                  </text>
+                </g>
+              </svg>
             </div>
             <div v-else class="bar-wrap">
               <div v-if="(cardTagData[card.id] || []).length === 0" class="no-data">{{ STR.stats.noData }}</div>
@@ -169,6 +213,7 @@
         <label><input type="checkbox" v-model="configLegendPercent">{{ STR.stats.legendPercent }}</label>
         <label><input type="checkbox" v-model="configChartData">{{ STR.stats.chartData }}</label>
         <label><input type="checkbox" v-model="configChartPercent">{{ STR.stats.chartPercent }}</label>
+        <label><input type="checkbox" v-model="configInteractive">{{ STR.stats.interactive }}</label>
       </div>
       <div class="actions">
         <button v-if="editingCard" class="danger" @click="deleteCard">{{ STR.stats.deleteView }}</button>
@@ -231,6 +276,7 @@ const configLegendData = ref(false)
 const configLegendPercent = ref(true)
 const configChartData = ref(false)
 const configChartPercent = ref(true)
+const configInteractive = ref(true)
 
 function openSettings(idx) {
   const c = cards.value[idx]
@@ -244,6 +290,7 @@ function openSettings(idx) {
   configLegendPercent.value = c.legendPercent
   configChartData.value = c.chartData
   configChartPercent.value = c.chartPercent
+  configInteractive.value = c.interactive !== false
   showSettingsIdx.value = idx
 }
 
@@ -265,6 +312,7 @@ function saveConfig() {
     legendPercent: configLegendPercent.value,
     chartData: configChartData.value,
     chartPercent: configChartPercent.value,
+    interactive: configInteractive.value,
   }
   if (editingCard.value) {
     card.id = editingCard.value.id
@@ -422,18 +470,105 @@ function barWidth(data, min) {
   return (min / max) * 100
 }
 
-function pieGradientFor(data) {
-  if (data.length === 0) return 'transparent'
+// ── SVG Pie Chart ──
+const PIE_CX = 350, PIE_CY = 130, PIE_R = 80
+
+function buildPieChart(data) {
+  if (!data.length) return { slices: [], labels: [] }
   const total = data.reduce((s, d) => s + d.minutes, 0)
-  if (total === 0) return 'transparent'
-  let acc = 0
-  const parts = data.map(d => {
-    const start = (acc / total) * 360
-    acc += d.minutes
-    const end = (acc / total) * 360
-    return `${d.color} ${start.toFixed(1)}deg ${end.toFixed(1)}deg`
+  if (total === 0) return { slices: [], labels: [] }
+
+  // Pass 1: slices with mid-angle
+  let accDeg = 0
+  const items = data.map(d => {
+    const spanDeg = (d.minutes / total) * 360
+    const startDeg = accDeg
+    const endDeg = accDeg + spanDeg
+    accDeg = endDeg
+    const toRad = (deg) => (deg - 90) * Math.PI / 180
+    const sr = toRad(startDeg), er = toRad(endDeg)
+    const midDeg = (startDeg + endDeg) / 2
+    const midRad = (midDeg - 90) * Math.PI / 180
+    const largeArc = spanDeg > 180 ? 1 : 0
+    const sx = PIE_CX + PIE_R * Math.cos(sr), sy = PIE_CY + PIE_R * Math.sin(sr)
+    const ex = PIE_CX + PIE_R * Math.cos(er), ey = PIE_CY + PIE_R * Math.sin(er)
+    return {
+      tag: d.tag, color: d.color, minutes: d.minutes,
+      path: `M${PIE_CX},${PIE_CY} L${sx.toFixed(2)},${sy.toFixed(2)} A${PIE_R},${PIE_R} 0 ${largeArc} 1 ${ex.toFixed(2)},${ey.toFixed(2)} Z`,
+      midRad, spanDeg,
+    }
   })
-  return `conic-gradient(${parts.join(', ')})`
+
+  // Pass 2: filter tiny slices for labels, compute raw positions
+  const MIN_ANGLE = 12
+  const sizable = items.filter(s => s.spanDeg >= MIN_ANGLE)
+  let labels = sizable.map((s, i) => {
+    const cos = Math.cos(s.midRad), sin = Math.sin(s.midRad)
+    const isRight = cos >= 0
+    const stagger = i % 2
+    const r2 = 20 + stagger * 18
+    const px = PIE_CX + PIE_R * cos, py = PIE_CY + PIE_R * sin
+    const ex = PIE_CX + (PIE_R + r2) * cos, ey = PIE_CY + (PIE_R + r2) * sin
+    const lx = isRight ? ex + 35 : ex - 35, ly = ey
+    return {
+      px, py, ex, ey, lx, ly,
+      tx: isRight ? lx + 6 : lx - 6,
+      ty: ly + 5,
+      anchor: isRight ? 'start' : 'end',
+      tag: s.tag, color: s.color, minutes: s.minutes,
+    }
+  })
+
+  // Pass 3: anti-overlap — sort by Y, push apart if gap < 18px
+  labels.sort((a, b) => a.ty - b.ty)
+  const MIN_GAP = 18
+  for (let i = 1; i < labels.length; i++) {
+    if (labels[i].ty - labels[i - 1].ty < MIN_GAP) {
+      const delta = MIN_GAP - (labels[i].ty - labels[i - 1].ty)
+      labels[i].ty += delta
+      labels[i].ly += delta
+      labels[i].ey += delta
+    }
+  }
+
+  // Format output
+  return {
+    slices: items.map(s => ({ tag: s.tag, path: s.path, color: s.color, minutes: s.minutes })),
+    labels: labels.map(l => ({
+      tag: l.tag, color: l.color,
+      linePoints: `${l.px.toFixed(1)},${l.py.toFixed(1)} ${l.ex.toFixed(1)},${l.ey.toFixed(1)} ${l.lx.toFixed(1)},${l.ly.toFixed(1)}`,
+      textX: l.tx.toFixed(1), textY: l.ty.toFixed(1), anchor: l.anchor,
+      dataText: fmtDur(l.minutes),
+      pctText: ((l.minutes / total) * 100).toFixed(1) + '%',
+    })),
+  }
+}
+
+const pieCharts = computed(() => {
+  const map = {}
+  for (const card of cards.value) {
+    map[card.id] = buildPieChart(cardTagData.value[card.id] || [])
+  }
+  return map
+})
+
+// ── Hover interaction ──
+const hovered = ref(null)
+
+function onSliceEnter(card, slice) {
+  if (!card.interactive) return
+  const total = (cardTagData.value[card.id] || []).reduce((s, d) => s + d.minutes, 0) || 1
+  hovered.value = {
+    cardId: card.id,
+    tag: slice.tag,
+    color: slice.color,
+    dataText: fmtDur(slice.minutes),
+    pctText: ((slice.minutes / total) * 100).toFixed(1) + '%',
+  }
+}
+
+function onSliceLeave() {
+  hovered.value = null
 }
 </script>
 
@@ -464,8 +599,12 @@ function pieGradientFor(data) {
 .add-view-btn:hover { border-color: var(--blue); color: var(--blue); }
 
 /* Pie */
-.pie-wrap { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
-.pie-chart { width: 160px; height: 160px; border-radius: 50%; flex-shrink: 0; }
+.pie-wrap { display: flex; flex-direction: column; gap: 12px; }
+.pie-svg { width: 100%; max-width: calc(950px / var(--zoom, 1)); height: auto; }
+.pie-slice { transition: opacity 0.2s ease, filter 0.2s ease; }
+.pie-slice.interactive { cursor: pointer; }
+.pie-slice.interactive:hover { opacity: 0.8; filter: brightness(1.15) drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
+.pie-label { dominant-baseline: middle; }
 
 /* Bar */
 .bar-chart { display: flex; flex-direction: column; gap: 6px; flex: 1; }
@@ -481,8 +620,6 @@ function pieGradientFor(data) {
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .legend-name { min-width: 40px; }
 .legend-val, .legend-pct { color: var(--text2); margin-left: 4px; }
-
-.chart-labels { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 
 /* Config modal */
 .config-modal { max-width: 360px; }

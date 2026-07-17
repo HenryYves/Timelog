@@ -196,6 +196,7 @@ export const STR = {
     legendPercent: '图例显示占比',
     chartData: '图中显示数据',
     chartPercent: '图中显示占比',
+    interactive: '扇区交互（hover放大）',
     deleteView: '删除此视图',
     includeUntagged: '包含无标签时间块',
     excludeTags: '排除标签（逗号分隔）',
