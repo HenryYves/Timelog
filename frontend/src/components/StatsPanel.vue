@@ -109,7 +109,7 @@
 
   <!-- Create / Settings modal -->
   <div v-if="showCreate || showSettingsIdx !== null" class="overlay" @mousedown.self="closeConfig" @keydown.escape.stop="closeConfig">
-    <div class="modal config-modal">
+    <div class="modal config-modal" @keydown="trapFocus">
       <h3>{{ editingCard ? STR.stats.settings : STR.stats.createTitle }}</h3>
       <div class="config-form">
         <label>{{ STR.stats.viewName }}</label>
@@ -238,6 +238,17 @@ function closeConfig() {
   showCreate.value = false
   showSettingsIdx.value = null
 }
+
+// Auto-focus first input when config opens
+watch(() => showCreate.value || showSettingsIdx.value, (open) => {
+  if (!open) return
+  setTimeout(() => {
+    const modal = document.querySelector('.config-modal')
+    if (!modal) return
+    const first = modal.querySelector('input:not([type="hidden"]), select, button:not(.danger)')
+    if (first) first.focus()
+  }, 100)
+})
 
 function saveConfig() {
   const card = {
@@ -623,9 +634,10 @@ function onSliceLeave() {
 .legend-val, .legend-pct { color: var(--text2); font-variant-numeric: tabular-nums; }
 
 /* ── Config ── */
-.config-modal { max-width: 380px; }
+.config-modal { max-width: 380px; max-height: calc(76vh / var(--zoom, 1)); overflow: auto; }
 .config-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
 .config-form label { font-size: 14px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.config-form input[type="checkbox"]:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 2px; }
 .config-form select, .tag-input, .name-input { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 14px; background: var(--canvas); }
 .name-input { width: 100%; }
 .tag-input { width: 100%; }
