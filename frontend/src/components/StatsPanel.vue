@@ -1,9 +1,7 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="emit('close')">
     <div class="modal stats-modal" @keydown="trapFocus">
-      <h2>{{ STR.stats.title }}
-        <button class="expand-btn" @click="showExpanded = true">展开</button>
-      </h2>
+      <h2>{{ STR.stats.title }}</h2>
 
       <!-- Time range filter -->
       <div class="stats-filter">
@@ -24,8 +22,7 @@
           </div>
         </div>
         <input v-if="timeRange === 'custom'" type="text" v-model="customStart" class="date-input" placeholder="yyyy-mm-dd" maxlength="10" @blur="validateDates" />
-        <span v-if="timeRange === 'custom'">—</span>
-        <input v-if="timeRange === 'custom'" type="text" v-model="customEnd" class="date-input" placeholder="yyyy-mm-dd" maxlength="10" @blur="validateDates" />
+<input v-if="timeRange === 'custom'" type="text" v-model="customEnd" class="date-input" placeholder="yyyy-mm-dd" maxlength="10" @blur="validateDates" />
         <span v-if="dateError" class="date-error">{{ dateError }}</span>
       </div>
 
@@ -109,76 +106,6 @@
     </div>
   </div>
 
-  <!-- Expanded view -->
-  <div v-if="showExpanded" class="overlay" @mousedown.self="showExpanded = false" @keydown.escape.stop="showExpanded = false">
-    <div class="modal stats-expanded" @keydown="trapFocus">
-      <h2>{{ STR.stats.title }}
-        <button class="close-expand" @click="showExpanded = false">×</button>
-      </h2>
-      <!-- Same filter + cards as main view, cloned here -->
-      <div class="stats-filter">
-        <span>{{ STR.stats.timeRange }}</span>
-        <div class="filter-dropdown">
-          <button class="filter-btn" @click="showTimeMenu2 = !showTimeMenu2">{{ timeLabel }} ▾</button>
-          <div class="filter-menu" v-if="showTimeMenu2" @keydown.escape.stop="showTimeMenu2 = false">
-            <button v-for="opt in timeOptions" :key="opt.value"
-              class="filter-item" :class="{ active: timeRange === opt.value }"
-              @click="timeRange = opt.value; showTimeMenu2 = false">{{ opt.label }}</button>
-            <button class="filter-item" @click="timeRange = 'custom'; showTimeMenu2 = false">{{ STR.stats.timeCustom }}</button>
-          </div>
-        </div>
-        <input v-if="timeRange === 'custom'" type="text" v-model="customStart" class="date-input" placeholder="yyyy-mm-dd" maxlength="10" @blur="validateDates" />
-        <span v-if="timeRange === 'custom'">—</span>
-        <input v-if="timeRange === 'custom'" type="text" v-model="customEnd" class="date-input" placeholder="yyyy-mm-dd" maxlength="10" @blur="validateDates" />
-        <span v-if="dateError" class="date-error">{{ dateError }}</span>
-      </div>
-      <div class="stats-cards" v-if="cards.length > 0">
-        <div class="stat-card" v-for="card in cards" :key="card.id">
-          <div class="card-header">
-            <span class="card-title">{{ card.type === 'pie' ? STR.stats.pie : STR.stats.bar }}</span>
-          </div>
-          <div class="card-body">
-            <div v-if="card.type === 'pie'" class="pie-wrap">
-              <div v-if="(cardTagData[card.id] || []).length === 0" class="no-data">{{ STR.stats.noData }}</div>
-              <svg v-else class="pie-svg" viewBox="0 0 700 260" xmlns="http://www.w3.org/2000/svg">
-                <path v-for="s in (pieCharts[card.id] || {}).slices" :key="s.tag"
-                  :d="s.path" :fill="s.color"
-                  :class="['pie-slice', { interactive: card.interactive }]"
-                  @mouseenter="onSliceEnter(card, s)"
-                  @mouseleave="onSliceLeave" />
-                <polyline v-for="l in (pieCharts[card.id] || {}).labels" :key="'ln'+l.tag"
-                  :points="l.linePoints" :stroke="l.color" fill="none"
-                  stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                <text v-for="l in (pieCharts[card.id] || {}).labels" :key="'tx'+l.tag"
-                  :x="l.textX" :y="l.textY" :text-anchor="l.anchor"
-                  class="pie-label" font-size="12">
-                  <tspan :fill="l.color" font-weight="500">{{ l.tag }}</tspan>
-                  <tspan v-if="card.chartData" fill="var(--text2)"> {{ l.dataText }}</tspan>
-                  <tspan v-if="card.chartPercent" fill="var(--text2)"> {{ l.pctText }}</tspan>
-                </text>
-              </svg>
-            </div>
-            <div v-else class="bar-wrap">
-              <div v-if="(cardTagData[card.id] || []).length === 0" class="no-data">{{ STR.stats.noData }}</div>
-              <div v-else class="bar-chart">
-                <div class="bar-row" v-for="d in (cardTagData[card.id] || [])" :key="d.tag"
-                  @mouseenter="onSliceEnter(card, d)"
-                  @mouseleave="onSliceLeave">
-                  <span class="bar-label-exp" :title="d.tag">{{ d.tag }}</span>
-                  <span class="bar-track">
-                    <span class="bar-fill" :style="{ width: barWidth(cardTagData[card.id] || [], d.minutes) + '%', background: d.color }"></span>
-                  </span>
-                  <span class="bar-data">{{ pctOf(cardTagData[card.id] || [], d.minutes) }}</span>
-                  <span class="bar-data">{{ fmtDur(d.minutes) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div v-else class="no-charts">{{ STR.stats.noChart }}</div>
-    </div>
-  </div>
 
   <!-- Create / Settings modal -->
   <div v-if="showCreate || showSettingsIdx !== null" class="overlay" @mousedown.self="closeConfig" @keydown.escape.stop="closeConfig">
@@ -240,9 +167,7 @@ const timeOptions = [
   { value: 'month', label: STR.stats.timeMonth },
 ]
 const timeRange = ref(localStorage.getItem('timelog:stats-time-range') || 'today')
-const showExpanded = ref(false)
 const showTimeMenu = ref(false)
-const showTimeMenu2 = ref(false)
 const customStart = ref('')
 const customEnd = ref('')
 const dateError = ref('')
@@ -586,11 +511,6 @@ function onSliceLeave() {
 
 <style scoped>
 .stats-modal { width: 72vw; max-width: 880px; max-height: 82vh; overflow: auto; }
-.expand-btn { font-size: 12px; border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; background: none; cursor: pointer; margin-left: 8px; vertical-align: middle; }
-.expand-btn:hover { background: var(--soft); }
-.stats-expanded { width: calc(50vw / var(--zoom, 1)); height: calc(50vh / var(--zoom, 1)); max-width: 95vw; max-height: 90vh; overflow: auto; }
-.close-expand { border: none; background: none; font-size: 20px; cursor: pointer; vertical-align: middle; }
-.bar-label-exp { width: 120px; font-size: 13px; text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stats-filter { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
 .filter-dropdown { position: relative; }
 .filter-btn { border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; background: var(--canvas); cursor: pointer; font-size: 13px; }
