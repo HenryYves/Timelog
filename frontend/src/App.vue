@@ -17,7 +17,7 @@
           <button class="dropdown-item" @click="showTagMgr = true; showMore = false"><img src="/icons/tag.svg" alt="">标签</button>
           <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><img src="/icons/text-import.svg" alt="">文本导入</button>
           <button class="dropdown-item" @click="doImport(); showMore = false"><img src="/icons/import.svg" alt="">导入</button>
-          <button class="dropdown-item" @click="doExportJson(); showMore = false"><img src="/icons/export.svg" alt="">导出备份</button>
+          <button class="dropdown-item" @click="showExport = true; exportMode = 'json-export'; showMore = false"><img src="/icons/export.svg" alt="">导出备份</button>
           <button class="dropdown-item" @click="showDataMgr = true; showMore = false"><img src="/icons/data.svg" alt="">管理数据</button>
           <button class="dropdown-item" @click="doBackupNow(); showMore = false"><img src="/icons/backup.svg" alt="">立即备份<span class="dot" :class="bkStatusClass"></span></button>
           <div style="font-size:11px;color:var(--text2);padding:4px 12px 2px;">{{ bkStatusText }}</div>
@@ -59,6 +59,7 @@
       :mode="exportMode"
       :json-import-data="jsonImportData"
       @close="showExport = false; jsonImportData = null"
+      @export-json="onExportJson"
     />
     <TagManager
       v-if="showTagMgr"
@@ -287,16 +288,57 @@ function doImport() {
   input.click()
 }
 
-async function doExportJson() {
+async function onExportJson(opts) {
+  showExport.value = false
+  await doExportJson(opts)
+}
+
+async function doExportJson(opts = {}) {
+  const incDays = opts.days !== false
+  const incTags = opts.tags !== false
+  const incStats = opts.stats !== false
+  const incSettings = opts.settings === true
+
   let tags = []
-  try { tags = JSON.parse(localStorage.getItem('timelog:tags')) || [] } catch {}
-  const data = { version: 2, exported: new Date().toISOString(), tags, days: {} }
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i)
-    if (k.startsWith('timelog:') && /^\d{4}-\d{2}-\d{2}$/.test(k.slice(7))) {
-      try { data.days[k.slice(7)] = JSON.parse(localStorage.getItem(k)) } catch {}
+  if (incTags) {
+    try { tags = JSON.parse(localStorage.getItem('timelog:tags')) || [] } catch {}
+  }
+  const data = { version: 3, exported: new Date().toISOString(), tags, days: {} }
+
+  // Export days
+  if (incDays) {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k.startsWith('timelog:') && /^\d{4}-\d{2}-\d{2}$/.test(k.slice(7))) {
+        try { data.days[k.slice(7)] = JSON.parse(localStorage.getItem(k)) } catch {}
+      }
     }
   }
+
+  // Export stats views
+  if (incStats) {
+    try { data.statsCards = JSON.parse(localStorage.getItem('timelog:stats-cards') || 'null') } catch {}
+    data.statsTimeRange = localStorage.getItem('timelog:stats-time-range') || null
+    data.statsCustomStart = localStorage.getItem('timelog:stats-custom-start') || null
+    data.statsCustomEnd = localStorage.getItem('timelog:stats-custom-end') || null
+  }
+
+  // Export settings
+  if (incSettings) {
+    const settingsKeys = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k && k.startsWith('timelog:') && !k.startsWith('timelog:tags') && !/^\d{4}-\d{2}-\d{2}$/.test(k.slice(7))
+        && !k.startsWith('timelog:stats-') && k !== 'timelog:rolloutCache' && k !== 'timelog:skipVersion' && k !== 'timelog:pendingDownload') {
+        settingsKeys.push(k)
+      }
+    }
+    data.settings = {}
+    settingsKeys.forEach(k => {
+      try { data.settings[k.slice(8)] = localStorage.getItem(k) } catch {}
+    })
+  }
+
   let filename = 'timelog-backup-' + dkey(new Date())
   if (settings.exportTimestamp) {
     const now = new Date()

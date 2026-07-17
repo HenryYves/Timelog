@@ -42,10 +42,38 @@
         </div>
       </template>
 
+      <!-- ======================== JSON EXPORT VIEW ======================== -->
+      <template v-if="mode === 'json-export'">
+        <h2>导出备份</h2>
+        <div class="sub">选择要导出的内容。</div>
+
+        <label>导出内容</label>
+        <div class="check-group">
+          <label><input type="checkbox" v-model="exportDays" checked> 数据</label>
+          <label><input type="checkbox" v-model="exportTags" checked> 标签</label>
+          <label><input type="checkbox" v-model="exportStats" checked> 统计视图</label>
+          <label><input type="checkbox" v-model="exportSettings"> 设置</label>
+        </div>
+
+        <div class="actions">
+          <span class="spacer"></span>
+          <button type="button" class="primary" @click="emit('exportJson', { days: exportDays, tags: exportTags, stats: exportStats, settings: exportSettings })">确认导出</button>
+          <button type="button" @click="emit('close')">取消</button>
+        </div>
+      </template>
+
       <!-- ======================== JSON IMPORT VIEW ======================== -->
       <template v-if="mode === 'json-import' && jsonImportData">
         <h2>导入备份</h2>
         <div class="sub">{{ jsonImportSummary }}</div>
+
+        <label>导入内容</label>
+        <div class="check-group">
+          <label><input type="checkbox" v-model="jsonImportDays"> 数据</label>
+          <label><input type="checkbox" v-model="jsonImportTags"> 标签</label>
+          <label><input type="checkbox" v-model="jsonImportStats"> 统计视图</label>
+          <label v-if="jsonImportData.settings"><input type="checkbox" v-model="jsonImportSettings"> 设置</label>
+        </div>
 
         <label>导入方式</label>
         <div class="radio">
@@ -78,6 +106,7 @@
 import { ref, watch, nextTick } from 'vue'
 import { useTimelogStore, fmt, dkey, fromInput } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
+import { useSettingsStore } from '../store/settings.js'
 import { KEY_PREFIX } from '../constants.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
@@ -89,10 +118,11 @@ const props = defineProps({
   mode: { type: String, default: 'export' }, // 'export' | 'import' | 'json-import'
   jsonImportData: { type: Object, default: null },
 })
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'exportJson'])
 
 const timelogStore = useTimelogStore()
 const tagStore = useTagStore()
+const settingsStore = useSettingsStore()
 const { showAlert } = useConfirm()
 const { toast } = useToast()
 
@@ -229,7 +259,17 @@ async function confirmImport() {
   toast(STR.toast.importCountTo(recs.length, date))
 }
 
+// --- JSON Export ---
+const exportDays = ref(true)
+const exportTags = ref(true)
+const exportStats = ref(true)
+const exportSettings = ref(false)
+
 // --- JSON Import ---
+const jsonImportDays = ref(true)
+const jsonImportTags = ref(true)
+const jsonImportStats = ref(true)
+const jsonImportSettings = ref(false)
 const jsonImportMode = ref('merge')
 const jsonDateFrom = ref('')
 const jsonDateTo = ref('')
@@ -269,59 +309,89 @@ async function confirmJsonImport() {
   const tfm = tf ? fromInput(tf) : null
   const ttm = tt ? fromInput(tt) : null
 
-  // Replace mode: clear all existing day keys
-  if (mode === 'replace') {
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const k = localStorage.key(i)
-      if (isDayKey(k)) localStorage.removeItem(k)
+  const doDays = jsonImportDays.value
+  const doTags = jsonImportTags.value
+  const doStats = jsonImportStats.value
+  const doSettings = jsonImportSettings.value
+
+  // Import days
+  if (doDays) {
+    if (mode === 'replace') {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i)
+        if (isDayKey(k)) localStorage.removeItem(k)
+      }
     }
+
+    Object.keys(data.days).forEach(d => {
+      if (df && d < df) return
+      if (dt && d > dt) return
+      let incoming = data.days[d].filter(b => {
+        if (tfm != null && b.start < tfm) return false
+        if (ttm != null && b.start > ttm) return false
+        return true
+      })
+      if (!incoming.length) return
+
+      const key = KEY_PREFIX + d
+      let existing = []
+      try { existing = JSON.parse(localStorage.getItem(key)) || [] } catch { /* empty */ }
+      if (mode === 'merge') {
+        const map = {}
+        existing.concat(incoming).forEach(b => {
+          map[b.id || ('b' + b.start + '-' + b.end + Math.random())] = b
+        })
+        existing = Object.values(map)
+      } else {
+        existing = incoming
+      }
+      localStorage.setItem(key, JSON.stringify(existing))
+    })
   }
 
-  // Import tags from backup
-  if (data.tags) {
+  // Import tags
+  if (doTags && data.tags) {
+    if (mode === 'replace') {
+      tagStore.tags.splice(0, tagStore.tags.length)
+    }
     data.tags.forEach(t => {
       if (t && t.name && !tagStore.tags.find(x => x.name === t.name)) {
         tagStore.addTag({ name: t.name, color: t.color || '#8A8A8A', group: t.group || '' })
       }
     })
+    tagStore.saveTags()
   }
 
-  // Import filtered days
-  Object.keys(data.days).forEach(d => {
-    if (df && d < df) return
-    if (dt && d > dt) return
-    let incoming = data.days[d].filter(b => {
-      if (tfm != null && b.start < tfm) return false
-      if (ttm != null && b.start > ttm) return false
-      return true
-    })
-    if (!incoming.length) return
+  // Import stats views
+  if (doStats) {
+    if (data.statsCards) localStorage.setItem('timelog:stats-cards', JSON.stringify(data.statsCards))
+    if (data.statsTimeRange) localStorage.setItem('timelog:stats-time-range', data.statsTimeRange)
+    if (data.statsCustomStart) localStorage.setItem('timelog:stats-custom-start', data.statsCustomStart)
+    if (data.statsCustomEnd) localStorage.setItem('timelog:stats-custom-end', data.statsCustomEnd)
+  }
 
-    const key = KEY_PREFIX + d
-    let existing = []
-    try { existing = JSON.parse(localStorage.getItem(key)) || [] } catch { /* empty */ }
-    if (mode === 'merge') {
-      const map = {}
-      existing.concat(incoming).forEach(b => {
-        map[b.id || ('b' + b.start + '-' + b.end + Math.random())] = b
-      })
-      existing = Object.values(map)
-    } else {
-      existing = incoming
-    }
-    localStorage.setItem(key, JSON.stringify(existing))
-  })
+  // Import settings
+  if (doSettings && data.settings) {
+    Object.entries(data.settings).forEach(([key, val]) => {
+      localStorage.setItem('timelog:' + key, val)
+    })
+    settingsStore.reloadSettings()
+  }
 
   emit('close')
   timelogStore.loadBlocks()
   tagStore.loadTags()
   scheduleSave()
-  showAlert('导入完成。')
+  toast(STR.toast.imported)
 }
 
 // Watch mode changes to initialize JSON import state
 watch(() => [props.mode, props.jsonImportData], ([mode, data]) => {
   if (mode === 'json-import' && data && data.days) {
+    jsonImportDays.value = true
+    jsonImportTags.value = true
+    jsonImportStats.value = true
+    jsonImportSettings.value = false
     jsonImportMode.value = 'merge'
     jsonDateFrom.value = ''
     jsonDateTo.value = ''
@@ -357,6 +427,21 @@ watch(() => [props.mode, props.jsonImportData], ([mode, data]) => {
   color: var(--green);
   font-size: 13px;
   font-weight: 600;
+}
+.check-group {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 13.5px;
+  flex-wrap: wrap;
+}
+.check-group label {
+  margin: 0;
+  color: var(--text);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 .radio {
   display: flex;

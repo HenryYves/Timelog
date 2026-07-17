@@ -142,6 +142,30 @@ export const useSettingsStore = defineStore('settings', () => {
     else { localStorage.removeItem(KEY_PREFIX + 'customCss') }
   }
 
+  function reloadSettings() {
+    defaultDuration.value = loadNum('defaultDuration', DEFAULT_DURATION)
+    autoScroll.value = loadBool('autoScroll', DEFAULT_AUTO_SCROLL)
+    exportTimestamp.value = loadBool('exportTimestamp', DEFAULT_EXPORT_TIMESTAMP)
+    exportDialog.value = loadBool('exportDialog', DEFAULT_EXPORT_DIALOG)
+    blockOpacity.value = loadNum('blockOpacity', DEFAULT_OPACITY)
+    bkCustomPath.value = (localStorage.getItem(KEY_PREFIX + 'bkCustomPath') || '')
+    borderless.value = loadBool('borderless', DEFAULT_BORDERLESS)
+    keepDays.value = loadNum('keepDays', DEFAULT_KEEP_DAYS)
+    backupOn.value = loadBool('backupOn', DEFAULT_BACKUP_ON)
+    autoUpdate.value = loadBool('autoUpdate', DEFAULT_AUTO_UPDATE)
+    tagDelimiters.value = localStorage.getItem(KEY_PREFIX + 'tagDelimiters') || DEFAULT_TAG_DELIMITERS
+    zoom.value = loadNum('zoom', DEFAULT_ZOOM)
+    fontFamily.value = (localStorage.getItem(KEY_PREFIX + 'fontFamily') || '')
+    checkBeforeCreate.value = loadBool('checkBeforeCreate', DEFAULT_CHECK_BEFORE_CREATE)
+    copyAfterCreate.value = loadBool('copyAfterCreate', DEFAULT_COPY_AFTER_CREATE)
+    markdownPreview.value = loadBool('markdownPreview', DEFAULT_MARKDOWN_PREVIEW)
+    batchMarkdownPreview.value = loadBool('batchMarkdownPreview', DEFAULT_BATCH_MARKDOWN_PREVIEW)
+    tabToIndent.value = loadBool('tabToIndent', DEFAULT_TAB_TO_INDENT)
+    batchTabToIndent.value = loadBool('batchTabToIndent', DEFAULT_BATCH_TAB_TO_INDENT)
+    editorFontSize.value = loadNum('editorFontSize', DEFAULT_EDITOR_FONT_SIZE)
+    customCss.value = (localStorage.getItem(KEY_PREFIX + 'customCss') || '')
+  }
+
   return {
     defaultDuration, autoScroll, exportTimestamp, exportDialog,
     blockOpacity, bkCustomPath, borderless, keepDays, backupOn, autoUpdate, tagDelimiters,
@@ -151,5 +175,6 @@ export const useSettingsStore = defineStore('settings', () => {
     setBlockOpacity, setBkCustomPath, setBorderless, setKeepDays, setBackupOn, setAutoUpdate, setTagDelimiters,
     setZoom, setFontFamily, setCheckBeforeCreate, setCopyAfterCreate,
     setMarkdownPreview, setBatchMarkdownPreview, setTabToIndent, setBatchTabToIndent, setEditorFontSize, setCustomCss,
+    reloadSettings,
   }
 })
