@@ -188,6 +188,7 @@ export const STR = {
     timeCustom: '自定义',
     invalidDate: '日期格式无效，请输入 yyyy-mm-dd',
     createTitle: '新建视图',
+    viewName: '视图名称',
     chartType: '图表类型',
     pie: '饼图',
     bar: '柱状图',

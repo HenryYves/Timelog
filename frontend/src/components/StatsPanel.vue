@@ -30,7 +30,7 @@
       <div class="stats-cards" v-if="cards.length > 0">
         <div class="stat-card" v-for="(card, idx) in cards" :key="card.id">
           <div class="card-header">
-            <span class="card-title">{{ card.type === 'pie' ? STR.stats.pie : STR.stats.bar }}</span>
+            <span class="card-title">{{ card.name || (card.type === 'pie' ? STR.stats.pie : STR.stats.bar) }}</span>
             <span v-if="hovered && hovered.cardId === card.id" class="hover-badge">
               <span class="hover-dot" :style="{ background: hovered.color }"></span>
               {{ hovered.tag }}
@@ -112,6 +112,8 @@
     <div class="modal config-modal">
       <h3>{{ editingCard ? STR.stats.settings : STR.stats.createTitle }}</h3>
       <div class="config-form">
+        <label>{{ STR.stats.viewName }}</label>
+        <input type="text" v-model="configName" class="name-input" :placeholder="configType === 'pie' ? STR.stats.pie : STR.stats.bar" maxlength="20" />
         <label>{{ STR.stats.chartType }}</label>
         <select v-model="configType">
           <option value="pie">{{ STR.stats.pie }}</option>
@@ -202,6 +204,7 @@ watch(cards, (v) => localStorage.setItem('timelog:stats-cards', JSON.stringify(v
 const showCreate = ref(false)
 const showSettingsIdx = ref(null)
 const editingCard = computed(() => showSettingsIdx.value !== null ? cards.value[showSettingsIdx.value] : null)
+const configName = ref('')
 const configType = ref('pie')
 const configOnlyFirst = ref(true)
 const configIncludeUntagged = ref(false)
@@ -216,6 +219,7 @@ const configInteractive = ref(true)
 
 function openSettings(idx) {
   const c = cards.value[idx]
+  configName.value = c.name || ''
   configType.value = c.type
   configOnlyFirst.value = c.onlyFirstTag
   configIncludeUntagged.value = c.includeUntagged || false
@@ -238,6 +242,7 @@ function closeConfig() {
 function saveConfig() {
   const card = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    name: configName.value.trim() || '',
     type: configType.value,
     onlyFirstTag: configOnlyFirst.value,
     includeUntagged: configIncludeUntagged.value,
@@ -621,7 +626,8 @@ function onSliceLeave() {
 .config-modal { max-width: 380px; }
 .config-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
 .config-form label { font-size: 14px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
-.config-form select, .tag-input { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 14px; background: var(--canvas); }
+.config-form select, .tag-input, .name-input { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 14px; background: var(--canvas); }
+.name-input { width: 100%; }
 .tag-input { width: 100%; }
 .config-groups { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0; }
 .config-groups > span { width: 100%; font-size: 13px; font-weight: 600; color: var(--text2); padding-bottom: 2px; }
