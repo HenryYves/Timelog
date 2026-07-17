@@ -102,7 +102,7 @@
       <div v-else class="no-charts">{{ STR.stats.noChart }}</div>
 
       <!-- Add button -->
-      <button class="add-view-btn" @click="showCreate = true">+ {{ STR.stats.addView }}</button>
+      <button class="add-view-btn" @click="showCreate = true">{{ STR.stats.addView }}</button>
     </div>
   </div>
 
@@ -168,8 +168,10 @@ const timeOptions = [
 ]
 const timeRange = ref(localStorage.getItem('timelog:stats-time-range') || 'today')
 const showTimeMenu = ref(false)
-const customStart = ref('')
-const customEnd = ref('')
+const customStart = ref(localStorage.getItem('timelog:stats-custom-start') || '')
+const customEnd = ref(localStorage.getItem('timelog:stats-custom-end') || '')
+watch(customStart, (v) => v ? localStorage.setItem('timelog:stats-custom-start', v) : localStorage.removeItem('timelog:stats-custom-start'))
+watch(customEnd, (v) => v ? localStorage.setItem('timelog:stats-custom-end', v) : localStorage.removeItem('timelog:stats-custom-end'))
 const dateError = ref('')
 
 function validateDates() {
