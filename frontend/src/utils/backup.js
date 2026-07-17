@@ -68,13 +68,28 @@ export function getAllData() {
   }
   let tags = []
   try { tags = JSON.parse(localStorage.getItem(KEY_PREFIX + 'tags')) || [] } catch (e) { logger.error('backup', 'getAllData parse tags failed', e) }
-  return {
+  const data = {
     app: 'timelog',
-    version: 2,
+    version: 3,
     updatedAt: new Date().toISOString(),
     tags,
     days,
   }
+  // Stats
+  try { data.statsCards = JSON.parse(localStorage.getItem('timelog:stats-cards') || 'null') } catch {}
+  data.statsTimeRange = localStorage.getItem('timelog:stats-time-range') || null
+  data.statsCustomStart = localStorage.getItem('timelog:stats-custom-start') || null
+  data.statsCustomEnd = localStorage.getItem('timelog:stats-custom-end') || null
+  // Settings
+  data.settings = {}
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i)
+    if (k && k.startsWith(KEY_PREFIX) && k !== KEY_PREFIX + 'tags' && !isDayKey(k)
+      && !k.startsWith('timelog:stats-') && k !== 'timelog:rolloutCache' && k !== 'timelog:skipVersion' && k !== 'timelog:pendingDownload') {
+      try { data.settings[k.slice(KEY_PREFIX.length)] = localStorage.getItem(k) } catch {}
+    }
+  }
+  return data
 }
 
 function normColor(c) {
@@ -96,6 +111,17 @@ export function restoreAllData(data) {
       if (Array.isArray(data.days[d]) && data.days[d].length) {
         localStorage.setItem(KEY_PREFIX + d, JSON.stringify(data.days[d]))
       }
+    })
+  }
+  // Restore stats
+  if (data.statsCards) localStorage.setItem('timelog:stats-cards', JSON.stringify(data.statsCards))
+  if (data.statsTimeRange) localStorage.setItem('timelog:stats-time-range', data.statsTimeRange)
+  if (data.statsCustomStart) localStorage.setItem('timelog:stats-custom-start', data.statsCustomStart)
+  if (data.statsCustomEnd) localStorage.setItem('timelog:stats-custom-end', data.statsCustomEnd)
+  // Restore settings
+  if (data.settings) {
+    Object.entries(data.settings).forEach(([key, val]) => {
+      localStorage.setItem(KEY_PREFIX + key, val)
     })
   }
 }
