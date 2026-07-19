@@ -127,7 +127,10 @@
         </div>
         <div class="export-right">
           <!-- preview canvas -->
-          <canvas ref="previewCanvas" class="preview-canvas"></canvas>
+          <canvas ref="previewCanvas" class="preview-canvas"
+            @mousedown="onPreviewMouseDown"
+            @wheel.prevent="onPreviewWheel"
+          ></canvas>
         </div>
       </div>
       <div class="actions">
@@ -205,6 +208,53 @@ watch(settings, () => {
 const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close'])
 const previewCanvas = ref(null)
+const previewOffset = reactive({ x: 0, y: 0 })
+const previewScale = ref(1)
+let _panStart = null
+let _panOffset = null
+
+function onPreviewMouseDown(e) {
+  _panStart = { x: e.clientX, y: e.clientY }
+  _panOffset = { x: previewOffset.x, y: previewOffset.y }
+  document.addEventListener('mousemove', onPreviewMouseMove)
+  document.addEventListener('mouseup', onPreviewMouseUp)
+}
+
+function onPreviewMouseMove(e) {
+  if (!_panStart) return
+  previewOffset.x = _panOffset.x + (e.clientX - _panStart.x)
+  previewOffset.y = _panOffset.y + (e.clientY - _panStart.y)
+  applyPreviewTransform()
+}
+
+function onPreviewMouseUp() {
+  _panStart = null
+  document.removeEventListener('mousemove', onPreviewMouseMove)
+  document.removeEventListener('mouseup', onPreviewMouseUp)
+}
+
+function onPreviewWheel(e) {
+  e.preventDefault()
+  const rect = previewCanvas.value.getBoundingClientRect()
+  const mx = e.clientX - rect.left
+  const my = e.clientY - rect.top
+  const factor = e.deltaY < 0 ? 1.1 : 0.9
+  const newScale = Math.max(0.1, Math.min(5, previewScale.value * factor))
+
+  // Zoom centered on mouse
+  previewOffset.x = mx - (mx - previewOffset.x) * (newScale / previewScale.value)
+  previewOffset.y = my - (my - previewOffset.y) * (newScale / previewScale.value)
+  previewScale.value = newScale
+  applyPreviewTransform()
+}
+
+function applyPreviewTransform() {
+  if (!previewCanvas.value) return
+  previewCanvas.value.style.transform =
+    `translate(${previewOffset.x}px, ${previewOffset.y}px) scale(${previewScale.value})`
+  previewCanvas.value.style.transformOrigin = '0 0'
+}
+
 const timelogStore = useTimelogStore()
 const tagStore = useTagStore()
 
@@ -454,9 +504,9 @@ function doExport() {
 .export-right {
   flex: 1; display: flex; align-items: flex-start; justify-content: center;
   background: var(--soft); border-radius: 8px; overflow: hidden;
-  min-height: 400px;
+  min-height: 400px; cursor: grab;
 }
-.preview-canvas { max-width: 100%; height: auto; }
+.preview-canvas { max-width: 100%; height: auto; transition: transform 0.05s ease-out; }
 .actions { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
 .spacer { flex: 1; }
 .placeholder { color: var(--text2); padding: 20px; }
