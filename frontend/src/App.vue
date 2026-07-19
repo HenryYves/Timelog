@@ -500,6 +500,14 @@ function onWindowKeyDown(e) {
     exportMode.value = 'export'
     return
   }
+  if (e.key === 'ArrowLeft') {
+    store.goPrevDay()
+    return
+  }
+  if (e.key === 'ArrowRight') {
+    store.goNextDay()
+    return
+  }
   if (e.key === '?' && !showHelp.value) {
     e.preventDefault()
     showHelp.value = true
