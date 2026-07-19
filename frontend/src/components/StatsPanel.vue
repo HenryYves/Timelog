@@ -257,7 +257,7 @@ function saveConfig() {
     type: configType.value,
     onlyFirstTag: configOnlyFirst.value,
     includeUntagged: configIncludeUntagged.value,
-    excludeTags: configExcludeTags.value ? configExcludeTags.value.split(',').map(s => s.trim()).filter(Boolean) : [],
+    excludeTags: configExcludeTags.value ? configExcludeTags.value.split(/[,，]/).map(s => s.trim()).filter(Boolean) : [],
     filterGroups: configFilterGroups.value,
     showLegend: configShowLegend.value,
     legendData: configLegendData.value,
