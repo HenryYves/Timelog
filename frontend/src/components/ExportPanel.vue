@@ -410,8 +410,9 @@ watch(() => [props.mode, props.jsonImportData], ([mode, data]) => {
   height: 56vh;
   font-family: Menlo, Consolas, monospace;
   font-size: 12.5px;
-  white-space: pre;
-  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px;

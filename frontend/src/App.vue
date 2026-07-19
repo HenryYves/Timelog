@@ -13,6 +13,7 @@
       <div class="more-wrap">
         <button class="more-btn" id="moreBtn" title="更多" @click="showMore = !showMore"><img src="/icons/more.svg" alt="更多"></button>
         <div class="dropdown" :class="{ open: showMore }" @keydown.escape.stop="showMore = false">
+          <button class="dropdown-item" @click="showStats = true; showMore = false"><img src="/icons/stats.svg" alt="">统计</button>
           <button class="dropdown-item" @click="showSettings = true; showMore = false"><img src="/icons/settings.svg" alt="">设置</button>
           <button class="dropdown-item" @click="showTagMgr = true; showMore = false"><img src="/icons/tag.svg" alt="">标签</button>
           <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><img src="/icons/text-import.svg" alt="">文本导入</button>
@@ -23,8 +24,7 @@
           <div style="font-size:11px;color:var(--text2);padding:4px 12px 2px;">{{ bkStatusText }}</div>
         </div>
       </div>
-      <button id="statsBtn" class="primary" @click="showStats = true">统计</button>
-      <button id="exportBtn" class="primary" @click="showMore = false; showExport = true; exportMode = 'export'">导出文本</button>
+<button id="exportBtn" class="primary" @click="showMore = false; showExport = true; exportMode = 'export'">导出文本</button>
       <span class="win-ctrls" :class="{ on: winCtrlActive }" id="winCtrls">
         <button class="win-btn" id="winMin" title="最小化" @click="onWinMin"><img src="/icons/win-min.svg" alt=""></button>
         <button class="win-btn" id="winMax" :title="isMaximized ? '还原' : '最大化'" @click="onWinMax"><img :src="isMaximized ? '/icons/win-restore.svg' : '/icons/win-max.svg'" alt=""></button>
@@ -489,6 +489,17 @@ function onWindowKeyDown(e) {
 
   const tag = e.target.tagName
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+  if (e.key === 's' || e.key === 'S') {
+    e.preventDefault()
+    showStats.value = true
+    return
+  }
+  if (e.key === 'p' || e.key === 'P') {
+    e.preventDefault()
+    showExport.value = true
+    exportMode.value = 'export'
+    return
+  }
   if (e.key === '?' && !showHelp.value) {
     e.preventDefault()
     showHelp.value = true
