@@ -246,6 +246,20 @@
             <div class="small">{{ STR.settings.descZoom }}</div>
 
             <div class="row">
+              <label>{{ STR.settings.borderless }}</label>
+              <div>
+                <label class="toggle"><input type="checkbox" :checked="settings.borderless" @change="onBorderlessChange"><span class="tk"></span></label>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBorderless(DEFAULT_BORDERLESS)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descBorderless }}</div>
+
+            <!-- 时间块 -->
+            <div class="sub-head">{{ STR.settings.sectionBlockDisplay }}</div>
+
+            <div class="row">
               <label>{{ STR.settings.blockOpacity }} <span class="val-hint">{{ settings.blockOpacity }}%</span></label>
               <div>
                 <input type="range" min="5" max="200" :value="settings.blockOpacity" @input="onOpacityInput" style="width:180px;">
@@ -257,15 +271,45 @@
             <div class="small">{{ STR.settings.descBlockOpacity }}</div>
 
             <div class="row">
-              <label>{{ STR.settings.borderless }}</label>
+              <label>{{ STR.settings.showBlockTitle }}</label>
               <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.borderless" @change="onBorderlessChange"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBorderless(DEFAULT_BORDERLESS)">
-                  <img src="/icons/restore.svg" alt="">
-                </button>
+                <label class="toggle"><input type="checkbox" :checked="settings.showBlockTitle" @change="settings.setShowBlockTitle($event.target.checked)"><span class="tk"></span></label>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTitle(DEFAULT_SHOW_BLOCK_TITLE)"><img src="/icons/restore.svg" alt=""></button>
               </div>
             </div>
-            <div class="small">{{ STR.settings.descBorderless }}</div>
+
+            <div class="row">
+              <label>{{ STR.settings.showBlockTime }}</label>
+              <div>
+                <label class="toggle"><input type="checkbox" :checked="settings.showBlockTime" @change="settings.setShowBlockTime($event.target.checked)"><span class="tk"></span></label>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTime(DEFAULT_SHOW_BLOCK_TIME)"><img src="/icons/restore.svg" alt=""></button>
+              </div>
+            </div>
+
+            <div class="row">
+              <label>{{ STR.settings.showBlockTags }}</label>
+              <div>
+                <label class="toggle"><input type="checkbox" :checked="settings.showBlockTags" @change="settings.setShowBlockTags($event.target.checked)"><span class="tk"></span></label>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTags(DEFAULT_SHOW_BLOCK_TAGS)"><img src="/icons/restore.svg" alt=""></button>
+              </div>
+            </div>
+
+            <div class="row">
+              <label>{{ STR.settings.showBlockNote }}</label>
+              <div>
+                <label class="toggle"><input type="checkbox" :checked="settings.showBlockNote" @change="settings.setShowBlockNote($event.target.checked)"><span class="tk"></span></label>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockNote(DEFAULT_SHOW_BLOCK_NOTE)"><img src="/icons/restore.svg" alt=""></button>
+              </div>
+            </div>
+
+            <div class="row">
+              <label>{{ STR.settings.showBlockColorBar }}</label>
+              <div>
+                <label class="toggle"><input type="checkbox" :checked="settings.showBlockColorBar" @change="settings.setShowBlockColorBar($event.target.checked)"><span class="tk"></span></label>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockColorBar(DEFAULT_SHOW_BLOCK_COLOR_BAR)"><img src="/icons/restore.svg" alt=""></button>
+              </div>
+            </div>
+
           </div>
 
           <!-- ═══════ 文件 ═══════ -->
@@ -363,6 +407,7 @@ import {
   DEFAULT_TAG_DELIMITERS, DEFAULT_ZOOM, DEFAULT_FONT_FAMILY,
   DEFAULT_CHECK_BEFORE_CREATE, DEFAULT_COPY_AFTER_CREATE,
   DEFAULT_MARKDOWN_PREVIEW, DEFAULT_BATCH_MARKDOWN_PREVIEW, DEFAULT_TAB_TO_INDENT, DEFAULT_BATCH_TAB_TO_INDENT, DEFAULT_EDITOR_FONT_SIZE,
+  DEFAULT_SHOW_BLOCK_TITLE, DEFAULT_SHOW_BLOCK_TIME, DEFAULT_SHOW_BLOCK_TAGS, DEFAULT_SHOW_BLOCK_NOTE, DEFAULT_SHOW_BLOCK_COLOR_BAR,
 } from '../constants.js'
 import { STR } from '../strings.js'
 
@@ -611,6 +656,11 @@ function resetCategory(cat) {
   margin: 16px 0 6px;
   padding-top: 8px;
   border-top: 1px solid var(--border);
+}
+.sub-head {
+  font-size: 12px; font-weight: 600; color: var(--text2);
+  margin: 14px 0 4px; padding-top: 8px;
+  border-top: 1px solid var(--soft);
 }
 .section-title {
   font-size: 12px;

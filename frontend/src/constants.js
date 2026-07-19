@@ -34,6 +34,11 @@ export const DEFAULT_TAB_TO_INDENT = true
 export const DEFAULT_BATCH_TAB_TO_INDENT = true
 export const DEFAULT_EDITOR_FONT_SIZE = 14
 export const DEFAULT_CUSTOM_CSS = ''
+export const DEFAULT_SHOW_BLOCK_TITLE = true
+export const DEFAULT_SHOW_BLOCK_TIME = true
+export const DEFAULT_SHOW_BLOCK_TAGS = true
+export const DEFAULT_SHOW_BLOCK_NOTE = true
+export const DEFAULT_SHOW_BLOCK_COLOR_BAR = true
 
 // ---------- UI ----------
 export const APP_VERSION = 'v0.8.8'

@@ -6,6 +6,7 @@ import {
   DEFAULT_BORDERLESS, DEFAULT_BACKUP_ON, DEFAULT_AUTO_UPDATE, DEFAULT_TAG_DELIMITERS,
   DEFAULT_ZOOM, DEFAULT_FONT_FAMILY, DEFAULT_CHECK_BEFORE_CREATE, DEFAULT_COPY_AFTER_CREATE,
   DEFAULT_MARKDOWN_PREVIEW, DEFAULT_BATCH_MARKDOWN_PREVIEW, DEFAULT_TAB_TO_INDENT, DEFAULT_BATCH_TAB_TO_INDENT, DEFAULT_EDITOR_FONT_SIZE, DEFAULT_CUSTOM_CSS,
+  DEFAULT_SHOW_BLOCK_TITLE, DEFAULT_SHOW_BLOCK_TIME, DEFAULT_SHOW_BLOCK_TAGS, DEFAULT_SHOW_BLOCK_NOTE, DEFAULT_SHOW_BLOCK_COLOR_BAR,
 } from '../constants.js'
 
 function loadNum(k, d) {
@@ -40,6 +41,11 @@ export const useSettingsStore = defineStore('settings', () => {
   const batchTabToIndent = ref(loadBool('batchTabToIndent', DEFAULT_BATCH_TAB_TO_INDENT))
   const editorFontSize = ref(loadNum('editorFontSize', DEFAULT_EDITOR_FONT_SIZE))
   const customCss = ref(localStorage.getItem(KEY_PREFIX + 'customCss') || DEFAULT_CUSTOM_CSS)
+  const showBlockTitle = ref(loadBool('showBlockTitle', DEFAULT_SHOW_BLOCK_TITLE))
+  const showBlockTime = ref(loadBool('showBlockTime', DEFAULT_SHOW_BLOCK_TIME))
+  const showBlockTags = ref(loadBool('showBlockTags', DEFAULT_SHOW_BLOCK_TAGS))
+  const showBlockNote = ref(loadBool('showBlockNote', DEFAULT_SHOW_BLOCK_NOTE))
+  const showBlockColorBar = ref(loadBool('showBlockColorBar', DEFAULT_SHOW_BLOCK_COLOR_BAR))
 
   function saveNum(k, v) { localStorage.setItem(KEY_PREFIX + k, String(v)) }
   function saveBool(k, v) { localStorage.setItem(KEY_PREFIX + k, v ? '1' : '0') }
@@ -141,6 +147,11 @@ export const useSettingsStore = defineStore('settings', () => {
     if (customCss.value) { localStorage.setItem(KEY_PREFIX + 'customCss', customCss.value) }
     else { localStorage.removeItem(KEY_PREFIX + 'customCss') }
   }
+  function setShowBlockTitle(v) { showBlockTitle.value = v; saveBool('showBlockTitle', v) }
+  function setShowBlockTime(v) { showBlockTime.value = v; saveBool('showBlockTime', v) }
+  function setShowBlockTags(v) { showBlockTags.value = v; saveBool('showBlockTags', v) }
+  function setShowBlockNote(v) { showBlockNote.value = v; saveBool('showBlockNote', v) }
+  function setShowBlockColorBar(v) { showBlockColorBar.value = v; saveBool('showBlockColorBar', v) }
 
   function reloadSettings() {
     defaultDuration.value = loadNum('defaultDuration', DEFAULT_DURATION)
@@ -164,6 +175,11 @@ export const useSettingsStore = defineStore('settings', () => {
     batchTabToIndent.value = loadBool('batchTabToIndent', DEFAULT_BATCH_TAB_TO_INDENT)
     editorFontSize.value = loadNum('editorFontSize', DEFAULT_EDITOR_FONT_SIZE)
     customCss.value = (localStorage.getItem(KEY_PREFIX + 'customCss') || '')
+    showBlockTitle.value = loadBool('showBlockTitle', DEFAULT_SHOW_BLOCK_TITLE)
+    showBlockTime.value = loadBool('showBlockTime', DEFAULT_SHOW_BLOCK_TIME)
+    showBlockTags.value = loadBool('showBlockTags', DEFAULT_SHOW_BLOCK_TAGS)
+    showBlockNote.value = loadBool('showBlockNote', DEFAULT_SHOW_BLOCK_NOTE)
+    showBlockColorBar.value = loadBool('showBlockColorBar', DEFAULT_SHOW_BLOCK_COLOR_BAR)
   }
 
   return {
@@ -174,6 +190,8 @@ export const useSettingsStore = defineStore('settings', () => {
     setDuration, setAutoScroll, setExportTimestamp, setExportDialog,
     setBlockOpacity, setBkCustomPath, setBorderless, setKeepDays, setBackupOn, setAutoUpdate, setTagDelimiters,
     setZoom, setFontFamily, setCheckBeforeCreate, setCopyAfterCreate,
+    showBlockTitle, showBlockTime, showBlockTags, showBlockNote, showBlockColorBar,
+    setShowBlockTitle, setShowBlockTime, setShowBlockTags, setShowBlockNote, setShowBlockColorBar,
     setMarkdownPreview, setBatchMarkdownPreview, setTabToIndent, setBatchTabToIndent, setEditorFontSize, setCustomCss,
     reloadSettings,
   }

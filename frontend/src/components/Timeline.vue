@@ -61,7 +61,7 @@
         @click="onBlockClick($event, ev)"
         @contextmenu.prevent="onBlockContextMenu(ev)"
       >
-        <div class="cbar">
+        <div v-if="settingsStore.showBlockColorBar" class="cbar">
           <i
             v-for="(t, ti) in (ev.tags || [])"
             :key="ti"
@@ -69,15 +69,15 @@
           />
           <i v-if="!ev.tags || !ev.tags.length" style="background:#C4C3C0" />
         </div>
-        <div class="bt">{{ ev.title || '(未命名)' }}</div>
+        <div v-if="settingsStore.showBlockTitle" class="bt">{{ ev.title || '(未命名)' }}</div>
         <div
-          v-if="(ev.end - ev.start) * PX_MIN >= 32"
+          v-if="settingsStore.showBlockTime && (ev.end - ev.start) * PX_MIN >= 32"
           class="bs"
         >
           {{ fmt(ev.start) }}–{{ fmt(ev.end) }}
         </div>
         <div
-          v-if="(ev.end - ev.start) * PX_MIN >= 50 && ev.tags && ev.tags.length"
+          v-if="settingsStore.showBlockTags && (ev.end - ev.start) * PX_MIN >= 50 && ev.tags && ev.tags.length"
           class="btags"
         >
           <span v-for="t in ev.tags" :key="t">
@@ -85,7 +85,7 @@
           </span>
         </div>
         <div
-          v-if="ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48)"
+          v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48)"
           class="bnote"
           v-html="mdToHtml(ev.note)"
         />
