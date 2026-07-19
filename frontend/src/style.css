@@ -17,8 +17,22 @@ header {
   padding: 10px 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
 header h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: .2px; white-space: nowrap; }
-.datenav { display: flex; align-items: center; gap: 4px; }
-.datenav .date { font-weight: 600; min-width: 150px; text-align: center; }
+.datenav { display: flex; align-items: center; gap: 4px; position: relative; }
+.datenav .date { font-weight: 600; min-width: 150px; text-align: center; cursor: pointer; user-select: none; }
+.date-popover {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  background: var(--canvas); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px; z-index: 20; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.date-popover input[type="date"] { font-size: 14px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; }
+.date-jump {
+  position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  background: var(--canvas); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px; z-index: 20; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  display: flex; gap: 6px;
+}
+.date-jump input { width: 130px; font-size: 14px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; }
+.date-jump button { font-size: 13px; }
 .spacer { flex: 1; }
 header, header h1, header .datenav, header .date, header .spacer, header .version {
   user-select: none;

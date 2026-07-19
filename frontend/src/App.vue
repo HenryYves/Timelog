@@ -4,7 +4,14 @@
       <h1><img src="/icons/icon.svg" class="logo" alt=""><img src="/icons/timelog.svg" class="logo-text" alt="Timelog"></h1>
       <div class="datenav">
         <button class="icon" @click="store.goPrevDay()">‹</button>
-        <span class="date">{{ dateLabel }}</span>
+        <span class="date" @click.stop="showDateMenu = !showDateMenu" @dblclick.stop="showDateJump = true; showDateMenu = false">{{ dateLabel }}</span>
+        <div class="date-popover" v-if="showDateMenu" @mousedown.stop @keydown.escape.stop="showDateMenu = false">
+          <input type="date" :value="fmtDateInput(store.curDate)" @change="onDatePick($event.target.value)" />
+        </div>
+        <div class="date-jump" v-if="showDateJump" @mousedown.stop @keydown.escape.stop="showDateJump = false">
+          <input type="text" v-model="jumpDate" placeholder="yyyy-mm-dd" maxlength="10" @keydown.enter="onDateJump" />
+          <button @click="onDateJump">跳转</button>
+        </div>
         <button class="icon" @click="store.goNextDay()">›</button>
         <button @click="store.goToday()">今天</button>
       </div>
@@ -149,9 +156,16 @@ const exportMode = ref('export')
 
 // More dropdown
 const showMore = ref(false)
+const showDateMenu = ref(false)
+const showDateJump = ref(false)
+const jumpDate = ref('')
 const showMoreClose = useModal(showMore)
 
-function closeMore(e) { if (!e.target.closest('.more-wrap')) showMore.value = false }
+function closeMore(e) {
+  if (!e.target.closest('.more-wrap')) showMore.value = false
+  if (!e.target.closest('.date-popover') && !e.target.closest('.date')) showDateMenu.value = false
+  if (!e.target.closest('.date-jump') && !e.target.closest('.date')) showDateJump.value = false
+}
 
 // ── Rollout gate ──
 
@@ -192,6 +206,26 @@ const dateLabel = computed(() => {
   const wd = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()]
   return d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日 ' + wd
 })
+
+function fmtDateInput(d) { return dkey(d) }
+
+function onDatePick(val) {
+  if (!val) return
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return
+  store.setDate(d)
+  showDateMenu.value = false
+}
+
+function onDateJump() {
+  const v = jumpDate.value.trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return
+  const d = new Date(v)
+  if (isNaN(d.getTime())) return
+  store.setDate(d)
+  jumpDate.value = ''
+  showDateJump.value = false
+}
 
 // ── Modal stack ──
 const modalStack = ref([])
