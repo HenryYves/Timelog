@@ -26,6 +26,7 @@
           <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><img src="/icons/text-import.svg" alt="">文本导入</button>
           <button class="dropdown-item" @click="doImport(); showMore = false"><img src="/icons/import.svg" alt="">导入</button>
           <button class="dropdown-item" @click="showExport = true; exportMode = 'json-export'; showMore = false"><img src="/icons/export.svg" alt="">导出备份</button>
+          <button class="dropdown-item" @click="showExportImage = true; showMore = false"><img src="/icons/export-image.svg" alt="">导出切图</button>
           <button class="dropdown-item" @click="showDataMgr = true; showMore = false"><img src="/icons/data.svg" alt="">管理数据</button>
           <button class="dropdown-item" @click="doBackupNow(); showMore = false"><img src="/icons/backup.svg" alt="">立即备份<span class="dot" :class="bkStatusClass"></span></button>
           <div style="font-size:11px;color:var(--text2);padding:4px 12px 2px;">{{ bkStatusText }}</div>
@@ -112,6 +113,11 @@
       :show="showStats"
       @close="showStats = false"
     />
+    <ExportImagePanel
+      v-if="showExportImage"
+      :show="showExportImage"
+      @close="showExportImage = false"
+    />
   </div>
 </template>
 
@@ -141,6 +147,7 @@ import HelpPanel from './components/HelpPanel.vue'
 import UpdateDialog from './components/UpdateDialog.vue'
 import BatchCreatePanel from './components/BatchCreatePanel.vue'
 import StatsPanel from './components/StatsPanel.vue'
+import ExportImagePanel from './components/ExportImagePanel.vue'
 import { useToast } from './composables/useToast.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { logger } from './utils/log.js'
@@ -299,6 +306,7 @@ const showBatchCreate = ref(false)
 const batchCreateClose = useModal(showBatchCreate)
 const showStats = ref(false)
 const statsClose = useModal(showStats)
+const showExportImage = ref(false)
 
 // More dropdown actions
 function doImport() {
@@ -546,6 +554,11 @@ function onWindowKeyDown(e) {
   if (e.key === 's' || e.key === 'S') {
     e.preventDefault()
     showStats.value = true
+    return
+  }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+    e.preventDefault()
+    showExportImage.value = true
     return
   }
   if (e.key === 'p' || e.key === 'P') {
