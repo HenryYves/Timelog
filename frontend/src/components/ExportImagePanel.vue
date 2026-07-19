@@ -149,7 +149,7 @@ const showBlockOpts = ref(false)
 const showAuthorOpts = ref(false)
 const showWatermarkOpts = ref(false)
 import { STR } from '../strings.js'
-import { useTimelogStore, fmt } from '../store/timelog.js'
+import { useTimelogStore, fmt, dkey } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { PX_MIN, DAY_MIN, GUTTER_WIDTH } from '../constants.js'
 import { mdToHtml } from '../utils/markdown.js'
@@ -486,8 +486,40 @@ function trapFocus(e) {
   }
 }
 
-function doExport() {
-  // placeholder
+async function doExport() {
+  // Render at full resolution
+  const offscreen = document.createElement('canvas')
+  renderTimeline(offscreen, 1)
+
+  // Get blob
+  const blob = await new Promise(resolve => offscreen.toBlob(resolve, 'image/png'))
+
+  // Save via Tauri dialog
+  if (window.__TAURI__) {
+    try {
+      const { save } = await import('@tauri-apps/plugin-dialog')
+      const { writeFile } = await import('@tauri-apps/plugin-fs')
+      const filePath = await save({
+        defaultPath: 'timelog-' + dkey(timelogStore.curDate) + '.png',
+        filters: [{ name: 'PNG', extensions: ['png'] }],
+      })
+      if (filePath) {
+        await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()))
+      }
+    } catch (e) {
+      console.error('Export failed:', e)
+    }
+  } else {
+    // Fallback: browser download
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'timelog-' + dkey(timelogStore.curDate) + '.png'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  emit('close')
 }
 </script>
 
