@@ -269,4 +269,10 @@ export const STR = {
     footer: 'Made by Yves / 陈虹宇 · 2026',
     close: '关闭',
   },
+
+  exportImage: {
+    title: '导出切图',
+    cancel: '取消',
+    export: '导出 PNG',
+  },
 }
