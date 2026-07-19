@@ -56,10 +56,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, nextTick, onMounted } from 'vue'
 
 const showBlockOpts = ref(false)
 import { STR } from '../strings.js'
+import { useTimelogStore, fmt } from '../store/timelog.js'
+import { useTagStore } from '../store/tags.js'
+import { PX_MIN, DAY_MIN, GUTTER_WIDTH } from '../constants.js'
+import { mdToHtml } from '../utils/markdown.js'
 
 const SETTINGS_KEY = 'timelog:export-image-settings'
 
@@ -115,6 +119,132 @@ watch(settings, () => {
 const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close'])
 const previewCanvas = ref(null)
+const timelogStore = useTimelogStore()
+const tagStore = useTagStore()
+
+function getBgColor() {
+  if (settings.bgMode === 'custom') return settings.bgColor
+  return getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() || '#FFFFFF'
+}
+
+function renderTimeline(canvas, scale) {
+  const ctx = canvas.getContext('2d')
+  const w = settings.exportWidth
+  const gutterW = settings.showGutter ? GUTTER_WIDTH : 0
+  const contentW = w - gutterW
+  const minuteH = PX_MIN
+  const totalH = DAY_MIN * minuteH
+
+  canvas.width = w
+  canvas.height = totalH
+
+  // 1. Background
+  ctx.fillStyle = getBgColor()
+  ctx.fillRect(0, 0, w, totalH)
+
+  // 2. Gutter (time labels)
+  if (settings.showGutter) {
+    ctx.fillStyle = '#F0EFED'
+    ctx.fillRect(0, 0, gutterW, totalH)
+    ctx.fillStyle = '#7D7A75'
+    ctx.font = '11px -apple-system, sans-serif'
+    ctx.textAlign = 'right'
+    for (let h = 0; h < 25; h++) {
+      const y = h * 60 * minuteH + 4
+      const label = String(h).padStart(2, '0') + ':00'
+      ctx.fillText(label, gutterW - 6, y + 10)
+    }
+    // Separator line
+    ctx.strokeStyle = '#E6E5E3'
+    ctx.beginPath()
+    ctx.moveTo(gutterW, 0)
+    ctx.lineTo(gutterW, totalH)
+    ctx.stroke()
+  }
+
+  // 3. Time blocks
+  const blocks = timelogStore.blocks
+  const opacity = tagStore.colorOf('')?.opacity
+  blocks.forEach(b => {
+    const y = b.start * minuteH
+    const h = (b.end - b.start) * minuteH
+    const tagColor = b.tags?.length ? tagStore.colorOf(b.tags[0]).hex : '#C4C3C0'
+
+    // Block background
+    ctx.fillStyle = tagColor + '26'
+    ctx.fillRect(gutterW, y, contentW, h)
+
+    // Color bar
+    if (settings.showBlockColorBar) {
+      ctx.fillStyle = tagColor
+      ctx.fillRect(gutterW, y, 4, h)
+    }
+
+    const innerX = gutterW + (settings.showBlockColorBar ? 8 : 4)
+    let textY = y + 16
+    const maxW = contentW - (settings.showBlockColorBar ? 12 : 8)
+
+    // Title
+    if (settings.showBlockTitle) {
+      ctx.fillStyle = '#2C2C2B'
+      ctx.font = '13px -apple-system, sans-serif'
+      ctx.fillText(b.title || '(未命名)', innerX, textY)
+      textY += 18
+    }
+
+    // Time
+    if (settings.showBlockTime) {
+      ctx.fillStyle = '#7D7A75'
+      ctx.font = '11px -apple-system, sans-serif'
+      ctx.fillText(fmt(b.start) + '–' + fmt(b.end), innerX, textY)
+      textY += 16
+    }
+
+    // Tags
+    if (settings.showBlockTags && b.tags?.length) {
+      ctx.fillStyle = '#7D7A75'
+      ctx.font = '11px -apple-system, sans-serif'
+      b.tags.forEach((t, ti) => {
+        const tc = tagStore.colorOf(t).hex
+        ctx.fillStyle = tc
+        ctx.fillRect(innerX, textY - 9, 6, 6)
+        ctx.fillStyle = '#2C2C2B'
+        ctx.fillText(t, innerX + 9, textY)
+        textY += 15
+      })
+    }
+
+    // Note
+    if (settings.showBlockNote && b.note) {
+      ctx.fillStyle = '#7D7A75'
+      ctx.font = '11px -apple-system, sans-serif'
+      const lines = b.note.split('\n')
+      lines.forEach(line => {
+        ctx.fillText(line, innerX, textY)
+        textY += 14
+      })
+    }
+  })
+}
+
+function updatePreview() {
+  if (!previewCanvas.value) return
+  const canvas = previewCanvas.value
+  const container = canvas.parentElement
+  const scale = container.clientWidth / settings.exportWidth
+  canvas.width = container.clientWidth
+  canvas.height = DAY_MIN * PX_MIN * scale
+  renderTimeline(canvas, scale)
+}
+
+// Re-render on settings change
+watch(() => ({ ...settings }), () => {
+  requestAnimationFrame(() => updatePreview())
+}, { deep: true })
+
+onMounted(() => {
+  nextTick(() => updatePreview())
+})
 
 function trapFocus(e) {
   if (e.key !== 'Tab') return
