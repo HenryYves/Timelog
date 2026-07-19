@@ -22,8 +22,59 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { STR } from '../strings.js'
+
+const SETTINGS_KEY = 'timelog:export-image-settings'
+
+const defaults = {
+  // Phase 0 — 时间块显示
+  showBlockTitle: true,
+  showBlockTime: true,
+  showBlockTags: true,
+  showBlockNote: true,
+  showBlockColorBar: true,
+  // Phase 1 — 核心
+  bgMode: 'theme',       // 'theme' | 'custom'
+  bgColor: '#FFFFFF',
+  showGutter: true,
+  exportWidth: 800,
+  // Phase 2 — 作者
+  showAuthor: false,
+  authorAvatar: null,     // base64 data URL
+  authorName: '',
+  authorExtra: '',
+  authorAlign: 'center',  // 'left' | 'center' | 'right'
+  authorPosition: 'bottom', // 'top' | 'bottom'
+  // Phase 3 — 水印
+  showWatermark: false,
+  wmType: 'text',         // 'text' | 'image'
+  wmText: '',
+  wmImage: null,          // base64 data URL
+  wmOpacity: 30,
+  wmRotation: 0,
+  wmWidth: 200,
+  wmHeight: 0,            // 0 = auto
+}
+
+function loadSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY))
+    if (saved) Object.assign(settings, defaults, saved)
+  } catch { /* use defaults */ }
+}
+
+const settings = reactive({ ...defaults })
+loadSettings()
+
+// Debounced save
+let _saveTimer
+watch(settings, () => {
+  clearTimeout(_saveTimer)
+  _saveTimer = setTimeout(() => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+  }, 300)
+}, { deep: true })
 
 const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close'])
