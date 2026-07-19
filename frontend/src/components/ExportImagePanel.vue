@@ -39,6 +39,90 @@
                 <label><input type="checkbox" v-model="settings.showBlockColorBar" /> {{ STR.settings.showBlockColorBar }}</label>
               </div>
             </div>
+
+            <!-- Phase 2: Author info -->
+            <div class="setting-collapse">
+              <div class="collapse-header" @click="showAuthorOpts = !showAuthorOpts">
+                <span>{{ STR.exportImage.sectionAuthor }}</span>
+                <span class="arrow" :class="{ open: showAuthorOpts }">▸</span>
+              </div>
+              <div v-show="showAuthorOpts" class="collapse-body">
+                <label><input type="checkbox" v-model="settings.showAuthor" /> {{ STR.exportImage.showAuthor }}</label>
+                <template v-if="settings.showAuthor">
+                  <div class="setting-group">
+                    <label>{{ STR.exportImage.authorName }}</label>
+                    <input type="text" v-model="settings.authorName" />
+                  </div>
+                  <div class="setting-group">
+                    <label>{{ STR.exportImage.authorExtra }}</label>
+                    <input type="text" v-model="settings.authorExtra" />
+                  </div>
+                  <div class="setting-group">
+                    <label>{{ STR.exportImage.authorAvatar }}</label>
+                    <button @click="pickImage(url => settings.authorAvatar = url)">{{ STR.exportImage.chooseImage }}</button>
+                  </div>
+                  <div class="setting-group">
+                    <div style="font-size:13.5px;margin-bottom:4px">{{ STR.exportImage.authorAlign }}</div>
+                    <label><input type="radio" v-model="settings.authorAlign" value="left" /> {{ STR.exportImage.authorAlignLeft }}</label>
+                    <label><input type="radio" v-model="settings.authorAlign" value="center" /> {{ STR.exportImage.authorAlignCenter }}</label>
+                    <label><input type="radio" v-model="settings.authorAlign" value="right" /> {{ STR.exportImage.authorAlignRight }}</label>
+                  </div>
+                  <div class="setting-group">
+                    <div style="font-size:13.5px;margin-bottom:4px">{{ STR.exportImage.authorPosition }}</div>
+                    <label><input type="radio" v-model="settings.authorPosition" value="top" /> {{ STR.exportImage.authorPosTop }}</label>
+                    <label><input type="radio" v-model="settings.authorPosition" value="bottom" /> {{ STR.exportImage.authorPosBottom }}</label>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Phase 3: Watermark -->
+            <div class="setting-collapse">
+              <div class="collapse-header" @click="showWatermarkOpts = !showWatermarkOpts">
+                <span>{{ STR.exportImage.sectionWatermark }}</span>
+                <span class="arrow" :class="{ open: showWatermarkOpts }">▸</span>
+              </div>
+              <div v-show="showWatermarkOpts" class="collapse-body">
+                <label><input type="checkbox" v-model="settings.showWatermark" /> {{ STR.exportImage.showWatermark }}</label>
+                <template v-if="settings.showWatermark">
+                  <div class="setting-group">
+                    <div style="font-size:13.5px;margin-bottom:4px">{{ STR.exportImage.wmType }}</div>
+                    <label><input type="radio" v-model="settings.wmType" value="text" /> {{ STR.exportImage.wmTypeText }}</label>
+                    <label><input type="radio" v-model="settings.wmType" value="image" /> {{ STR.exportImage.wmTypeImage }}</label>
+                  </div>
+                  <template v-if="settings.wmType === 'text'">
+                    <div class="setting-group">
+                      <label>{{ STR.exportImage.wmText }}</label>
+                      <input type="text" v-model="settings.wmText" />
+                    </div>
+                  </template>
+                  <template v-if="settings.wmType === 'image'">
+                    <div class="setting-group">
+                      <label>{{ STR.exportImage.wmImage }}</label>
+                      <button @click="pickImage(url => settings.wmImage = url)">{{ STR.exportImage.chooseImage }}</button>
+                    </div>
+                  </template>
+                  <div class="setting-group">
+                    <label>{{ STR.exportImage.wmOpacity }}: {{ settings.wmOpacity }}%</label>
+                    <input type="range" v-model.number="settings.wmOpacity" min="0" max="100" />
+                  </div>
+                  <div class="setting-group">
+                    <label>{{ STR.exportImage.wmRotation }}: {{ settings.wmRotation }}&deg;</label>
+                    <input type="range" v-model.number="settings.wmRotation" min="-180" max="180" />
+                  </div>
+                  <div class="setting-group">
+                    <label>{{ STR.exportImage.wmWidth }}</label>
+                    <input type="number" v-model.number="settings.wmWidth" min="10" max="2000" />
+                    <span class="unit">px</span>
+                  </div>
+                  <div class="setting-group">
+                    <label>{{ STR.exportImage.wmHeight }}</label>
+                    <input type="number" v-model.number="settings.wmHeight" min="0" max="2000" />
+                    <span class="unit">px (0=auto)</span>
+                  </div>
+                </template>
+              </div>
+            </div>
           </div>
         </div>
         <div class="export-right">
@@ -59,6 +143,8 @@
 import { ref, reactive, watch, nextTick, onMounted } from 'vue'
 
 const showBlockOpts = ref(false)
+const showAuthorOpts = ref(false)
+const showWatermarkOpts = ref(false)
 import { STR } from '../strings.js'
 import { useTimelogStore, fmt } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
@@ -133,7 +219,9 @@ function renderTimeline(canvas, scale) {
   const gutterW = settings.showGutter ? GUTTER_WIDTH : 0
   const contentW = w - gutterW
   const minuteH = PX_MIN
-  const totalH = DAY_MIN * minuteH
+  const baseContentH = DAY_MIN * minuteH
+  const authorExtraH = (settings.showAuthor && settings.authorPosition === 'bottom') ? 80 : 0
+  const totalH = baseContentH + authorExtraH
 
   canvas.width = w
   canvas.height = totalH
@@ -225,6 +313,92 @@ function renderTimeline(canvas, scale) {
       })
     }
   })
+
+  // 4. Author info
+  if (settings.showAuthor && (settings.authorName || settings.authorAvatar)) {
+    const padding = 20
+    const blockH = 60
+    const blockY = settings.authorPosition === 'top' ? padding : baseContentH + padding
+
+    // Avatar
+    if (settings.authorAvatar) {
+      const img = new Image()
+      img.src = settings.authorAvatar
+      if (img.complete) {
+        let ax
+        if (settings.authorAlign === 'left') ax = gutterW + padding
+        else if (settings.authorAlign === 'right') ax = w - padding - 40
+        else ax = w / 2 - 20
+        ctx.drawImage(img, ax, blockY, 40, 40)
+      }
+    }
+
+    // Text
+    const nameY = blockY + 20
+    ctx.font = '14px -apple-system, sans-serif'
+    ctx.fillStyle = '#2C2C2B'
+    let tx
+    if (settings.authorAlign === 'left') tx = gutterW + padding + (settings.authorAvatar ? 50 : 0)
+    else if (settings.authorAlign === 'right') tx = w - padding - 200
+    else tx = w / 2
+    ctx.textAlign = settings.authorAlign === 'center' ? 'center' : (settings.authorAlign === 'left' ? 'left' : 'right')
+    if (settings.authorName) {
+      ctx.fillText(settings.authorName, tx, nameY)
+      if (settings.authorExtra) {
+        ctx.font = '12px -apple-system, sans-serif'
+        ctx.fillStyle = '#7D7A75'
+        ctx.fillText(settings.authorExtra, tx, nameY + 18)
+      }
+    } else if (settings.authorExtra) {
+      ctx.fillText(settings.authorExtra, tx, nameY)
+    }
+    ctx.textAlign = 'left'
+  }
+
+  // 5. Watermark
+  if (settings.showWatermark) {
+    ctx.save()
+    ctx.globalAlpha = settings.wmOpacity / 100
+
+    if (settings.wmType === 'text' && settings.wmText) {
+      const cx = w / 2
+      const cy = totalH / 2
+      ctx.translate(cx, cy)
+      if (settings.wmRotation) ctx.rotate(settings.wmRotation * Math.PI / 180)
+      ctx.font = `bold ${Math.max(12, settings.wmWidth / 10)}px -apple-system, sans-serif`
+      ctx.fillStyle = 'rgba(0,0,0,0.3)'
+      ctx.textAlign = 'center'
+      ctx.fillText(settings.wmText, 0, 0)
+    } else if (settings.wmType === 'image' && settings.wmImage) {
+      const img = new Image()
+      img.src = settings.wmImage
+      if (img.complete) {
+        const cx = w / 2
+        const cy = totalH / 2
+        ctx.translate(cx, cy)
+        if (settings.wmRotation) ctx.rotate(settings.wmRotation * Math.PI / 180)
+        const iw = settings.wmWidth
+        const ih = settings.wmHeight || (img.height / img.width * iw)
+        ctx.drawImage(img, -iw / 2, -ih / 2, iw, ih)
+      }
+    }
+
+    ctx.restore()
+  }
+}
+
+function pickImage(callback) {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => callback(reader.result)
+    reader.readAsDataURL(file)
+  }
+  input.click()
 }
 
 function updatePreview() {
