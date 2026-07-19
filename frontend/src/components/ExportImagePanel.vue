@@ -4,8 +4,42 @@
       <h2>{{ STR.exportImage.title }}</h2>
       <div class="export-layout">
         <div class="export-left">
-          <!-- settings go here -->
-          <p class="placeholder">设置区</p>
+          <div class="export-settings">
+            <!-- Phase 1: Core -->
+            <div class="setting-group">
+              <label>{{ STR.exportImage.bgMode }}</label>
+              <select v-model="settings.bgMode">
+                <option value="theme">{{ STR.exportImage.bgTheme }}</option>
+                <option value="custom">{{ STR.exportImage.bgCustom }}</option>
+              </select>
+              <input v-if="settings.bgMode === 'custom'" type="color" v-model="settings.bgColor" />
+            </div>
+
+            <div class="setting-group">
+              <label><input type="checkbox" v-model="settings.showGutter" /> {{ STR.exportImage.showGutter }}</label>
+            </div>
+
+            <div class="setting-group">
+              <label>{{ STR.exportImage.exportWidth }}</label>
+              <input type="number" v-model.number="settings.exportWidth" min="200" max="4000" step="10" />
+              <span class="unit">px</span>
+            </div>
+
+            <!-- Phase 0: Block display (collapsible) -->
+            <div class="setting-collapse">
+              <div class="collapse-header" @click="showBlockOpts = !showBlockOpts">
+                <span>{{ STR.exportImage.blockDisplay }}</span>
+                <span class="arrow" :class="{ open: showBlockOpts }">▸</span>
+              </div>
+              <div v-show="showBlockOpts" class="collapse-body">
+                <label><input type="checkbox" v-model="settings.showBlockTitle" /> {{ STR.settings.showBlockTitle }}</label>
+                <label><input type="checkbox" v-model="settings.showBlockTime" /> {{ STR.settings.showBlockTime }}</label>
+                <label><input type="checkbox" v-model="settings.showBlockTags" /> {{ STR.settings.showBlockTags }}</label>
+                <label><input type="checkbox" v-model="settings.showBlockNote" /> {{ STR.settings.showBlockNote }}</label>
+                <label><input type="checkbox" v-model="settings.showBlockColorBar" /> {{ STR.settings.showBlockColorBar }}</label>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="export-right">
           <!-- preview canvas -->
@@ -23,6 +57,8 @@
 
 <script setup>
 import { ref, reactive, watch } from 'vue'
+
+const showBlockOpts = ref(false)
 import { STR } from '../strings.js'
 
 const SETTINGS_KEY = 'timelog:export-image-settings'
@@ -120,4 +156,29 @@ function doExport() {
 .actions { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
 .spacer { flex: 1; }
 .placeholder { color: var(--text2); padding: 20px; }
+
+.export-settings { padding: 4px 0; }
+.setting-group { margin-bottom: 12px; }
+.setting-group label { display: flex; align-items: center; gap: 6px; font-size: 13.5px; }
+.setting-group select, .setting-group input[type="number"] {
+  border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: 13px;
+}
+.setting-group input[type="number"] { width: 80px; }
+.unit { font-size: 12px; color: var(--text2); }
+.setting-collapse {
+  border: 1px solid var(--border); border-radius: 6px; margin-bottom: 12px;
+}
+.collapse-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 10px; cursor: pointer; font-size: 13.5px; font-weight: 500;
+  user-select: none;
+}
+.collapse-header:hover { background: var(--soft); }
+.arrow { transition: transform 0.2s; font-size: 10px; }
+.arrow.open { transform: rotate(90deg); }
+.collapse-body {
+  padding: 8px 10px 10px; border-top: 1px solid var(--soft);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.collapse-body label { font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
 </style>

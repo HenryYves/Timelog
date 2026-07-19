@@ -274,5 +274,11 @@ export const STR = {
     title: '导出切图',
     cancel: '取消',
     export: '导出 PNG',
+    bgMode: '背景色',
+    bgTheme: '跟随主题',
+    bgCustom: '自定义',
+    showGutter: '包含时间标尺',
+    exportWidth: '导出宽度',
+    blockDisplay: '时间块显示',
   },
 }
