@@ -433,7 +433,7 @@ function onWinMax() {
   if (!isTauri()) return
   try {
     window.__TAURI__.window.getCurrentWindow().toggleMaximize()
-    isMaximized.value = !isMaximized.value
+    // isMaximized updated by onResized listener — driven by actual window state
   } catch (e) {
     console.error('toggleMaximize failed:', e.message)
   }
@@ -687,6 +687,21 @@ onMounted(async () => {
 
   // Window decoration
   applyBorderless()
+
+  // Sync maximize state with system-triggered changes (Aero Snap, drag to top, etc.)
+  if (isTauri()) {
+    try {
+      const win = window.__TAURI__.window.getCurrentWindow()
+      isMaximized.value = await win.isMaximized()
+      let _syncTimer
+      win.onResized(() => {
+        clearTimeout(_syncTimer)
+        _syncTimer = setTimeout(async () => {
+          isMaximized.value = await win.isMaximized()
+        }, 80)
+      })
+    } catch {}
+  }
 
   // Crash recovery: check for pending download
   const pendingVer = localStorage.getItem('timelog:pendingDownload')
