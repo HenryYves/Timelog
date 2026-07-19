@@ -418,15 +418,22 @@ function onWinClose() {
 }
 
 // Tauri header drag
+let _dragging = false
 function onHeaderMouseDown(e) {
   if (!isTauri()) return
   const t = e.target
   if (t.closest('button,input,select,textarea,.dropdown-item,.win-btn,.logo')) return
-  try {
-    window.__TAURI__.window.getCurrentWindow().startDragging()
-  } catch (e) {
-    console.error('startDragging failed:', e.message)
-  }
+  if (_dragging) return
+  _dragging = true
+  // Defer by one frame to avoid WebView2 crash race condition
+  requestAnimationFrame(() => {
+    try {
+      window.__TAURI__.window.getCurrentWindow().startDragging()
+    } catch (e) {
+      console.error('startDragging failed:', e.message)
+    }
+    _dragging = false
+  })
 }
 
 // Apply borderless on mount
