@@ -1,6 +1,6 @@
 <template>
   <div id="app-container">
-    <header @mousedown="onHeaderMouseDown">
+    <header @mousedown="onHeaderMouseDown" @dblclick="onHeaderDblClick">
       <h1><img src="/icons/icon.svg" class="logo" alt=""><img src="/icons/timelog.svg" class="logo-text" alt="Timelog"></h1>
       <div class="datenav">
         <button class="icon" @click="store.goPrevDay()">‹</button>
@@ -417,23 +417,36 @@ function onWinClose() {
   }
 }
 
-// Tauri header drag
-let _dragging = false
+// Tauri header double-click → toggle maximize
+function onHeaderDblClick(e) {
+  if (!isTauri()) return
+  const t = e.target
+  if (t.closest('button,input,select,textarea,.dropdown-item,.win-btn,.logo')) return
+  onWinMax()
+}
+
+// Tauri header drag — only start after mouse moves (not on click/dblclick)
+let _dragX = 0, _dragY = 0, _dragStarted = false
 function onHeaderMouseDown(e) {
   if (!isTauri()) return
   const t = e.target
   if (t.closest('button,input,select,textarea,.dropdown-item,.win-btn,.logo')) return
-  if (_dragging) return
-  _dragging = true
-  // Defer by one frame to avoid WebView2 crash race condition
-  requestAnimationFrame(() => {
+  _dragX = e.clientX
+  _dragY = e.clientY
+  _dragStarted = false
+  const onMove = (ev) => {
+    if (_dragStarted) return
+    if (Math.abs(ev.clientX - _dragX) < 4 && Math.abs(ev.clientY - _dragY) < 4) return
+    _dragStarted = true
+    document.removeEventListener('mousemove', onMove)
     try {
       window.__TAURI__.window.getCurrentWindow().startDragging()
     } catch (e) {
       console.error('startDragging failed:', e.message)
     }
-    _dragging = false
-  })
+  }
+  document.addEventListener('mousemove', onMove)
+  document.addEventListener('mouseup', () => document.removeEventListener('mousemove', onMove), { once: true })
 }
 
 // Apply borderless on mount
