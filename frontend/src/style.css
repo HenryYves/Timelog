@@ -4,7 +4,7 @@
   --green: #2F7D51; --red: #C13B2E;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; }
+html, body { margin: 0; height: 100%; background: var(--soft); }
 #app, #app-container { display: flex; flex-direction: column; height: 100%; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
