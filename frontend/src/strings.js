@@ -309,5 +309,7 @@ export const STR = {
     wmRotation: '旋转角度',
     wmWidth: '宽度',
     wmHeight: '高度',
+    wmGapX: '水平间距',
+    wmGapY: '垂直间距',
   },
 }

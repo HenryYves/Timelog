@@ -120,27 +120,46 @@
                     <input type="number" v-model.number="settings.wmHeight" min="0" max="2000" />
                     <span class="unit">px (0=auto)</span>
                   </div>
+                  <div class="setting-group">
+                    <label>{{ STR.exportImage.wmGapX }}</label>
+                    <input type="number" v-model.number="settings.wmGapX" min="0" max="1000" />
+                    <span class="unit">px</span>
+                  </div>
+                  <div class="setting-group">
+                    <label>{{ STR.exportImage.wmGapY }}</label>
+                    <input type="number" v-model.number="settings.wmGapY" min="0" max="1000" />
+                    <span class="unit">px</span>
+                  </div>
                 </template>
               </div>
             </div>
           </div>
         </div>
         <div class="export-right" ref="previewWrap" @mousedown="onPreviewMouseDown" @wheel.prevent="onPreviewWheel">
-          <div class="export-timeline" ref="timelineDom" :style="timelineStyle">
-            <!-- Gutter (time labels) -->
-            <div v-if="settings.showGutter" class="exp-gutter" :style="{ width: GUTTER_WIDTH + 'px' }">
-              <div v-for="h in hours" :key="h" class="exp-hlabel" :style="{ top: h * 60 + 'px' }">
-                {{ String(h).padStart(2, '0') }}:00
+          <div class="export-timeline" ref="timelineDom" :style="timelineStyle" data-export-root>
+            <!-- Author info (top) -->
+            <div v-if="showAuthorBlock && settings.authorPosition === 'top'" class="exp-author" :style="authorStyle">
+              <img v-if="settings.authorAvatar" :src="settings.authorAvatar" class="exp-avatar" />
+              <div class="exp-author-text">
+                <div v-if="settings.authorName" class="exp-author-name">{{ settings.authorName }}</div>
+                <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
               </div>
             </div>
-            <!-- Hour lines -->
-            <div v-for="h in hours" :key="'hl'+h" class="exp-hourline" :style="{ top: `calc(var(--author-top) + ${h * 60}px)` }" />
-            <div v-for="h in 24" :key="'hfl'+h" class="exp-halfline" :style="{ top: `calc(var(--author-top) + ${h * 60 + 30}px)` }" />
-            <!-- Time blocks -->
+            <!-- Blocks area (gutter + hour lines + time blocks, always aligned) -->
             <div class="exp-blocks" :style="{
               marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px',
               height: DAY_MIN + 'px',
             }">
+              <!-- Gutter (time labels) -->
+              <div v-if="settings.showGutter" class="exp-gutter" :style="{ width: GUTTER_WIDTH + 'px', left: -GUTTER_WIDTH + 'px' }">
+                <div v-for="h in hours" :key="h" class="exp-hlabel" :style="{ top: h * 60 + 'px' }">
+                  {{ String(h).padStart(2, '0') }}:00
+                </div>
+              </div>
+              <!-- Hour lines -->
+              <div v-for="h in hours" :key="'hl'+h" class="exp-hourline" :style="{ top: h * 60 + 'px' }" />
+              <div v-for="h in 24" :key="'hfl'+h" class="exp-halfline" :style="{ top: h * 60 + 30 + 'px' }" />
+              <!-- Time blocks -->
               <div v-for="b in layoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
                 <div v-if="settings.showBlockColorBar" class="cbar">
                   <i v-for="(t, ti) in (b.tags || [])" :key="ti" :style="{ background: tagColor(t) }" />
@@ -154,19 +173,17 @@
                 <div v-if="settings.showBlockNote && b.note && (b.end - b.start) >= (b.tags?.length ? 66 : 48)" class="bnote" v-html="mdToHtml(b.note)" />
               </div>
             </div>
-            <!-- Author info -->
-            <div v-if="settings.showAuthor && (settings.authorName || settings.authorAvatar)" class="exp-author" :style="authorStyle">
+            <!-- Author info (bottom) -->
+            <div v-if="showAuthorBlock && settings.authorPosition === 'bottom'" class="exp-author" :style="authorStyle">
               <img v-if="settings.authorAvatar" :src="settings.authorAvatar" class="exp-avatar" />
               <div class="exp-author-text">
                 <div v-if="settings.authorName" class="exp-author-name">{{ settings.authorName }}</div>
                 <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
               </div>
             </div>
-            <!-- Watermark -->
-            <div v-if="settings.showWatermark && ((settings.wmType === 'text' && settings.wmText) || (settings.wmType === 'image' && settings.wmImage))" class="exp-watermark" :style="watermarkStyle">
-              <img v-if="settings.wmType === 'image' && settings.wmImage" :src="settings.wmImage" />
-              <span v-else-if="settings.wmType === 'text' && settings.wmText">{{ settings.wmText }}</span>
-            </div>
+            <!-- Watermark (tiled repeat, like obsidian-export-image) -->
+            <div v-if="settings.showWatermark && wmTileUrl" class="exp-watermark"
+              :style="{ backgroundImage: `url(${wmTileUrl})`, opacity: settings.wmOpacity / 100 }" />
           </div>
         </div>
       </div>
@@ -226,6 +243,8 @@ const defaults = {
   wmRotation: 0,
   wmWidth: 200,
   wmHeight: 0,            // 0 = auto
+  wmGapX: 100,            // horizontal spacing between tiles
+  wmGapY: 100,            // vertical spacing between tiles
 }
 
 function loadSettings() {
@@ -329,16 +348,19 @@ const bgColor = computed(() => {
   return 'var(--canvas)'
 })
 
+const showAuthorBlock = computed(() =>
+  settings.showAuthor && !!(settings.authorName || settings.authorAvatar)
+)
+
 const exportHeight = computed(() => {
   let h = DAY_MIN
-  if (settings.showAuthor && settings.authorPosition === 'bottom') h += 80
+  if (showAuthorBlock.value) h += 80
   return h
 })
 
 const timelineStyle = computed(() => {
   const s = previewScale.value
   return {
-    '--author-top': (settings.showAuthor && settings.authorPosition === 'top') ? '60px' : '0',
     width: settings.exportWidth + 'px',
     height: exportHeight.value + 'px',
     background: bgColor.value,
@@ -349,28 +371,87 @@ const timelineStyle = computed(() => {
 })
 
 const authorStyle = computed(() => {
-  const base = {
+  return {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
     justifyContent: settings.authorAlign === 'left' ? 'flex-start' : settings.authorAlign === 'right' ? 'flex-end' : 'center',
-    order: settings.authorPosition === 'top' ? -1 : 0,
   }
-  return base
 })
 
-const watermarkStyle = computed(() => {
-  const s = {
-    opacity: settings.wmOpacity / 100,
-    transform: `translate(-50%, -50%) rotate(${settings.wmRotation}deg)`,
-    whiteSpace: 'nowrap',
+// ----- Tiled watermark (canvas tile → repeating background, like obsidian-export-image) -----
+const wmTileUrl = ref('')
+
+function loadImg(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = src
+  })
+}
+
+async function buildWatermarkTile() {
+  if (!settings.showWatermark) { wmTileUrl.value = ''; return }
+  const gapX = Math.max(0, settings.wmGapX || 0)
+  const gapY = Math.max(0, settings.wmGapY || 0)
+  const rot = (settings.wmRotation || 0) * Math.PI / 180
+  const cos = Math.abs(Math.cos(rot))
+  const sin = Math.abs(Math.sin(rot))
+
+  const tile = document.createElement('canvas')
+  const ctx = tile.getContext('2d')
+
+  let draw  // (ctx) => void, draws content centered at origin
+  let cw, ch  // content size before rotation
+
+  if (settings.wmType === 'text' && settings.wmText) {
+    const fontSize = 24
+    const font = `bold ${fontSize}px ${getComputedStyle(document.body).fontFamily}`
+    ctx.font = font
+    cw = ctx.measureText(settings.wmText).width
+    ch = fontSize * 1.3
+    const color = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#888'
+    draw = (c) => {
+      c.font = font
+      c.fillStyle = color
+      c.textAlign = 'center'
+      c.textBaseline = 'middle'
+      c.fillText(settings.wmText, 0, 0)
+    }
+  } else if (settings.wmType === 'image' && settings.wmImage) {
+    let img
+    try { img = await loadImg(settings.wmImage) } catch { wmTileUrl.value = ''; return }
+    cw = settings.wmWidth || img.naturalWidth
+    ch = settings.wmHeight || (img.naturalHeight * cw / img.naturalWidth)
+    draw = (c) => c.drawImage(img, -cw / 2, -ch / 2, cw, ch)
+  } else {
+    wmTileUrl.value = ''
+    return
   }
-  if (settings.wmType === 'image') {
-    s.width = settings.wmWidth + 'px'
-    if (settings.wmHeight) s.height = settings.wmHeight + 'px'
+
+  // Staggered (brick) layout like obsidian-export-image: tile = 2×2 cells,
+  // watermark drawn at (1/4,1/4) and (3/4,3/4) so adjacent rows offset half a cell
+  const cellW = cw * cos + ch * sin + gapX
+  const cellH = cw * sin + ch * cos + gapY
+  tile.width = Math.max(1, Math.ceil(cellW * 2))
+  tile.height = Math.max(1, Math.ceil(cellH * 2))
+  for (const [fx, fy] of [[0.25, 0.25], [0.75, 0.75]]) {
+    ctx.save()
+    ctx.translate(tile.width * fx, tile.height * fy)
+    ctx.rotate(rot)
+    draw(ctx)
+    ctx.restore()
   }
-  return s
-})
+  wmTileUrl.value = tile.toDataURL()
+}
+
+watch(
+  () => [settings.showWatermark, settings.wmType, settings.wmText, settings.wmImage,
+    settings.wmRotation, settings.wmWidth, settings.wmHeight, settings.wmGapX, settings.wmGapY],
+  buildWatermarkTile,
+  { immediate: true }
+)
 
 // ----- Block overlap layout -----
 const layoutBlocks = computed(() => {
@@ -456,20 +537,48 @@ function trapFocus(e) {
   }
 }
 
-async function doCopy() {
+async function captureCanvas() {
   const el = timelineDom.value
-  if (!el) return
+  if (!el) return null
+
+  // Wait for images/fonts to settle
+  await document.fonts.ready
+  await new Promise(r => setTimeout(r, 100))
+
+  const w = settings.exportWidth
+  const h = exportHeight.value
+  return await html2canvas(el, {
+    width: w,
+    height: h,
+    // Clone viewport = export size, and in the clone reparent the export root
+    // to <body> at 0,0 — escapes the preview container's overflow:hidden
+    // clipping and any viewport cropping (gutter/author were cut off before).
+    windowWidth: w,
+    windowHeight: h,
+    scale: Math.max(2, window.devicePixelRatio || 1),
+    useCORS: true,
+    backgroundColor: settings.bgMode === 'custom'
+      ? settings.bgColor
+      : getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim(),
+    onclone(doc) {
+      const cloned = doc.querySelector('[data-export-root]')
+      if (!cloned) return
+      doc.body.style.margin = '0'
+      doc.body.style.overflow = 'visible'
+      doc.body.appendChild(cloned)
+      cloned.style.position = 'absolute'
+      cloned.style.left = '0'
+      cloned.style.top = '0'
+      cloned.style.margin = '0'
+      cloned.style.transform = 'none'
+    },
+  })
+}
+
+async function doCopy() {
   try {
-    const canvas = await html2canvas(el, {
-      width: settings.exportWidth,
-      height: exportHeight.value,
-      scale: Math.max(2, window.devicePixelRatio || 1),
-      useCORS: true,
-      backgroundColor: settings.bgMode === 'custom' ? settings.bgColor : getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim(),
-    })
-    console.log('[copy] canvas:', canvas.width, 'x', canvas.height,
-      '| exportWidth:', settings.exportWidth,
-      '| dpr:', window.devicePixelRatio)
+    const canvas = await captureCanvas()
+    if (!canvas) return
     if (window.__TAURI__) {
       const ctx2 = canvas.getContext('2d')
       const imageData = ctx2.getImageData(0, 0, canvas.width, canvas.height)
@@ -492,27 +601,9 @@ async function doCopy() {
 }
 
 async function doExport() {
-  const el = timelineDom.value
-  if (!el) return
-
-  // Wait for images/fonts to settle
-  await document.fonts.ready
-  await new Promise(r => setTimeout(r, 100))
-
-  // Capture full resolution — temporarily reset transform for capture
-  const origTransform = el.style.transform
-  const origOrigin = el.style.transformOrigin
-  el.style.transform = ''
-  el.style.transformOrigin = ''
-
   try {
-    const canvas = await html2canvas(el, {
-      width: settings.exportWidth,
-      height: exportHeight.value,
-      scale: Math.max(2, window.devicePixelRatio || 1),
-      useCORS: true,
-      backgroundColor: settings.bgMode === 'custom' ? settings.bgColor : null,
-    })
+    const canvas = await captureCanvas()
+    if (!canvas) return
 
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
 
@@ -541,10 +632,9 @@ async function doExport() {
     }
 
     emit('close')
-  } finally {
-    // Restore preview transform
-    el.style.transform = origTransform
-    el.style.transformOrigin = origOrigin
+  } catch (e) {
+    console.error('Export failed:', e)
+    toast(STR.exportImage.copyFail)
   }
 }
 </script>
@@ -601,22 +691,19 @@ async function doExport() {
 .arrow.open { transform: rotate(90deg); }
 .collapse-body {
   padding: 8px 10px 10px; border-top: 1px solid var(--soft);
-  text-align: center; flex-direction: column; gap: 6px;
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
 }
 
 /* ---- Export Timeline DOM styles ---- */
 .export-timeline {
   flex-shrink: 0;
-  text-align: center;
-  flex-direction: column;
 }
 
-/* Gutter */
+/* Gutter — positioned inside .exp-blocks so it always aligns with blocks */
 .exp-gutter {
   position: absolute;
-  left: 0;
-  top: var(--author-top, 0);
-  height: 1440px;
+  top: 0;
+  height: 100%;
   background: var(--soft2);
   z-index: 1;
 }
@@ -675,7 +762,7 @@ async function doExport() {
   top: 0;
   bottom: 0;
   width: 4px;
-  text-align: center;
+  display: flex;
   flex-direction: column;
   overflow: hidden;
 }
@@ -741,25 +828,15 @@ async function doExport() {
   color: var(--text2);
 }
 
-/* Watermark */
+/* Watermark — full-area tiled background (tile generated on canvas) */
 .exp-watermark {
   position: absolute;
   left: 0;
-  top: 720px;
-  width: 100%;
-  transform: translateY(-50%);
+  top: 0;
+  right: 0;
+  bottom: 0;
   pointer-events: none;
-  z-index: 1;
-  text-align: center;
-  overflow: visible;
-  color: rgba(0,0,0,0.3);
-  font-weight: bold;
-  font-size: 24px;
-  text-align: center;
-}
-.exp-watermark img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
+  z-index: 2;
+  background-repeat: repeat;
 }
 </style>
