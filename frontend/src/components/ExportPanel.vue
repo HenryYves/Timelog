@@ -176,14 +176,21 @@ watch(() => props.show, (val) => {
 
 async function copyText() {
   try {
-    await navigator.clipboard.writeText(exText.value)
+    if (window.__TAURI__) {
+      await window.__TAURI__.core.invoke('clipboard_write_text', { text: exText.value })
+    } else {
+      await navigator.clipboard.writeText(exText.value)
+    }
   } catch {
-    const ta = document.createElement('textarea')
-    ta.value = exText.value
-    document.body.appendChild(ta)
-    ta.select()
-    document.execCommand('copy')
-    document.body.removeChild(ta)
+    // Fallback: textarea + execCommand
+    try {
+      const ta = document.createElement('textarea')
+      ta.value = exText.value
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    } catch {}
   }
   copiedMsg.value = true
 }

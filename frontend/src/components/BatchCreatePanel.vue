@@ -160,7 +160,11 @@ async function onCreate() {
   }
   toast(STR.batchCreate.created(blocks.length))
   if (settings.copyAfterCreate && text.value.trim()) {
-    try { await navigator.clipboard.writeText(text.value) } catch {}
+    if (window.__TAURI__) {
+      try { await window.__TAURI__.core.invoke('clipboard_write_text', { text: text.value }) } catch {}
+    } else {
+      try { await navigator.clipboard.writeText(text.value) } catch {}
+    }
   }
   emit('close')
 }
