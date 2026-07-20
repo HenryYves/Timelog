@@ -168,9 +168,10 @@
         </div>
       </div>
       <div class="actions">
-        <span class="spacer"></span>
         <button @click="emit('close')">{{ STR.exportImage.cancel }}</button>
-        <button class="primary" @click="doExport">{{ STR.exportImage.export }}</button>
+        <span class="spacer"></span>
+        <button @click="doCopy">{{ STR.exportImage.copy }}</button>
+        <button class="primary" @click="doExport">{{ STR.exportImage.save }}</button>
       </div>
     </div>
   </div>
@@ -442,6 +443,31 @@ function trapFocus(e) {
   }
 }
 
+async function doCopy() {
+  const el = timelineDom.value
+  if (!el) return
+  try {
+    const canvas = await html2canvas(el, {
+      width: settings.exportWidth,
+      height: el.scrollHeight,
+      scale: 1,
+      useCORS: true,
+      backgroundColor: settings.bgMode === 'custom' ? settings.bgColor : getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim(),
+    })
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
+    // Write as image/png — works for Ctrl+V paste.
+    // Also include text/html so Windows clipboard history (Win+V) tracks it.
+    await navigator.clipboard.write([new ClipboardItem({
+      'image/png': blob,
+      'text/html': new Blob([`<img alt="Timelog export" />`], { type: 'text/html' }),
+    })])
+    toast(STR.exportImage.copied)
+  } catch (e) {
+    console.error('Copy failed:', e)
+    toast(STR.exportImage.copyFail)
+  }
+}
+
 async function doExport() {
   const el = timelineDom.value
   if (!el) return
@@ -513,7 +539,7 @@ async function doExport() {
 .export-right {
   flex: 1; display: flex; align-items: flex-start; justify-content: center;
   border-radius: 8px; overflow: hidden;
-  min-height: 400px; cursor: grab; position: relative;
+  min-height: 300px; max-height: calc(72vh / var(--zoom, 1)); cursor: grab; position: relative;
   /* Checkerboard to indicate preview area (matches obsidian export-image) */
   background-size: 20px 20px;
   background-position: 0 0, 10px 10px;
