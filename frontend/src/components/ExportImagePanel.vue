@@ -720,7 +720,6 @@ async function doExport() {
   position: absolute;
   top: 0;
   height: 100%;
-  background: var(--soft2);
   z-index: 1;
 }
 .exp-gutter::after {
