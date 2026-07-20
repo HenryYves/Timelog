@@ -125,12 +125,46 @@
             </div>
           </div>
         </div>
-        <div class="export-right">
-          <!-- preview canvas -->
-          <canvas ref="previewCanvas" class="preview-canvas"
-            @mousedown="onPreviewMouseDown"
-            @wheel.prevent="onPreviewWheel"
-          ></canvas>
+        <div class="export-right" ref="previewWrap" @mousedown="onPreviewMouseDown" @wheel.prevent="onPreviewWheel">
+          <div class="export-timeline" ref="timelineDom" :style="timelineStyle">
+            <!-- Gutter (time labels) -->
+            <div v-if="settings.showGutter" class="exp-gutter" :style="{ width: GUTTER_WIDTH + 'px' }">
+              <div v-for="h in hours" :key="h" class="exp-hlabel" :style="{ top: h * 60 + 'px' }">
+                {{ String(h).padStart(2, '0') }}:00
+              </div>
+            </div>
+            <!-- Hour lines -->
+            <div v-for="h in hours" :key="'hl'+h" class="exp-hourline" :style="{ top: h * 60 + 'px' }" />
+            <div v-for="h in 24" :key="'hfl'+h" class="exp-halfline" :style="{ top: (h * 60 + 30) + 'px' }" />
+            <!-- Time blocks -->
+            <div class="exp-blocks" :style="{ marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px' }">
+              <div v-for="b in layoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
+                <div v-if="settings.showBlockColorBar" class="cbar">
+                  <i v-for="(t, ti) in (b.tags || [])" :key="ti" :style="{ background: tagColor(t) }" />
+                  <i v-if="!b.tags || !b.tags.length" style="background:#C4C3C0" />
+                </div>
+                <div v-if="settings.showBlockTitle" class="bt">{{ b.title || '(未命名)' }}</div>
+                <div v-if="settings.showBlockTime && (b.end - b.start) >= 32" class="bs">{{ fmt(b.start) }}–{{ fmt(b.end) }}</div>
+                <div v-if="settings.showBlockTags && (b.end - b.start) >= 50 && b.tags?.length" class="btags">
+                  <span v-for="t in b.tags" :key="t"><span class="tdot" :style="{ background: tagColor(t) }" />{{ t }}</span>
+                </div>
+                <div v-if="settings.showBlockNote && b.note && (b.end - b.start) >= (b.tags?.length ? 66 : 48)" class="bnote" v-html="mdToHtml(b.note)" />
+              </div>
+            </div>
+            <!-- Author info -->
+            <div v-if="settings.showAuthor && (settings.authorName || settings.authorAvatar)" class="exp-author" :style="authorStyle">
+              <img v-if="settings.authorAvatar" :src="settings.authorAvatar" class="exp-avatar" />
+              <div class="exp-author-text">
+                <div v-if="settings.authorName" class="exp-author-name">{{ settings.authorName }}</div>
+                <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
+              </div>
+            </div>
+            <!-- Watermark -->
+            <div v-if="settings.showWatermark && ((settings.wmType === 'text' && settings.wmText) || (settings.wmType === 'image' && settings.wmImage))" class="exp-watermark" :style="watermarkStyle">
+              <img v-if="settings.wmType === 'image' && settings.wmImage" :src="settings.wmImage" />
+              <span v-else-if="settings.wmType === 'text' && settings.wmText">{{ settings.wmText }}</span>
+            </div>
+          </div>
         </div>
       </div>
       <div class="actions">
@@ -143,7 +177,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, nextTick, onMounted } from 'vue'
+import { ref, reactive, watch, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import html2canvas from 'html2canvas'
+import { mdToHtml } from '../utils/markdown.js'
 
 const showBlockOpts = ref(false)
 const showAuthorOpts = ref(false)
@@ -209,10 +245,15 @@ watch(settings, () => {
 
 const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close'])
-const previewCanvas = ref(null)
+const previewWrap = ref(null)
+const timelineDom = ref(null)
 const previewOffset = reactive({ x: 0, y: 0 })
 const previewScale = ref(1)
 const { toast } = useToast()
+const timelogStore = useTimelogStore()
+const tagStore = useTagStore()
+
+// ----- Pan / Zoom state -----
 let _panStart = null
 let _panOffset = null
 
@@ -227,7 +268,6 @@ function onPreviewMouseMove(e) {
   if (!_panStart) return
   previewOffset.x = _panOffset.x + (e.clientX - _panStart.x)
   previewOffset.y = _panOffset.y + (e.clientY - _panStart.y)
-  applyPreviewTransform()
 }
 
 function onPreviewMouseUp() {
@@ -238,7 +278,7 @@ function onPreviewMouseUp() {
 
 function onPreviewWheel(e) {
   e.preventDefault()
-  const rect = previewCanvas.value.getBoundingClientRect()
+  const rect = previewWrap.value.getBoundingClientRect()
   const mx = e.clientX - rect.left
   const my = e.clientY - rect.top
   const factor = e.deltaY < 0 ? 1.1 : 0.9
@@ -248,25 +288,83 @@ function onPreviewWheel(e) {
   previewOffset.x = mx - (mx - previewOffset.x) * (newScale / previewScale.value)
   previewOffset.y = my - (my - previewOffset.y) * (newScale / previewScale.value)
   previewScale.value = newScale
-  applyPreviewTransform()
 }
 
-function applyPreviewTransform() {
-  if (!previewCanvas.value) return
-  previewCanvas.value.style.transform =
-    `translate(${previewOffset.x}px, ${previewOffset.y}px) scale(${previewScale.value})`
-  previewCanvas.value.style.transformOrigin = '0 0'
+function fitPreview() {
+  const container = previewWrap.value
+  if (!container) return
+  const scale = container.clientWidth / settings.exportWidth
+  previewScale.value = Math.min(scale, 1)
+  previewOffset.x = 0
+  previewOffset.y = 0
 }
 
-const timelogStore = useTimelogStore()
-const tagStore = useTagStore()
+onMounted(() => {
+  nextTick(() => fitPreview())
+})
 
-function getBgColor() {
+onUnmounted(() => {
+  document.removeEventListener('mousemove', onPreviewMouseMove)
+  document.removeEventListener('mouseup', onPreviewMouseUp)
+})
+
+// ----- Timeline data -----
+const hours = Array.from({ length: 25 }, (_, i) => i)
+
+function blockBg(b) {
+  if (b.tags?.length) return tagStore.colorOf(b.tags[0]).bg
+  return tagStore.colorOf(null).bg
+}
+
+function tagColor(t) {
+  return tagStore.colorOf(t).hex
+}
+
+const bgColor = computed(() => {
   if (settings.bgMode === 'custom') return settings.bgColor
-  return getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() || '#FFFFFF'
-}
+  return 'var(--canvas)'
+})
 
-function layoutBlocks(blocks) {
+const timelineStyle = computed(() => {
+  const s = previewScale.value
+  return {
+    width: settings.exportWidth + 'px',
+    height: DAY_MIN + 'px',
+    background: bgColor.value,
+    transform: `translate(${previewOffset.x}px, ${previewOffset.y}px) scale(${s})`,
+    transformOrigin: '0 0',
+    position: 'relative',
+  }
+})
+
+const authorStyle = computed(() => {
+  const base = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  }
+  if (settings.authorAlign === 'left') base.justifyContent = 'flex-start'
+  else if (settings.authorAlign === 'center') base.justifyContent = 'center'
+  else base.justifyContent = 'flex-end'
+  if (settings.authorPosition === 'top') base.top = '20px'
+  else base.bottom = '20px'
+  return base
+})
+
+const watermarkStyle = computed(() => ({
+  opacity: settings.wmOpacity / 100,
+  transform: `translate(-50%, -50%) rotate(${settings.wmRotation}deg)`,
+  width: settings.wmWidth + 'px',
+  height: settings.wmHeight ? settings.wmHeight + 'px' : 'auto',
+}))
+
+// ----- Block overlap layout -----
+const layoutBlocks = computed(() => {
+  const blocks = timelogStore.blocks.map(b => ({ ...b }))
+  return layoutOverlap(blocks)
+})
+
+function layoutOverlap(blocks) {
   const sorted = [...blocks].sort((a, b) => a.start - b.start)
   const result = sorted.map(b => ({ ...b }))
   let i = 0
@@ -300,184 +398,17 @@ function layoutBlocks(blocks) {
   return result
 }
 
-function renderTimeline(canvas) {
-  const ctx = canvas.getContext('2d')
-  const w = settings.exportWidth
-  const gutterW = settings.showGutter ? GUTTER_WIDTH : 0
-  const contentW = w - gutterW
-  const minuteH = PX_MIN
-  const baseContentH = DAY_MIN * minuteH
-  const topOffset = (settings.showAuthor && settings.authorPosition === 'top') ? 80 : 0
-  const authorExtraH = settings.showAuthor ? 80 : 0
-  const totalH = baseContentH + authorExtraH
-
-  canvas.width = w
-  canvas.height = totalH
-
-  // 1. Background
-  ctx.fillStyle = getBgColor()
-  ctx.fillRect(0, 0, w, totalH)
-
-  // 2. Gutter (time labels)
-  if (settings.showGutter) {
-    ctx.fillStyle = '#F0EFED'
-    ctx.fillRect(0, 0, gutterW, totalH)
-    ctx.fillStyle = '#7D7A75'
-    ctx.font = '11px -apple-system, sans-serif'
-    ctx.textAlign = 'right'
-    for (let h = 0; h < 25; h++) {
-      const y = h * 60 * minuteH + 4 + topOffset
-      const label = String(h).padStart(2, '0') + ':00'
-      ctx.fillText(label, gutterW - 6, y + 10)
-    }
-    // Separator line
-    ctx.strokeStyle = '#E6E5E3'
-    ctx.beginPath()
-    ctx.moveTo(gutterW, 0)
-    ctx.lineTo(gutterW, totalH)
-    ctx.stroke()
-  }
-
-  // 3. Time blocks
-  const blocks = layoutBlocks(timelogStore.blocks)
-  blocks.forEach(b => {
-    const y = b.start * minuteH + topOffset
-    const h = Math.max((b.end - b.start) * minuteH, 16)
-    const tagColor = b.tags?.length ? tagStore.colorOf(b.tags[0]).hex : '#C4C3C0'
-
-    // Multi-column layout
-    const colW = contentW / (b._cols || 1)
-    const colX = gutterW + (b._col || 0) * colW
-
-    // Block background
-    const bgColor = b.tags?.length ? tagStore.colorOf(b.tags[0]).bg : tagStore.colorOf(null).bg
-    ctx.fillStyle = bgColor
-    ctx.fillRect(colX, y, colW - 4, h)
-
-    // Color bar
-    if (settings.showBlockColorBar) {
-      ctx.fillStyle = tagColor
-      ctx.fillRect(colX, y, 4, h)
-    }
-
-    const innerX = colX + (settings.showBlockColorBar ? 8 : 4)
-    let textY = y + 16
-    const maxW = colW - 4 - (settings.showBlockColorBar ? 12 : 8)
-
-    // Title
-    if (settings.showBlockTitle) {
-      ctx.fillStyle = '#2C2C2B'
-      ctx.font = '13px -apple-system, sans-serif'
-      ctx.fillText(b.title || '(未命名)', innerX, textY, maxW)
-      textY += 18
-    }
-
-    // Time
-    if (settings.showBlockTime && h >= 32) {
-      ctx.fillStyle = '#7D7A75'
-      ctx.font = '11px -apple-system, sans-serif'
-      ctx.fillText(fmt(b.start) + '–' + fmt(b.end), innerX, textY, maxW)
-      textY += 16
-    }
-
-    // Tags
-    if (settings.showBlockTags && h >= 50 && b.tags?.length) {
-      ctx.fillStyle = '#7D7A75'
-      ctx.font = '11px -apple-system, sans-serif'
-      b.tags.forEach((t, ti) => {
-        const tc = tagStore.colorOf(t).hex
-        ctx.fillStyle = tc
-        ctx.fillRect(innerX, textY - 9, 6, 6)
-        ctx.fillStyle = '#2C2C2B'
-        ctx.fillText(t, innerX + 9, textY, maxW - 9)
-        textY += 15
-      })
-    }
-
-    // Note
-    if (settings.showBlockNote && b.note && h >= (b.tags?.length ? 66 : 48)) {
-      ctx.fillStyle = '#7D7A75'
-      ctx.font = '11px -apple-system, sans-serif'
-      const lines = b.note.split('\n')
-      lines.forEach(line => {
-        ctx.fillText(line, innerX, textY, maxW)
-        textY += 14
-      })
-    }
-  })
-
-  // 4. Author info
-  if (settings.showAuthor && (settings.authorName || settings.authorAvatar)) {
-    const padding = 20
-    const blockH = 60
-    const blockY = settings.authorPosition === 'top' ? padding : baseContentH + padding
-
-    // Avatar
-    if (settings.authorAvatar) {
-      const img = new Image()
-      img.onload = () => updatePreview()
-      img.src = settings.authorAvatar
-      if (img.complete) {
-        let ax
-        if (settings.authorAlign === 'left') ax = gutterW + padding
-        else if (settings.authorAlign === 'right') ax = w - padding - 40
-        else ax = w / 2 - 20
-        ctx.drawImage(img, ax, blockY, 40, 40)
-      }
-    }
-
-    // Text
-    const nameY = blockY + 20
-    ctx.font = '14px -apple-system, sans-serif'
-    ctx.fillStyle = '#2C2C2B'
-    let tx
-    if (settings.authorAlign === 'left') tx = gutterW + padding + (settings.authorAvatar ? 50 : 0)
-    else if (settings.authorAlign === 'right') tx = w - padding
-    else tx = w / 2
-    ctx.textAlign = settings.authorAlign === 'center' ? 'center' : (settings.authorAlign === 'left' ? 'left' : 'right')
-    if (settings.authorName) {
-      ctx.fillText(settings.authorName, tx, nameY)
-      if (settings.authorExtra) {
-        ctx.font = '12px -apple-system, sans-serif'
-        ctx.fillStyle = '#7D7A75'
-        ctx.fillText(settings.authorExtra, tx, nameY + 18)
-      }
-    } else if (settings.authorExtra) {
-      ctx.fillText(settings.authorExtra, tx, nameY)
-    }
-    ctx.textAlign = 'left'
-  }
-
-  // 5. Watermark
-  if (settings.showWatermark) {
-    ctx.save()
-    ctx.globalAlpha = settings.wmOpacity / 100
-
-    if (settings.wmType === 'text' && settings.wmText) {
-      const cx = w / 2
-      const cy = totalH / 2
-      ctx.translate(cx, cy)
-      if (settings.wmRotation) ctx.rotate(settings.wmRotation * Math.PI / 180)
-      ctx.font = `bold ${Math.max(12, settings.wmWidth / 10)}px -apple-system, sans-serif`
-      ctx.fillStyle = 'rgba(0,0,0,0.3)'
-      ctx.textAlign = 'center'
-      ctx.fillText(settings.wmText, 0, 0)
-    } else if (settings.wmType === 'image' && settings.wmImage) {
-      const img = new Image()
-      img.onload = () => updatePreview()
-      img.src = settings.wmImage
-      if (img.complete) {
-        const cx = w / 2
-        const cy = totalH / 2
-        ctx.translate(cx, cy)
-        if (settings.wmRotation) ctx.rotate(settings.wmRotation * Math.PI / 180)
-        const iw = settings.wmWidth
-        const ih = settings.wmHeight || (img.height / img.width * iw)
-        ctx.drawImage(img, -iw / 2, -ih / 2, iw, ih)
-      }
-    }
-
-    ctx.restore()
+function blockStyle(b) {
+  const top = b.start * PX_MIN
+  const height = Math.max((b.end - b.start) * PX_MIN, 16)
+  const w = 100 / (b._cols || 1)
+  const left = ((b._col || 0) / (b._cols || 1)) * 100
+  return {
+    top: top + 'px',
+    height: height + 'px',
+    left: `calc(${left}% + 2px)`,
+    width: `calc(${w}% - 4px)`,
+    background: blockBg(b),
   }
 }
 
@@ -494,24 +425,6 @@ function pickImage(callback) {
   }
   input.click()
 }
-
-function updatePreview() {
-  if (!previewCanvas.value) return
-  const canvas = previewCanvas.value
-  const container = canvas.parentElement
-  const scale = container.clientWidth / settings.exportWidth
-  canvas.width = container.clientWidth
-  renderTimeline(canvas)
-}
-
-// Re-render on settings change
-watch(() => ({ ...settings }), () => {
-  requestAnimationFrame(() => updatePreview())
-}, { deep: true })
-
-onMounted(() => {
-  nextTick(() => updatePreview())
-})
 
 function trapFocus(e) {
   if (e.key !== 'Tab') return
@@ -530,38 +443,60 @@ function trapFocus(e) {
 }
 
 async function doExport() {
-  // Render at full resolution
-  const offscreen = document.createElement('canvas')
-  renderTimeline(offscreen)
+  const el = timelineDom.value
+  if (!el) return
 
-  // Get blob
-  const blob = await new Promise(resolve => offscreen.toBlob(resolve, 'image/png'))
+  // Wait for images/fonts to settle
+  await document.fonts.ready
+  await new Promise(r => setTimeout(r, 100))
 
-  // Save via Tauri dialog
-  if (window.__TAURI__) {
-    try {
-      const filePath = await save({
-        defaultPath: 'timelog-' + dkey(timelogStore.curDate) + '.png',
-        filters: [{ name: 'PNG', extensions: ['png'] }],
-      })
-      if (filePath) {
-        await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()))
-        toast('已导出到：' + filePath)
+  // Capture full resolution — temporarily reset transform for capture
+  const origTransform = el.style.transform
+  const origOrigin = el.style.transformOrigin
+  el.style.transform = ''
+  el.style.transformOrigin = ''
+
+  try {
+    const canvas = await html2canvas(el, {
+      width: settings.exportWidth,
+      height: el.scrollHeight,
+      scale: 1,
+      useCORS: true,
+      backgroundColor: settings.bgMode === 'custom' ? settings.bgColor : null,
+    })
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+
+    // Save via Tauri dialog
+    if (window.__TAURI__) {
+      try {
+        const filePath = await save({
+          defaultPath: 'timelog-' + dkey(timelogStore.curDate) + '.png',
+          filters: [{ name: 'PNG', extensions: ['png'] }],
+        })
+        if (filePath) {
+          await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()))
+          toast('已导出到：' + filePath)
+        }
+      } catch (e) {
+        console.error('Export failed:', e)
       }
-    } catch (e) {
-      console.error('Export failed:', e)
+    } else {
+      // Fallback: browser download
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'timelog-' + dkey(timelogStore.curDate) + '.png'
+      a.click()
+      URL.revokeObjectURL(url)
     }
-  } else {
-    // Fallback: browser download
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'timelog-' + dkey(timelogStore.curDate) + '.png'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
 
-  emit('close')
+    emit('close')
+  } finally {
+    // Restore preview transform
+    el.style.transform = origTransform
+    el.style.transformOrigin = origOrigin
+  }
 }
 </script>
 
@@ -577,10 +512,24 @@ async function doExport() {
 }
 .export-right {
   flex: 1; display: flex; align-items: flex-start; justify-content: center;
-  background: var(--soft); border-radius: 8px; overflow: hidden;
-  min-height: 400px; cursor: grab;
+  border-radius: 8px; overflow: hidden;
+  min-height: 400px; cursor: grab; position: relative;
+  /* Checkerboard to indicate preview area (matches obsidian export-image) */
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+  background-image:
+    linear-gradient(45deg, var(--border) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--border) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--border) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--border) 75%);
 }
-.preview-canvas { max-width: 100%; height: auto; transition: transform 0.05s ease-out; }
+
+/* Responsive: stack vertically on narrow screens */
+@media (max-width: 850px) {
+  .export-layout { flex-direction: column; }
+  .export-left { width: 100%; max-height: none; }
+  .export-right { min-height: 250px; }
+}
 .actions { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
 .spacer { flex: 1; }
 .placeholder { color: var(--text2); padding: 20px; }
@@ -609,4 +558,166 @@ async function doExport() {
   display: flex; flex-direction: column; gap: 6px;
 }
 .collapse-body label { font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+/* ---- Export Timeline DOM styles ---- */
+.export-timeline {
+  flex-shrink: 0;
+}
+
+/* Gutter */
+.exp-gutter {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--soft2);
+  z-index: 1;
+}
+.exp-gutter::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+.exp-hlabel {
+  position: absolute;
+  right: 8px;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--text2);
+  white-space: nowrap;
+}
+
+/* Hour/half-hour lines */
+.exp-hourline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--border);
+  pointer-events: none;
+}
+.exp-halfline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--soft2);
+  pointer-events: none;
+}
+
+/* Blocks area */
+.exp-blocks {
+  position: relative;
+  height: 100%;
+}
+
+/* Block styles — matching Timeline.vue */
+.block {
+  position: absolute;
+  border-radius: 6px;
+  padding: 3px 8px 3px 11px;
+  overflow: hidden;
+  font-size: 12.5px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+.block .cbar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.block .cbar i {
+  flex: 1;
+  display: block;
+}
+.block .bt {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.block .bs {
+  opacity: .7;
+  font-size: 11px;
+}
+.block .btags {
+  margin-top: 2px;
+  font-size: 10.5px;
+  opacity: .9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.block .bnote {
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: .9;
+  overflow: hidden;
+}
+.tdot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+
+/* Author info */
+.exp-author {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  padding: 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 2;
+}
+.exp-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.exp-author-text { min-width: 0; }
+.exp-author-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.exp-author-extra {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+/* Watermark */
+.exp-watermark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  pointer-events: none;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0,0,0,0.3);
+  font-weight: bold;
+  font-size: 24px;
+  text-align: center;
+}
+.exp-watermark img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
 </style>

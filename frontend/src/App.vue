@@ -307,6 +307,7 @@ const batchCreateClose = useModal(showBatchCreate)
 const showStats = ref(false)
 const statsClose = useModal(showStats)
 const showExportImage = ref(false)
+const exportImageClose = useModal(showExportImage)
 
 // More dropdown actions
 function doImport() {
