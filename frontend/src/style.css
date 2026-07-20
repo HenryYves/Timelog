@@ -88,6 +88,36 @@ kbd {
 .dropdown-item:hover { background: var(--soft2); }
 .dropdown-item img { width: 18px; height: 18px; flex: none; opacity: .75; }
 .dropdown-item .dot { margin-left: auto; flex: none; }
+
+/* ── Dropdown submenu flyout ── */
+.submenu-wrap {
+  position: relative;
+}
+.submenu-trigger {
+  /* arrow pushed right by .sub-arrow margin-left:auto */
+}
+.sub-arrow {
+  font-size: 10px;
+  margin-left: auto;
+  opacity: 0.4;
+}
+.submenu-drop {
+  display: none;
+  position: absolute;
+  right: 100%;
+  top: 0;
+  min-width: 160px;
+  background: var(--canvas);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.12);
+  padding: 6px;
+  z-index: 65;
+}
+.submenu-wrap:hover .submenu-drop,
+.submenu-drop.open {
+  display: block;
+}
 .win-btn {
   width: 32px; height: 32px; padding: 4px; border-radius: 6px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;

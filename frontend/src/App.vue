@@ -19,14 +19,28 @@
       <span class="version">{{ APP_VERSION }}</span>
       <div class="more-wrap">
         <button class="more-btn" id="moreBtn" title="更多" @click="showMore = !showMore"><img src="/icons/more.svg" alt="更多"></button>
-        <div class="dropdown" :class="{ open: showMore }" @keydown.escape.stop="showMore = false">
+        <div class="dropdown" :class="{ open: showMore }" @keydown.escape.stop="showMore = false" @keydown="trapMoreFocus">
           <button class="dropdown-item" @click="showStats = true; showMore = false"><img src="/icons/stats.svg" alt="">统计</button>
           <button class="dropdown-item" @click="showSettings = true; showMore = false"><img src="/icons/settings.svg" alt="">设置</button>
           <button class="dropdown-item" @click="showTagMgr = true; showMore = false"><img src="/icons/tag.svg" alt="">标签</button>
-          <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><img src="/icons/text-import.svg" alt="">文本导入</button>
-          <button class="dropdown-item" @click="doImport(); showMore = false"><img src="/icons/import.svg" alt="">导入</button>
-          <button class="dropdown-item" @click="showExport = true; exportMode = 'json-export'; showMore = false"><img src="/icons/export.svg" alt="">导出备份</button>
-          <button class="dropdown-item" @click="showExportImage = true; showMore = false"><img src="/icons/export-image.svg" alt="">导出切图</button>
+          <!-- 导出 submenu -->
+          <div class="submenu-wrap">
+            <button class="dropdown-item submenu-trigger" @click.stop="showExportSub = !showExportSub; showImportSub = false"><img src="/icons/export.svg" alt="">导出 <span class="sub-arrow">▸</span></button>
+            <div class="submenu-drop" :class="{ open: showExportSub }" @mouseleave="showExportSub = false" @keydown.escape.stop="showExportSub = false" @keydown="trapSubFocus">
+              <button class="dropdown-item" @click="showExportImage = true; showMore = false"><img src="/icons/export-image.svg" alt="">导出切图</button>
+              <button class="dropdown-item" @click="showExport = true; exportMode = 'export'; showMore = false"><img src="/icons/export-text.svg" alt="">导出文本</button>
+              <button class="dropdown-item" @click="showExport = true; exportMode = 'json-export'; showMore = false"><img src="/icons/export-json.svg" alt="">导出JSON</button>
+            </div>
+          </div>
+
+          <!-- 导入 submenu -->
+          <div class="submenu-wrap">
+            <button class="dropdown-item submenu-trigger" @click.stop="showImportSub = !showImportSub; showExportSub = false"><img src="/icons/import.svg" alt="">导入 <span class="sub-arrow">▸</span></button>
+            <div class="submenu-drop" :class="{ open: showImportSub }" @mouseleave="showImportSub = false" @keydown.escape.stop="showImportSub = false" @keydown="trapSubFocus">
+              <button class="dropdown-item" @click="doImport(); showMore = false"><img src="/icons/import-json.svg" alt="">导入JSON备份</button>
+              <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><img src="/icons/text-import.svg" alt="">文本导入</button>
+            </div>
+          </div>
           <button class="dropdown-item" @click="showDataMgr = true; showMore = false"><img src="/icons/data.svg" alt="">管理数据</button>
           <button class="dropdown-item" @click="doBackupNow(); showMore = false"><img src="/icons/backup.svg" alt="">立即备份<span class="dot" :class="bkStatusClass"></span></button>
           <div style="font-size:11px;color:var(--text2);padding:4px 12px 2px;">{{ bkStatusText }}</div>
@@ -40,7 +54,7 @@
       </span>
     </header>
     <div class="hint">拖动时间轴创建记录，右键多选，<kbd>?</kbd> 查看操作指南</div>
-    <main id="scroller">
+    <main id="scroller" tabindex="-1">
       <Timeline
         :modal-open="showModal"
         @edit-block="onEditBlock"
@@ -169,7 +183,7 @@ const jumpDate = ref('')
 const showMoreClose = useModal(showMore)
 
 function closeMore(e) {
-  if (!e.target.closest('.more-wrap')) showMore.value = false
+  if (!e.target.closest('.more-wrap')) { showMore.value = false; showExportSub.value = false; showImportSub.value = false }
   if (!e.target.closest('.date-popover') && !e.target.closest('.date')) showDateMenu.value = false
   if (!e.target.closest('.date-jump') && !e.target.closest('.date')) showDateJump.value = false
 }
@@ -308,6 +322,36 @@ const showStats = ref(false)
 const statsClose = useModal(showStats)
 const showExportImage = ref(false)
 const exportImageClose = useModal(showExportImage)
+const showExportSub = ref(false)
+const showImportSub = ref(false)
+useModal(showExportSub)
+useModal(showImportSub)
+
+function trapSubFocus(e) {
+  if (e.key !== 'Tab') return
+  e.stopPropagation() // don't let parent dropdown's trapFire intercept
+  const items = e.currentTarget.querySelectorAll('button:not([disabled])')
+  if (!items.length) { e.preventDefault(); return }
+  const first = items[0], last = items[items.length - 1]
+  if (e.shiftKey) {
+    if (document.activeElement === first) { e.preventDefault(); last.focus() }
+  } else {
+    if (document.activeElement === last) { e.preventDefault(); first.focus() }
+  }
+}
+
+function trapMoreFocus(e) {
+  if (e.key !== 'Tab') return
+  const items = e.currentTarget.querySelectorAll('button:not([disabled]), input:not([disabled])')
+  const visible = [...items].filter(el => el.offsetParent !== null)
+  if (!visible.length) { e.preventDefault(); return }
+  const first = visible[0], last = visible[visible.length - 1]
+  if (e.shiftKey) {
+    if (document.activeElement === first) { e.preventDefault(); last.focus() }
+  } else {
+    if (document.activeElement === last) { e.preventDefault(); first.focus() }
+  }
+}
 
 // More dropdown actions
 function doImport() {
@@ -517,6 +561,20 @@ function applyBorderless() {
 
 // Global keyboard shortcuts (overlay close, modal delete, T, ?)
 function onWindowKeyDown(e) {
+  // ── Body-level: when More is open, keep Tab cycling within header ──
+  if (showMore.value && e.key === 'Tab') {
+    const header = document.querySelector('header')
+    if (header && !header.contains(document.activeElement)) {
+      e.preventDefault()
+      const dd = document.querySelector('.more-wrap .dropdown.open')
+      if (dd) {
+        const items = dd.querySelectorAll('button:not([disabled])')
+        const visible = [...items].filter(el => el.offsetParent !== null)
+        if (visible.length) visible[0].focus()
+      }
+    }
+  }
+
   // Escape: close topmost visible overlay / clear selection
   if (e.key === 'Escape') {
     if (confirmVisible.value) { e.preventDefault(); resolveConfirm(false); return }
@@ -686,7 +744,18 @@ function onWillInstallOnExit(version) {
   toast(STR.update.willInstallOnExit)
 }
 
+// Markdown-rendered <a> in .bnote are not real navigation — remove from tab order
+let _bnoteMO, _bnoteTimer
+
 onMounted(async () => {
+  _bnoteMO = new MutationObserver(() => {
+    clearTimeout(_bnoteTimer)
+    _bnoteTimer = setTimeout(() => {
+      document.querySelectorAll('.bnote a:not([tabindex])').forEach(a => a.setAttribute('tabindex', '-1'))
+    }, 100)
+  })
+  _bnoteMO.observe(document.body, { childList: true, subtree: true })
+
   window.addEventListener('keydown', onWindowKeyDown)
   window.addEventListener('backup:restored', onBackupRestored)
   document.addEventListener('click', closeMore)
@@ -774,6 +843,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  _bnoteMO.disconnect()
   window.removeEventListener('keydown', onWindowKeyDown)
   window.removeEventListener('backup:restored', onBackupRestored)
   document.removeEventListener('click', closeMore)
