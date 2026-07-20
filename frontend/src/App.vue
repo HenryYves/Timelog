@@ -43,7 +43,7 @@
           </div>
           <button class="dropdown-item" @click="showDataMgr = true; showMore = false"><img src="/icons/data.svg" alt="">管理数据</button>
           <button class="dropdown-item" @click="doBackupNow(); showMore = false"><img src="/icons/backup.svg" alt="">立即备份<span class="dot" :class="bkStatusClass"></span></button>
-          <div style="font-size:11px;color:var(--text2);padding:4px 12px 2px;">{{ bkStatusText }}</div>
+          <div class="dropdown-footer"><span>{{ bkStatusText }}</span><button class="dropdown-item btn-help-mini" @click="showHelp = true; showMore = false">help</button></div>
         </div>
       </div>
 <span class="win-ctrls" :class="{ on: winCtrlActive }" id="winCtrls">
@@ -52,7 +52,6 @@
         <button class="win-btn close" id="winClose" title="关闭" @click="onWinClose"><img src="/icons/win-close.svg" alt=""></button>
       </span>
     </header>
-    <div class="hint">拖动时间轴创建记录，右键多选，<kbd>?</kbd> 查看操作指南</div>
     <main id="scroller" tabindex="-1">
       <Timeline
         :modal-open="showModal"

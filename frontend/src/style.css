@@ -55,10 +55,7 @@ button.del:hover { background: #FCE9E7; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #C4C3C0; flex: none; }
 .dot.on { background: var(--green); }
 .dot.warn { background: #D5803B; }
-.hint {
-  color: var(--text2); font-size: 13px; padding: 7px 18px;
-  background: var(--canvas); border-bottom: 1px solid var(--border);
-}
+
 main { flex: 1; overflow-y: auto; overflow-x: hidden; background: var(--canvas); }
 kbd {
   font-family: Menlo, Consolas, monospace; font-size: 11px; background: var(--soft2);
@@ -117,6 +114,17 @@ kbd {
 .submenu-wrap:hover .submenu-drop,
 .submenu-drop.open {
   display: block;
+}
+.dropdown-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; color: var(--text2); padding: 4px 12px 2px;
+}
+.btn-help-mini {
+  display: inline-flex !important;
+  width: auto !important;
+  padding: 2px 8px !important;
+  font-size: 11px !important;
+  color: var(--blue) !important;
 }
 .win-btn {
   width: 32px; height: 32px; padding: 4px; border-radius: 6px; cursor: pointer;
