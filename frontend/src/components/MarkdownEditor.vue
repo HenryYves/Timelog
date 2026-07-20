@@ -12,6 +12,8 @@
       @paste="onPaste"
       @compositionstart="isComposing = true"
       @compositionend="isComposing = false; startUndoEntry('insertText'); onInput"
+      @focus="onEditorFocus"
+      @mousedown="lastEditorMousedown = Date.now()"
     />
     <textarea
       v-else
@@ -60,6 +62,17 @@ let inputLock = 0
 const editorUndo = new UndoManager()
 let pendingUndoEntry = null // snapshot taken before current input
 let isComposing = false    // IME composition in progress — skip undo tracking
+let lastEditorMousedown = 0
+
+function onEditorFocus() {
+  if (navMode.value) return
+  // Focus via keyboard (Tab / Enter) → nav mode; mouse click → edit mode
+  if (Date.now() - lastEditorMousedown > 300) {
+    navMode.value = true
+    const el = editorEl.value
+    if (el) el.style.outline = '2px solid var(--text2)'
+  }
+}
 let _scanning = false     // scanAndHighlight in progress — suppress selectionchange
 
 
@@ -507,6 +520,21 @@ function onPaste(e) {
 }
 
 function onKeydown(e) {
+  // Nav mode: Space/Enter to edit, others blocked (Tab handled below at ~870)
+  if (navMode.value) {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault()
+      navMode.value = false
+      editorEl.value.style.outline = ''
+      return
+    }
+    if (e.key !== 'Tab') {
+      e.preventDefault()
+      return
+    }
+    // Tab: let it reach the nav-mode handler below for direction-aware focus jump
+  }
+
   const isTagLine = props.tagLine
   const hint = editorEl.value.querySelector('.tag-hint')
 
@@ -827,14 +855,21 @@ function onKeydown(e) {
       return
     }
 
-    // Nav mode: jump to next focusable
+    // Nav mode: jump to next/prev focusable (respect Shift+Tab)
     if (navMode.value) {
       e.preventDefault()
       e.stopPropagation()
       const focusable = [...document.querySelectorAll(
         '.modal button:not([disabled]), .modal input:not([disabled]), [tabindex="0"]'
       )]
-      if (focusable.length > 0) focusable[0].focus()
+      const idx = focusable.indexOf(editorEl.value)
+      let next
+      if (e.shiftKey) {
+        next = idx > 0 ? focusable[idx - 1] : focusable[focusable.length - 1]
+      } else {
+        next = idx < focusable.length - 1 ? focusable[idx + 1] : focusable[0]
+      }
+      if (next) next.focus()
       navMode.value = false
       editorEl.value.style.outline = ''
       return
