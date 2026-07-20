@@ -94,8 +94,11 @@ src-tauri/src/
 - **打包自动构建** — `tauri.conf.json` 里配了 `beforeBuildCommand`，确保不打包旧前端
 - **默认窗口隐藏** — `tauri.conf.json` 中 `visible: false`，状态恢复后再显示，消除启动闪烁
 - **WebView2 only** — 最终只跑在 Tauri WebView2，不考虑跨浏览器兼容。不需要考虑 Firefox/Safari/Chrome 差异，CSS/JS 只需对 WebView2 有效。不要因为跨浏览器顾虑增加额外方案或 fallback。
-- **WebView2 contenteditable 怪异行为** — 详见 `docs/webview2-contenteditable-quirks.md`，含 8 条踩坑记录。后续发现新的浏览器行为问题必须更新该文档。
+- **WebView2 contenteditable 怪异行为** — 详见 `docs/webview2-contenteditable-quirks.md`，含 14 条踩坑记录（含 html2canvas）。后续发现新的浏览器/渲染行为问题必须更新该文档。
 - **勿假设浏览器行为** — contenteditable 行为各浏览器实现不同。遇问题先加诊断日志验证实际行为，不要凭经验或标准文档猜测。`[cursor]` 日志格式见 `saveCursor` 内 `_walk`。
+- **改 bug 前先读文件当前内容** — 不靠记忆、不靠"上次看到的样子"。sed / 批量替换 / 合并冲突可能静默改坏 CSS 属性值（如 `display:flex`→`text-align:center`），基于幻觉修 bug 越修越歪。
+- **先隔离故障层再动手** — 遇 bug 先问"到底是哪一层/哪个元素出问题"（如"导出糊"→全图糊还是只水印糊？→"保存清晰复制模糊"→差在 doCopy vs doExport），而不是直接调参数碰运气。
+- **一次改一个变量，构建或验证通过后再改下一个** — 一次改多处的 patch 出问题无法归因，而且容易引入新 bug 盖住旧 bug。
 - **Vue scoped CSS 不对 JS 创建的元素生效** — `document.createElement` / `v-html` 产生的元素不带 `data-v-xxx` 属性，scoped 样式不会命中。即使写 `.parent .child` 后代选择器理论上能穿透，实际也遇到过不生效。这类样式一律放全局 `style.css`。
 
 ## 行为约束
