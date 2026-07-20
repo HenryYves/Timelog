@@ -39,6 +39,7 @@ export const DEFAULT_SHOW_BLOCK_TIME = true
 export const DEFAULT_SHOW_BLOCK_TAGS = true
 export const DEFAULT_SHOW_BLOCK_NOTE = true
 export const DEFAULT_SHOW_BLOCK_COLOR_BAR = true
+export const DEFAULT_MASK_BLOCK_OVERFLOW = false
 
 // ---------- UI ----------
 export const APP_VERSION = 'v0.8.8'

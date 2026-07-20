@@ -89,6 +89,7 @@
           class="bnote"
           v-html="mdToHtml(ev.note)"
         />
+        <div v-if="settingsStore.maskBlockOverflow" class="block-mask" />
       </div>
       <!-- Now line (today only) -->
       <div
@@ -203,6 +204,7 @@ function computeBlockStyle(ev) {
     left: `calc(${left}% + 2px)`,
     width: `calc(${w}% - 4px)`,
     background: c0.bg,
+    '--block-bg': c0.bg,
     color: '#2C2C2B',
   }
 }

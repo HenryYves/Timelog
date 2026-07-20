@@ -37,6 +37,7 @@
                 <label><input type="checkbox" v-model="settings.showBlockTags" /> {{ STR.settings.showBlockTags }}</label>
                 <label><input type="checkbox" v-model="settings.showBlockNote" /> {{ STR.settings.showBlockNote }}</label>
                 <label><input type="checkbox" v-model="settings.showBlockColorBar" /> {{ STR.settings.showBlockColorBar }}</label>
+                <label><input type="checkbox" v-model="settings.maskBlockOverflow" /> {{ STR.settings.maskBlockOverflow }}</label>
               </div>
             </div>
 
@@ -171,6 +172,7 @@
                   <span v-for="t in b.tags" :key="t"><span class="tdot" :style="{ background: tagColor(t) }" />{{ t }}</span>
                 </div>
                 <div v-if="settings.showBlockNote && b.note && (b.end - b.start) >= (b.tags?.length ? 66 : 48)" class="bnote" v-html="mdToHtml(b.note)" />
+                <div v-if="settings.maskBlockOverflow" class="block-mask" />
               </div>
             </div>
             <!-- Author info (bottom) -->
@@ -222,6 +224,7 @@ const defaults = {
   showBlockTags: true,
   showBlockNote: true,
   showBlockColorBar: true,
+  maskBlockOverflow: false,
   // Phase 1 — 核心
   bgMode: 'theme',       // 'theme' | 'custom'
   bgColor: '#FFFFFF',
@@ -514,6 +517,7 @@ function blockStyle(b) {
     left: `calc(${left}% + 2px)`,
     width: `calc(${w}% - 4px)`,
     background: blockBg(b),
+    '--block-bg': blockBg(b),
   }
 }
 

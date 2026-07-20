@@ -7,6 +7,7 @@ import {
   DEFAULT_ZOOM, DEFAULT_FONT_FAMILY, DEFAULT_CHECK_BEFORE_CREATE, DEFAULT_COPY_AFTER_CREATE,
   DEFAULT_MARKDOWN_PREVIEW, DEFAULT_BATCH_MARKDOWN_PREVIEW, DEFAULT_TAB_TO_INDENT, DEFAULT_BATCH_TAB_TO_INDENT, DEFAULT_EDITOR_FONT_SIZE, DEFAULT_CUSTOM_CSS,
   DEFAULT_SHOW_BLOCK_TITLE, DEFAULT_SHOW_BLOCK_TIME, DEFAULT_SHOW_BLOCK_TAGS, DEFAULT_SHOW_BLOCK_NOTE, DEFAULT_SHOW_BLOCK_COLOR_BAR,
+  DEFAULT_MASK_BLOCK_OVERFLOW,
 } from '../constants.js'
 
 function loadNum(k, d) {
@@ -46,6 +47,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const showBlockTags = ref(loadBool('showBlockTags', DEFAULT_SHOW_BLOCK_TAGS))
   const showBlockNote = ref(loadBool('showBlockNote', DEFAULT_SHOW_BLOCK_NOTE))
   const showBlockColorBar = ref(loadBool('showBlockColorBar', DEFAULT_SHOW_BLOCK_COLOR_BAR))
+  const maskBlockOverflow = ref(loadBool('maskBlockOverflow', DEFAULT_MASK_BLOCK_OVERFLOW))
 
   function saveNum(k, v) { localStorage.setItem(KEY_PREFIX + k, String(v)) }
   function saveBool(k, v) { localStorage.setItem(KEY_PREFIX + k, v ? '1' : '0') }
@@ -152,6 +154,7 @@ export const useSettingsStore = defineStore('settings', () => {
   function setShowBlockTags(v) { showBlockTags.value = v; saveBool('showBlockTags', v) }
   function setShowBlockNote(v) { showBlockNote.value = v; saveBool('showBlockNote', v) }
   function setShowBlockColorBar(v) { showBlockColorBar.value = v; saveBool('showBlockColorBar', v) }
+  function setMaskBlockOverflow(v) { maskBlockOverflow.value = v; saveBool('maskBlockOverflow', v) }
 
   function reloadSettings() {
     defaultDuration.value = loadNum('defaultDuration', DEFAULT_DURATION)
@@ -180,6 +183,7 @@ export const useSettingsStore = defineStore('settings', () => {
     showBlockTags.value = loadBool('showBlockTags', DEFAULT_SHOW_BLOCK_TAGS)
     showBlockNote.value = loadBool('showBlockNote', DEFAULT_SHOW_BLOCK_NOTE)
     showBlockColorBar.value = loadBool('showBlockColorBar', DEFAULT_SHOW_BLOCK_COLOR_BAR)
+    maskBlockOverflow.value = loadBool('maskBlockOverflow', DEFAULT_MASK_BLOCK_OVERFLOW)
   }
 
   return {
@@ -190,8 +194,8 @@ export const useSettingsStore = defineStore('settings', () => {
     setDuration, setAutoScroll, setExportTimestamp, setExportDialog,
     setBlockOpacity, setBkCustomPath, setBorderless, setKeepDays, setBackupOn, setAutoUpdate, setTagDelimiters,
     setZoom, setFontFamily, setCheckBeforeCreate, setCopyAfterCreate,
-    showBlockTitle, showBlockTime, showBlockTags, showBlockNote, showBlockColorBar,
-    setShowBlockTitle, setShowBlockTime, setShowBlockTags, setShowBlockNote, setShowBlockColorBar,
+    showBlockTitle, showBlockTime, showBlockTags, showBlockNote, showBlockColorBar, maskBlockOverflow,
+    setShowBlockTitle, setShowBlockTime, setShowBlockTags, setShowBlockNote, setShowBlockColorBar, setMaskBlockOverflow,
     setMarkdownPreview, setBatchMarkdownPreview, setTabToIndent, setBatchTabToIndent, setEditorFontSize, setCustomCss,
     reloadSettings,
   }
