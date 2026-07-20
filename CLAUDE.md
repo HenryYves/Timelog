@@ -99,6 +99,7 @@ src-tauri/src/
 - **改 bug 前先读文件当前内容** — 不靠记忆、不靠"上次看到的样子"。sed / 批量替换 / 合并冲突可能静默改坏 CSS 属性值（如 `display:flex`→`text-align:center`），基于幻觉修 bug 越修越歪。
 - **先隔离故障层再动手** — 遇 bug 先问"到底是哪一层/哪个元素出问题"（如"导出糊"→全图糊还是只水印糊？→"保存清晰复制模糊"→差在 doCopy vs doExport），而不是直接调参数碰运气。
 - **一次改一个变量，构建或验证通过后再改下一个** — 一次改多处的 patch 出问题无法归因，而且容易引入新 bug 盖住旧 bug。
+- **构建/前端命令必须在 frontend 目录下执行** — 工作目录是 repo 根 `D:\a_my\project\html\Timelog`，git 操作后 cwd 停留在根。`npx vite build`、`npm test`、`npm install` 等所有前端命令都必须 `cd /d/a_my/project/html/Timelog/frontend &&` 前缀，否则 `npx` 找不到本地 `node_modules` 里的 vite，会去全局 cache 拉另一个版本在错误目录下跑（静默失败或报 `UNRESOLVED_ENTRY`）。
 - **Vue scoped CSS 不对 JS 创建的元素生效** — `document.createElement` / `v-html` 产生的元素不带 `data-v-xxx` 属性，scoped 样式不会命中。即使写 `.parent .child` 后代选择器理论上能穿透，实际也遇到过不生效。这类样式一律放全局 `style.css`。
 
 ## 行为约束

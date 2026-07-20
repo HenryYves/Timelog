@@ -366,6 +366,7 @@ const timelineStyle = computed(() => {
   return {
     width: settings.exportWidth + 'px',
     height: exportHeight.value + 'px',
+    '--export-canvas': bgColor.value,
     background: bgColor.value,
     transform: `translate(${previewOffset.x}px, ${previewOffset.y}px) scale(${s})`,
     transformOrigin: '0 0',
