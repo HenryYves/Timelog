@@ -44,7 +44,7 @@ export const DEFAULT_RENDER_NOTE_MARKDOWN = true
 export const DEFAULT_END_TIME_AT_NOW = true
 
 // ---------- UI ----------
-export const APP_VERSION = 'v0.8.8'
+export const APP_VERSION = 'v0.9.14'
 export const TOAST_DURATION = 3000
 
 export function compareSemver(a, b) {

@@ -1,11 +1,11 @@
 {
-  "version": "v0.8.8",
-  "notes": "新增：饼图SVG重写+引导线标注、图表hover交互、视图自定义名称、导出/导入按内容选择（数据/标签/统计视图/设置）\n变更：统计面板视觉美化（卡片装饰条、柱状图渐变、筛选pill、动画）、日期输入text类型+校验、自动备份纳入统计和设置\n修复：柱状图display高度0、饼图大扇区引导线方向、导入设置store刷新、属性面板焦点+滚轮",
-  "pub_date": "2026-07-17T00:00:00Z",
+  "version": "v0.9.14",
+  "notes": "新增：导出切图DOM渲染+原生剪贴板+2x高清+作者水印、块溢出遮罩、二级子菜单+焦点管理、编辑器nav模式、结束时间默认当前时间\n变更：移除块最小高度、统计移至设置下、移除hint/导出文本按钮、上下内边距、空页从00:00开始\n修复：导出裁剪/作者对齐/水印模糊灰色/gutter灰底、文本复制走原生剪贴板Win+V、遮罩叠加加深",
+  "pub_date": "2026-07-20T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUNudGVyZnhKZW1qMzRJZFhMNk5KYTlSc0JtMHNTTytQT2ZYU3pRZXp4OVpWQkM5VHpTUE9rODZaUkM2ZUwzbHl0TVU4SFhGQzYyVTV0SmsvSmhSN3drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0MjU5ODYwCWZpbGU6dGltZWxvZ18wLjguOF94NjRfZW4tVVMubXNpCnNXK250ajdrTlhzcFFVRGZ6SlFEQ3ZvQzQydm9Dd3hsZzRad3FINlJiVmpCMVRaWmhBaldIK0xITnMvblkxSUVzYnVyUFpiWW4vMC9OZG9mNGgwY0RBPT0K",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.8.8/timelog_0.8.8_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbU1BaHlUOEE4WWl2OG43SHZTNEdiaDlUWk0yaW5UdjRnRVZzdllGcnF5Nm5wU2Z3TWduaTlMMEpRQ0tvNS8yRlhYZ3lBQjM2QmdMVzR1OW9wYm5JNndBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0NTUyNDMxCWZpbGU6dGltZWxvZ18wLjkuMTRfeDY0X2VuLVVTLm1zaQpobGdlQmZVdW0rd2g3dXR1eDdBRlVCVjBJMEt6MVZvWUhHZDlseXdWSHpOVGZQWEhUN0NySStNQUtaSVpwQkRNVzRpamJBT25uUHlBYXpKQ2pLZzZBQT09Cg==",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.9.14/timelog_0.9.14_x64_en-US.msi"
     }
   }
 }
