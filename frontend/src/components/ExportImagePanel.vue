@@ -174,7 +174,7 @@
                   <span v-for="t in b.tags" :key="t"><span class="tdot" :style="{ background: tagColor(t) }" />{{ t }}</span>
                 </div>
                 <div v-if="settings.showBlockNote && b.note && (b.end - b.start) >= (b.tags?.length ? 66 : 48)" class="bnote" v-html="mdToHtml(b.note)" />
-                <div v-if="settings.maskBlockOverflow" class="block-mask" />
+                <div v-if="settings.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
               </div>
             </div>
             <!-- Author info (bottom) -->
@@ -350,8 +350,13 @@ function tagColor(t) {
 
 const bgColor = computed(() => {
   if (settings.bgMode === 'custom') return settings.bgColor
-  return 'var(--canvas)'
+  // Resolve actual colour so --export-canvas is never a nested var() reference
+  return getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() || '#ffffff'
 })
+
+const maskGradientStyle = computed(() => ({
+  background: `linear-gradient(to bottom, ${bgColor.value}00, ${bgColor.value} 90%)`,
+}))
 
 const showAuthorBlock = computed(() =>
   settings.showAuthor && !!(settings.authorName || settings.authorAvatar)

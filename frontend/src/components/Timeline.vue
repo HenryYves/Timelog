@@ -89,7 +89,7 @@
           class="bnote"
           v-html="mdToHtml(ev.note)"
         />
-        <div v-if="settingsStore.maskBlockOverflow" class="block-mask" />
+        <div v-if="settingsStore.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
       </div>
       <!-- Now line (today only) -->
       <div
@@ -117,6 +117,11 @@ const props = defineProps({
 const store = useTimelogStore()
 const { selectedBlocks, colorOf } = store
 const settingsStore = useSettingsStore()
+
+const maskGradientStyle = computed(() => {
+  const c = getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() || '#ffffff'
+  return { background: `linear-gradient(to bottom, ${c}00, ${c} 90%)` }
+})
 const emit = defineEmits(['edit-block', 'create-block'])
 const { toast } = useToast()
 const { showConfirm } = useConfirm()
