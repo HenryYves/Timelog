@@ -106,5 +106,6 @@ src-tauri/src/
 - Commit message：英文前缀 + 中文描述（Conventional Commits）— `feat:` / `fix:` / `docs:` / `refactor:` / `chore:` / `release:`
 - 写 message 前先 `git diff --stat` 看全部改动，概括整体而非只描述最后一条
 - 提交前必须先把 message 给用户过目，同意后再提交
-- 遇到 bug → 先拿用户输入 trace 代码 → 诊断 → 讨论方案 → 再改
+- **遇到 bug → 先拿用户输入 trace 代码 → 诊断 → 讨论方案 → 再改**
+- **涉及 Rust/Tauri 改动的 bug 修复**：必须先 `npm run tauri dev` 实际跑通验证，确认修复生效后再 commit。不要在只 build 通过但未运行时验证的情况下就提交。"先 commit 保存战果"在涉及原生层改动时是错误的——commit 应该是验证通过后的最后一步。
 - **规则持久化** — 犯了错不要只说"下次不会了"。换 session 或 compact 之后这些对话记忆全丢，唯一持久的记忆是 CLAUDE.md。如果一条规则值得下次记住，把它写进 CLAUDE.md（行为约束、Gotchas、或架构说明）。给用户的建议也必须是实质性的——改哪个文件、加什么内容——而不是空洞的保证。

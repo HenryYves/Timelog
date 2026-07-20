@@ -2,6 +2,12 @@ use std::sync::Mutex;
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_updater::{UpdaterExt, Update};
+use windows::Win32::System::DataExchange::{
+    OpenClipboard, EmptyClipboard, SetClipboardData, CloseClipboard,
+};
+use windows::Win32::Foundation::{HWND, HANDLE};
+use windows::Win32::System::Memory::{GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE};
+use base64::Engine;
 
 // ── Types ──
 
@@ -134,6 +140,67 @@ async fn download_update(
     Err(format!("下载失败：{}", last_err))
 }
 
+fn open_clipboard(app: &AppHandle) -> Result<HWND, String> {
+    let win = app.get_webview_window("main").ok_or("window not found")?;
+    let hwnd = HWND(win.hwnd().map_err(|e| format!("hwnd: {}", e))?.0 as *mut _);
+    unsafe { OpenClipboard(hwnd).map_err(|e| format!("OpenClipboard: {:?}", e))?; }
+    Ok(hwnd)
+}
+
+#[tauri::command]
+fn clipboard_write_image(app: AppHandle, width: u32, height: u32, rgba_base64: String) -> Result<(), String> {
+    let rgba = base64::engine::general_purpose::STANDARD.decode(&rgba_base64).map_err(|e| format!("base64: {}", e))?;
+    let w = width as i32; let h = height as i32;
+    let row = ((w * 32 + 31) / 32) * 4;
+    let header = 40usize;
+    let total = header + (row * h) as usize;
+    let mut dib = vec![0u8; total];
+    dib[0..4].copy_from_slice(&40u32.to_le_bytes());
+    dib[4..8].copy_from_slice(&w.to_le_bytes());
+    dib[8..12].copy_from_slice(&(-h).to_le_bytes());
+    dib[12..14].copy_from_slice(&1u16.to_le_bytes());
+    dib[14..16].copy_from_slice(&32u16.to_le_bytes());
+    for y in 0..h {
+        let src_r = (y as usize) * (w as usize) * 4;
+        let dst_r = (y as usize) * (row as usize);
+        for x in 0..w as usize {
+            let s = src_r + x * 4; let d = dst_r + x * 4;
+            dib[header + d] = rgba[s + 2];
+            dib[header + d + 1] = rgba[s + 1];
+            dib[header + d + 2] = rgba[s];
+            dib[header + d + 3] = rgba[s + 3];
+        }
+    }
+    unsafe {
+        open_clipboard(&app)?;
+        let _ = EmptyClipboard();
+        let h = GlobalAlloc(GMEM_MOVEABLE, total).map_err(|e| format!("GlobalAlloc: {:?}", e))?;
+        let p = GlobalLock(h);
+        std::ptr::copy_nonoverlapping(dib.as_ptr(), p as *mut u8, total);
+        let _ = GlobalUnlock(h);
+        SetClipboardData(8, HANDLE(h.0)).map_err(|e| format!("SetClipboardData: {:?}", e))?; // CF_DIB
+        CloseClipboard().map_err(|e| format!("CloseClipboard: {:?}", e))?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn clipboard_write_text(app: AppHandle, text: String) -> Result<(), String> {
+    let wide: Vec<u16> = text.encode_utf16().chain(std::iter::once(0)).collect();
+    let bytes = wide.len() * 2;
+    unsafe {
+        open_clipboard(&app)?;
+        let _ = EmptyClipboard();
+        let h = GlobalAlloc(GMEM_MOVEABLE, bytes).map_err(|e| format!("GlobalAlloc: {:?}", e))?;
+        let p = GlobalLock(h);
+        std::ptr::copy_nonoverlapping(wide.as_ptr(), p as *mut u16, wide.len());
+        let _ = GlobalUnlock(h);
+        SetClipboardData(13, HANDLE(h.0)).map_err(|e| format!("SetClipboardData(text): {:?}", e))?; // CF_UNICODETEXT
+        CloseClipboard().map_err(|e| format!("CloseClipboard: {:?}", e))?;
+    }
+    Ok(())
+}
+
 #[tauri::command]
 async fn install_update(
     pending: tauri::State<'_, PendingUpdate>,
@@ -211,6 +278,8 @@ pub fn run(reset_settings: bool, minimized: bool) {
             check_update,
             download_update,
             install_update,
+            clipboard_write_image,
+            clipboard_write_text,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

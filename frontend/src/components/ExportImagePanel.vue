@@ -134,10 +134,13 @@
               </div>
             </div>
             <!-- Hour lines -->
-            <div v-for="h in hours" :key="'hl'+h" class="exp-hourline" :style="{ top: h * 60 + 'px' }" />
-            <div v-for="h in 24" :key="'hfl'+h" class="exp-halfline" :style="{ top: (h * 60 + 30) + 'px' }" />
+            <div v-for="h in hours" :key="'hl'+h" class="exp-hourline" :style="{ top: `calc(var(--author-top) + ${h * 60}px)` }" />
+            <div v-for="h in 24" :key="'hfl'+h" class="exp-halfline" :style="{ top: `calc(var(--author-top) + ${h * 60 + 30}px)` }" />
             <!-- Time blocks -->
-            <div class="exp-blocks" :style="{ marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px' }">
+            <div class="exp-blocks" :style="{
+              marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px',
+              height: DAY_MIN + 'px',
+            }">
               <div v-for="b in layoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
                 <div v-if="settings.showBlockColorBar" class="cbar">
                   <i v-for="(t, ti) in (b.tags || [])" :key="ti" :style="{ background: tagColor(t) }" />
@@ -326,11 +329,18 @@ const bgColor = computed(() => {
   return 'var(--canvas)'
 })
 
+const exportHeight = computed(() => {
+  let h = DAY_MIN
+  if (settings.showAuthor && settings.authorPosition === 'bottom') h += 80
+  return h
+})
+
 const timelineStyle = computed(() => {
   const s = previewScale.value
   return {
+    '--author-top': (settings.showAuthor && settings.authorPosition === 'top') ? '60px' : '0',
     width: settings.exportWidth + 'px',
-    height: DAY_MIN + 'px',
+    height: exportHeight.value + 'px',
     background: bgColor.value,
     transform: `translate(${previewOffset.x}px, ${previewOffset.y}px) scale(${s})`,
     transformOrigin: '0 0',
@@ -343,21 +353,24 @@ const authorStyle = computed(() => {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
+    justifyContent: settings.authorAlign === 'left' ? 'flex-start' : settings.authorAlign === 'right' ? 'flex-end' : 'center',
+    order: settings.authorPosition === 'top' ? -1 : 0,
   }
-  if (settings.authorAlign === 'left') base.justifyContent = 'flex-start'
-  else if (settings.authorAlign === 'center') base.justifyContent = 'center'
-  else base.justifyContent = 'flex-end'
-  if (settings.authorPosition === 'top') base.top = '20px'
-  else base.bottom = '20px'
   return base
 })
 
-const watermarkStyle = computed(() => ({
-  opacity: settings.wmOpacity / 100,
-  transform: `translate(-50%, -50%) rotate(${settings.wmRotation}deg)`,
-  width: settings.wmWidth + 'px',
-  height: settings.wmHeight ? settings.wmHeight + 'px' : 'auto',
-}))
+const watermarkStyle = computed(() => {
+  const s = {
+    opacity: settings.wmOpacity / 100,
+    transform: `translate(-50%, -50%) rotate(${settings.wmRotation}deg)`,
+    whiteSpace: 'nowrap',
+  }
+  if (settings.wmType === 'image') {
+    s.width = settings.wmWidth + 'px'
+    if (settings.wmHeight) s.height = settings.wmHeight + 'px'
+  }
+  return s
+})
 
 // ----- Block overlap layout -----
 const layoutBlocks = computed(() => {
@@ -449,18 +462,28 @@ async function doCopy() {
   try {
     const canvas = await html2canvas(el, {
       width: settings.exportWidth,
-      height: el.scrollHeight,
-      scale: 1,
+      height: exportHeight.value,
+      scale: Math.max(2, window.devicePixelRatio || 1),
       useCORS: true,
       backgroundColor: settings.bgMode === 'custom' ? settings.bgColor : getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim(),
     })
-    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
-    // Write as image/png — works for Ctrl+V paste.
-    // Also include text/html so Windows clipboard history (Win+V) tracks it.
-    await navigator.clipboard.write([new ClipboardItem({
-      'image/png': blob,
-      'text/html': new Blob([`<img alt="Timelog export" />`], { type: 'text/html' }),
-    })])
+    console.log('[copy] canvas:', canvas.width, 'x', canvas.height,
+      '| exportWidth:', settings.exportWidth,
+      '| dpr:', window.devicePixelRatio)
+    if (window.__TAURI__) {
+      const ctx2 = canvas.getContext('2d')
+      const imageData = ctx2.getImageData(0, 0, canvas.width, canvas.height)
+      const bytes = new Uint8Array(imageData.data)
+      let binary = ''
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+      const rgbaBase64 = btoa(binary)
+      await window.__TAURI__.core.invoke('clipboard_write_image', {
+        width: canvas.width, height: canvas.height, rgbaBase64,
+      })
+    } else {
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+    }
     toast(STR.exportImage.copied)
   } catch (e) {
     console.error('Copy failed:', e)
@@ -485,8 +508,8 @@ async function doExport() {
   try {
     const canvas = await html2canvas(el, {
       width: settings.exportWidth,
-      height: el.scrollHeight,
-      scale: 1,
+      height: exportHeight.value,
+      scale: Math.max(2, window.devicePixelRatio || 1),
       useCORS: true,
       backgroundColor: settings.bgMode === 'custom' ? settings.bgColor : null,
     })
@@ -556,13 +579,11 @@ async function doExport() {
   .export-left { width: 100%; max-height: none; }
   .export-right { min-height: 250px; }
 }
-.actions { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
 .spacer { flex: 1; }
 .placeholder { color: var(--text2); padding: 20px; }
 
 .export-settings { padding: 4px 0; }
 .setting-group { margin-bottom: 12px; }
-.setting-group label { display: flex; align-items: center; gap: 6px; font-size: 13.5px; }
 .setting-group select, .setting-group input[type="number"] {
   border: 1px solid var(--border); border-radius: 4px; padding: 4px 8px; font-size: 13px;
 }
@@ -572,7 +593,6 @@ async function doExport() {
   border: 1px solid var(--border); border-radius: 6px; margin-bottom: 12px;
 }
 .collapse-header {
-  display: flex; justify-content: space-between; align-items: center;
   padding: 8px 10px; cursor: pointer; font-size: 13.5px; font-weight: 500;
   user-select: none;
 }
@@ -581,21 +601,22 @@ async function doExport() {
 .arrow.open { transform: rotate(90deg); }
 .collapse-body {
   padding: 8px 10px 10px; border-top: 1px solid var(--soft);
-  display: flex; flex-direction: column; gap: 6px;
+  text-align: center; flex-direction: column; gap: 6px;
 }
-.collapse-body label { font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
 
 /* ---- Export Timeline DOM styles ---- */
 .export-timeline {
   flex-shrink: 0;
+  text-align: center;
+  flex-direction: column;
 }
 
 /* Gutter */
 .exp-gutter {
   position: absolute;
   left: 0;
-  top: 0;
-  height: 100%;
+  top: var(--author-top, 0);
+  height: 1440px;
   background: var(--soft2);
   z-index: 1;
 }
@@ -654,7 +675,7 @@ async function doExport() {
   top: 0;
   bottom: 0;
   width: 4px;
-  display: flex;
+  text-align: center;
   flex-direction: column;
   overflow: hidden;
 }
@@ -698,14 +719,9 @@ async function doExport() {
 
 /* Author info */
 .exp-author {
-  position: absolute;
-  left: 20px;
-  right: 20px;
-  padding: 10px 0;
-  display: flex;
-  align-items: center;
+  padding: 16px 32px;
+  text-align: center;
   gap: 12px;
-  z-index: 2;
 }
 .exp-avatar {
   width: 40px;
@@ -728,14 +744,14 @@ async function doExport() {
 /* Watermark */
 .exp-watermark {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%) rotate(0deg);
+  left: 0;
+  top: 720px;
+  width: 100%;
+  transform: translateY(-50%);
   pointer-events: none;
   z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  text-align: center;
+  overflow: visible;
   color: rgba(0,0,0,0.3);
   font-weight: bold;
   font-size: 24px;
