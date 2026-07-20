@@ -182,8 +182,8 @@
               </div>
             </div>
             <!-- Watermark (tiled repeat, like obsidian-export-image) -->
-            <div v-if="settings.showWatermark && wmTileUrl" class="exp-watermark"
-              :style="{ backgroundImage: `url(${wmTileUrl})`, opacity: settings.wmOpacity / 100 }" />
+            <img v-if="settings.showWatermark && wmOverlayUrl" class="exp-watermark"
+              :src="wmOverlayUrl" :style="{ opacity: settings.wmOpacity / 100 }" />
           </div>
         </div>
       </div>
@@ -379,8 +379,10 @@ const authorStyle = computed(() => {
   }
 })
 
-// ----- Tiled watermark (canvas tile → repeating background, like obsidian-export-image) -----
-const wmTileUrl = ref('')
+// ----- Tiled watermark (full-size overlay canvas, staggered like obsidian-export-image) -----
+// Rendered as one <img> covering the export area — html2canvas' background-size+repeat
+// handling is unreliable (stretches tiles → blurry), <img> at 2x is always sharp.
+const wmOverlayUrl = ref('')
 
 function loadImg(src) {
   return new Promise((resolve, reject) => {
@@ -391,16 +393,16 @@ function loadImg(src) {
   })
 }
 
-async function buildWatermarkTile() {
-  if (!settings.showWatermark) { wmTileUrl.value = ''; return }
+async function buildWatermarkOverlay() {
+  if (!settings.showWatermark) { wmOverlayUrl.value = ''; return }
   const gapX = Math.max(0, settings.wmGapX || 0)
   const gapY = Math.max(0, settings.wmGapY || 0)
   const rot = (settings.wmRotation || 0) * Math.PI / 180
   const cos = Math.abs(Math.cos(rot))
   const sin = Math.abs(Math.sin(rot))
 
-  const tile = document.createElement('canvas')
-  const ctx = tile.getContext('2d')
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
 
   let draw  // (ctx) => void, draws content centered at origin
   let cw, ch  // content size before rotation
@@ -421,35 +423,43 @@ async function buildWatermarkTile() {
     }
   } else if (settings.wmType === 'image' && settings.wmImage) {
     let img
-    try { img = await loadImg(settings.wmImage) } catch { wmTileUrl.value = ''; return }
+    try { img = await loadImg(settings.wmImage) } catch { wmOverlayUrl.value = ''; return }
     cw = settings.wmWidth || img.naturalWidth
     ch = settings.wmHeight || (img.naturalHeight * cw / img.naturalWidth)
     draw = (c) => c.drawImage(img, -cw / 2, -ch / 2, cw, ch)
   } else {
-    wmTileUrl.value = ''
+    wmOverlayUrl.value = ''
     return
   }
 
-  // Staggered (brick) layout like obsidian-export-image: tile = 2×2 cells,
-  // watermark drawn at (1/4,1/4) and (3/4,3/4) so adjacent rows offset half a cell
+  // Staggered (brick) layout: horizontal period 2 cells, odd rows offset by one cell
+  const SCALE = Math.max(2, window.devicePixelRatio || 1)
   const cellW = cw * cos + ch * sin + gapX
   const cellH = cw * sin + ch * cos + gapY
-  tile.width = Math.max(1, Math.ceil(cellW * 2))
-  tile.height = Math.max(1, Math.ceil(cellH * 2))
-  for (const [fx, fy] of [[0.25, 0.25], [0.75, 0.75]]) {
-    ctx.save()
-    ctx.translate(tile.width * fx, tile.height * fy)
-    ctx.rotate(rot)
-    draw(ctx)
-    ctx.restore()
+  const W = settings.exportWidth
+  const H = exportHeight.value
+  canvas.width = W * SCALE
+  canvas.height = H * SCALE
+  ctx.scale(SCALE, SCALE)
+  let row = 0
+  for (let y = cellH / 2; y < H + cellH; y += cellH, row++) {
+    const xStart = (row % 2 ? 1.5 : 0.5) * cellW
+    for (let x = xStart; x < W + cellW; x += 2 * cellW) {
+      ctx.save()
+      ctx.translate(x, y)
+      ctx.rotate(rot)
+      draw(ctx)
+      ctx.restore()
+    }
   }
-  wmTileUrl.value = tile.toDataURL()
+  wmOverlayUrl.value = canvas.toDataURL()
 }
 
 watch(
   () => [settings.showWatermark, settings.wmType, settings.wmText, settings.wmImage,
-    settings.wmRotation, settings.wmWidth, settings.wmHeight, settings.wmGapX, settings.wmGapY],
-  buildWatermarkTile,
+    settings.wmRotation, settings.wmWidth, settings.wmHeight, settings.wmGapX, settings.wmGapY,
+    settings.exportWidth, exportHeight.value],
+  buildWatermarkOverlay,
   { immediate: true }
 )
 
@@ -829,15 +839,14 @@ async function doExport() {
   color: var(--text2);
 }
 
-/* Watermark — full-area tiled background (tile generated on canvas) */
+/* Watermark — full-size overlay image (canvas-generated, staggered tiles) */
 .exp-watermark {
   position: absolute;
   left: 0;
   top: 0;
-  right: 0;
-  bottom: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   z-index: 2;
-  background-repeat: repeat;
 }
 </style>
