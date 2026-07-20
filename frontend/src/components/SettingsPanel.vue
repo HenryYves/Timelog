@@ -318,6 +318,14 @@
               </div>
             </div>
 
+            <div class="row">
+              <label>{{ STR.settings.renderNoteMarkdown }}</label>
+              <div>
+                <label class="toggle"><input type="checkbox" :checked="settings.renderNoteMarkdown" @change="settings.setRenderNoteMarkdown($event.target.checked)"><span class="tk"></span></label>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setRenderNoteMarkdown(DEFAULT_RENDER_NOTE_MARKDOWN)"><img src="/icons/restore.svg" alt=""></button>
+              </div>
+            </div>
+
           </div>
 
           <!-- ═══════ 文件 ═══════ -->
@@ -417,6 +425,7 @@ import {
   DEFAULT_MARKDOWN_PREVIEW, DEFAULT_BATCH_MARKDOWN_PREVIEW, DEFAULT_TAB_TO_INDENT, DEFAULT_BATCH_TAB_TO_INDENT, DEFAULT_EDITOR_FONT_SIZE,
   DEFAULT_SHOW_BLOCK_TITLE, DEFAULT_SHOW_BLOCK_TIME, DEFAULT_SHOW_BLOCK_TAGS, DEFAULT_SHOW_BLOCK_NOTE, DEFAULT_SHOW_BLOCK_COLOR_BAR,
   DEFAULT_MASK_BLOCK_OVERFLOW,
+  DEFAULT_RENDER_NOTE_MARKDOWN,
 } from '../constants.js'
 import { STR } from '../strings.js'
 

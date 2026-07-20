@@ -151,6 +151,7 @@ export const STR = {
     showBlockNote: '显示备注',
     showBlockColorBar: '显示左侧颜色条',
     maskBlockOverflow: '启用溢出遮罩',
+    renderNoteMarkdown: '渲染备注中的Markdown',
     descBorderless: '启用后隐藏原生标题栏，顶部右侧显示窗口控制按钮',
     descExportTimestamp: '例：timelog-backup-2026-07-04-1730.json',
     descExportDialog: '导出时弹出系统文件对话框选择保存位置',

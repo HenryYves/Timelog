@@ -40,6 +40,7 @@ export const DEFAULT_SHOW_BLOCK_TAGS = true
 export const DEFAULT_SHOW_BLOCK_NOTE = true
 export const DEFAULT_SHOW_BLOCK_COLOR_BAR = true
 export const DEFAULT_MASK_BLOCK_OVERFLOW = false
+export const DEFAULT_RENDER_NOTE_MARKDOWN = true
 
 // ---------- UI ----------
 export const APP_VERSION = 'v0.8.8'

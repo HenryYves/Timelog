@@ -85,10 +85,15 @@
           </span>
         </div>
         <div
-          v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48)"
+          v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && settingsStore.renderNoteMarkdown"
           class="bnote"
           v-html="mdToHtml(ev.note)"
         />
+        <div
+          v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && !settingsStore.renderNoteMarkdown"
+          class="bnote"
+          style="white-space: pre-wrap"
+        >{{ ev.note }}</div>
         <div v-if="settingsStore.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
       </div>
       <!-- Now line (today only) -->

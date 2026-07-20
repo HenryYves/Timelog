@@ -8,6 +8,7 @@ import {
   DEFAULT_MARKDOWN_PREVIEW, DEFAULT_BATCH_MARKDOWN_PREVIEW, DEFAULT_TAB_TO_INDENT, DEFAULT_BATCH_TAB_TO_INDENT, DEFAULT_EDITOR_FONT_SIZE, DEFAULT_CUSTOM_CSS,
   DEFAULT_SHOW_BLOCK_TITLE, DEFAULT_SHOW_BLOCK_TIME, DEFAULT_SHOW_BLOCK_TAGS, DEFAULT_SHOW_BLOCK_NOTE, DEFAULT_SHOW_BLOCK_COLOR_BAR,
   DEFAULT_MASK_BLOCK_OVERFLOW,
+  DEFAULT_RENDER_NOTE_MARKDOWN,
 } from '../constants.js'
 
 function loadNum(k, d) {
@@ -48,6 +49,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const showBlockNote = ref(loadBool('showBlockNote', DEFAULT_SHOW_BLOCK_NOTE))
   const showBlockColorBar = ref(loadBool('showBlockColorBar', DEFAULT_SHOW_BLOCK_COLOR_BAR))
   const maskBlockOverflow = ref(loadBool('maskBlockOverflow', DEFAULT_MASK_BLOCK_OVERFLOW))
+  const renderNoteMarkdown = ref(loadBool('renderNoteMarkdown', DEFAULT_RENDER_NOTE_MARKDOWN))
 
   function saveNum(k, v) { localStorage.setItem(KEY_PREFIX + k, String(v)) }
   function saveBool(k, v) { localStorage.setItem(KEY_PREFIX + k, v ? '1' : '0') }
@@ -155,6 +157,7 @@ export const useSettingsStore = defineStore('settings', () => {
   function setShowBlockNote(v) { showBlockNote.value = v; saveBool('showBlockNote', v) }
   function setShowBlockColorBar(v) { showBlockColorBar.value = v; saveBool('showBlockColorBar', v) }
   function setMaskBlockOverflow(v) { maskBlockOverflow.value = v; saveBool('maskBlockOverflow', v) }
+  function setRenderNoteMarkdown(v) { renderNoteMarkdown.value = v; saveBool('renderNoteMarkdown', v) }
 
   function reloadSettings() {
     defaultDuration.value = loadNum('defaultDuration', DEFAULT_DURATION)
@@ -184,6 +187,7 @@ export const useSettingsStore = defineStore('settings', () => {
     showBlockNote.value = loadBool('showBlockNote', DEFAULT_SHOW_BLOCK_NOTE)
     showBlockColorBar.value = loadBool('showBlockColorBar', DEFAULT_SHOW_BLOCK_COLOR_BAR)
     maskBlockOverflow.value = loadBool('maskBlockOverflow', DEFAULT_MASK_BLOCK_OVERFLOW)
+    renderNoteMarkdown.value = loadBool('renderNoteMarkdown', DEFAULT_RENDER_NOTE_MARKDOWN)
   }
 
   return {
@@ -195,7 +199,9 @@ export const useSettingsStore = defineStore('settings', () => {
     setBlockOpacity, setBkCustomPath, setBorderless, setKeepDays, setBackupOn, setAutoUpdate, setTagDelimiters,
     setZoom, setFontFamily, setCheckBeforeCreate, setCopyAfterCreate,
     showBlockTitle, showBlockTime, showBlockTags, showBlockNote, showBlockColorBar, maskBlockOverflow,
+    renderNoteMarkdown,
     setShowBlockTitle, setShowBlockTime, setShowBlockTags, setShowBlockNote, setShowBlockColorBar, setMaskBlockOverflow,
+    setRenderNoteMarkdown,
     setMarkdownPreview, setBatchMarkdownPreview, setTabToIndent, setBatchTabToIndent, setEditorFontSize, setCustomCss,
     reloadSettings,
   }
