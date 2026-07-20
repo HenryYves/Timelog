@@ -41,6 +41,7 @@ export const DEFAULT_SHOW_BLOCK_NOTE = true
 export const DEFAULT_SHOW_BLOCK_COLOR_BAR = true
 export const DEFAULT_MASK_BLOCK_OVERFLOW = false
 export const DEFAULT_RENDER_NOTE_MARKDOWN = true
+export const DEFAULT_END_TIME_AT_NOW = true
 
 // ---------- UI ----------
 export const APP_VERSION = 'v0.8.8'

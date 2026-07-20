@@ -648,12 +648,12 @@ function onWindowKeyDown(e) {
       const lastEnd = Math.max(...blocks.map(b => b.end))
       s = (isToday && lastEnd > nowMin) ? nowMin : lastEnd
     } else {
-      s = isToday ? nowMin : 540
+      s = 0  // 00:00 — empty page defaults to start of day
     }
     if (s > 1380) s = 1380
-    const duration = settings.defaultDuration
+    const end = settings.endTimeAtNow ? nowMin : Math.min(s + settings.defaultDuration, 1440)
     editingBlock.value = null
-    createTimes.value = { start: s, end: Math.min(s + duration, 1440) }
+    createTimes.value = { start: s, end }
     showModal.value = true
   }
   if (e.key === 'n' || e.key === 'N') {

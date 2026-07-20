@@ -110,6 +110,14 @@
             <div class="small">{{ STR.settings.descDefaultDuration }}</div>
 
             <div class="row">
+              <label>{{ STR.settings.endTimeAtNow }}</label>
+              <div>
+                <label class="toggle"><input type="checkbox" :checked="settings.endTimeAtNow" @change="settings.setEndTimeAtNow($event.target.checked)"><span class="tk"></span></label>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setEndTimeAtNow(DEFAULT_END_TIME_AT_NOW)"><img src="/icons/restore.svg" alt=""></button>
+              </div>
+            </div>
+
+            <div class="row">
               <label>{{ STR.settings.markdownPreview }}</label>
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.markdownPreview" @change="settings.setMarkdownPreview($event.target.checked)"><span class="tk"></span></label>
@@ -426,6 +434,7 @@ import {
   DEFAULT_SHOW_BLOCK_TITLE, DEFAULT_SHOW_BLOCK_TIME, DEFAULT_SHOW_BLOCK_TAGS, DEFAULT_SHOW_BLOCK_NOTE, DEFAULT_SHOW_BLOCK_COLOR_BAR,
   DEFAULT_MASK_BLOCK_OVERFLOW,
   DEFAULT_RENDER_NOTE_MARKDOWN,
+  DEFAULT_END_TIME_AT_NOW,
 } from '../constants.js'
 import { STR } from '../strings.js'
 

@@ -9,6 +9,7 @@ import {
   DEFAULT_SHOW_BLOCK_TITLE, DEFAULT_SHOW_BLOCK_TIME, DEFAULT_SHOW_BLOCK_TAGS, DEFAULT_SHOW_BLOCK_NOTE, DEFAULT_SHOW_BLOCK_COLOR_BAR,
   DEFAULT_MASK_BLOCK_OVERFLOW,
   DEFAULT_RENDER_NOTE_MARKDOWN,
+  DEFAULT_END_TIME_AT_NOW,
 } from '../constants.js'
 
 function loadNum(k, d) {
@@ -50,6 +51,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const showBlockColorBar = ref(loadBool('showBlockColorBar', DEFAULT_SHOW_BLOCK_COLOR_BAR))
   const maskBlockOverflow = ref(loadBool('maskBlockOverflow', DEFAULT_MASK_BLOCK_OVERFLOW))
   const renderNoteMarkdown = ref(loadBool('renderNoteMarkdown', DEFAULT_RENDER_NOTE_MARKDOWN))
+  const endTimeAtNow = ref(loadBool('endTimeAtNow', DEFAULT_END_TIME_AT_NOW))
 
   function saveNum(k, v) { localStorage.setItem(KEY_PREFIX + k, String(v)) }
   function saveBool(k, v) { localStorage.setItem(KEY_PREFIX + k, v ? '1' : '0') }
@@ -158,6 +160,7 @@ export const useSettingsStore = defineStore('settings', () => {
   function setShowBlockColorBar(v) { showBlockColorBar.value = v; saveBool('showBlockColorBar', v) }
   function setMaskBlockOverflow(v) { maskBlockOverflow.value = v; saveBool('maskBlockOverflow', v) }
   function setRenderNoteMarkdown(v) { renderNoteMarkdown.value = v; saveBool('renderNoteMarkdown', v) }
+  function setEndTimeAtNow(v) { endTimeAtNow.value = v; saveBool('endTimeAtNow', v) }
 
   function reloadSettings() {
     defaultDuration.value = loadNum('defaultDuration', DEFAULT_DURATION)
@@ -188,6 +191,7 @@ export const useSettingsStore = defineStore('settings', () => {
     showBlockColorBar.value = loadBool('showBlockColorBar', DEFAULT_SHOW_BLOCK_COLOR_BAR)
     maskBlockOverflow.value = loadBool('maskBlockOverflow', DEFAULT_MASK_BLOCK_OVERFLOW)
     renderNoteMarkdown.value = loadBool('renderNoteMarkdown', DEFAULT_RENDER_NOTE_MARKDOWN)
+    endTimeAtNow.value = loadBool('endTimeAtNow', DEFAULT_END_TIME_AT_NOW)
   }
 
   return {
@@ -200,8 +204,10 @@ export const useSettingsStore = defineStore('settings', () => {
     setZoom, setFontFamily, setCheckBeforeCreate, setCopyAfterCreate,
     showBlockTitle, showBlockTime, showBlockTags, showBlockNote, showBlockColorBar, maskBlockOverflow,
     renderNoteMarkdown,
+    endTimeAtNow,
     setShowBlockTitle, setShowBlockTime, setShowBlockTags, setShowBlockNote, setShowBlockColorBar, setMaskBlockOverflow,
     setRenderNoteMarkdown,
+    setEndTimeAtNow,
     setMarkdownPreview, setBatchMarkdownPreview, setTabToIndent, setBatchTabToIndent, setEditorFontSize, setCustomCss,
     reloadSettings,
   }
