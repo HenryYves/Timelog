@@ -994,7 +994,17 @@ onMounted(() => {
   if (props.enableMd) {
     document.addEventListener('selectionchange', onSelectionChange)
     setEditorContent(props.modelValue)
-    nextTick(() => scanAndHighlight()) // format content without stealing focus
+    nextTick(() => {
+      scanAndHighlight()
+      // Scroll past ::before spacer for existing content without moving cursor
+      nextTick(() => {
+        const el = editorEl.value
+        if (el && props.modelValue) {
+          const h = parseFloat(getComputedStyle(el).getPropertyValue('--spacer-h')) || 112
+          el.scrollTop = h
+        }
+      })
+    })
   }
   if (props.autoFocus) {
     nextTick(() => {
