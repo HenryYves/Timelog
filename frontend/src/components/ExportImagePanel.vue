@@ -152,7 +152,9 @@ import { STR } from '../strings.js'
 import { useTimelogStore, fmt, dkey } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { PX_MIN, DAY_MIN, GUTTER_WIDTH } from '../constants.js'
-import { mdToHtml } from '../utils/markdown.js'
+import { save } from '@tauri-apps/plugin-dialog'
+import { writeFile } from '@tauri-apps/plugin-fs'
+import { useToast } from '../composables/useToast.js'
 
 const SETTINGS_KEY = 'timelog:export-image-settings'
 
@@ -210,6 +212,7 @@ const emit = defineEmits(['close'])
 const previewCanvas = ref(null)
 const previewOffset = reactive({ x: 0, y: 0 })
 const previewScale = ref(1)
+const { toast } = useToast()
 let _panStart = null
 let _panOffset = null
 
@@ -263,14 +266,49 @@ function getBgColor() {
   return getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() || '#FFFFFF'
 }
 
-function renderTimeline(canvas, scale) {
+function layoutBlocks(blocks) {
+  const sorted = [...blocks].sort((a, b) => a.start - b.start)
+  const result = sorted.map(b => ({ ...b }))
+  let i = 0
+  while (i < result.length) {
+    let j = i
+    let ge = result[i].end
+    while (j + 1 < result.length && result[j + 1].start < ge) {
+      j++
+      ge = Math.max(ge, result[j].end)
+    }
+    const grp = result.slice(i, j + 1)
+    const cols = []
+    grp.forEach(ev => {
+      let placed = false
+      for (let c = 0; c < cols.length; c++) {
+        if (ev.start >= cols[c]) {
+          cols[c] = ev.end
+          ev._col = c
+          placed = true
+          break
+        }
+      }
+      if (!placed) {
+        ev._col = cols.length
+        cols.push(ev.end)
+      }
+    })
+    grp.forEach(ev => (ev._cols = cols.length))
+    i = j + 1
+  }
+  return result
+}
+
+function renderTimeline(canvas) {
   const ctx = canvas.getContext('2d')
   const w = settings.exportWidth
   const gutterW = settings.showGutter ? GUTTER_WIDTH : 0
   const contentW = w - gutterW
   const minuteH = PX_MIN
   const baseContentH = DAY_MIN * minuteH
-  const authorExtraH = (settings.showAuthor && settings.authorPosition === 'bottom') ? 80 : 0
+  const topOffset = (settings.showAuthor && settings.authorPosition === 'top') ? 80 : 0
+  const authorExtraH = settings.showAuthor ? 80 : 0
   const totalH = baseContentH + authorExtraH
 
   canvas.width = w
@@ -288,7 +326,7 @@ function renderTimeline(canvas, scale) {
     ctx.font = '11px -apple-system, sans-serif'
     ctx.textAlign = 'right'
     for (let h = 0; h < 25; h++) {
-      const y = h * 60 * minuteH + 4
+      const y = h * 60 * minuteH + 4 + topOffset
       const label = String(h).padStart(2, '0') + ':00'
       ctx.fillText(label, gutterW - 6, y + 10)
     }
@@ -301,45 +339,49 @@ function renderTimeline(canvas, scale) {
   }
 
   // 3. Time blocks
-  const blocks = timelogStore.blocks
-  const opacity = tagStore.colorOf('')?.opacity
+  const blocks = layoutBlocks(timelogStore.blocks)
   blocks.forEach(b => {
-    const y = b.start * minuteH
-    const h = (b.end - b.start) * minuteH
+    const y = b.start * minuteH + topOffset
+    const h = Math.max((b.end - b.start) * minuteH, 16)
     const tagColor = b.tags?.length ? tagStore.colorOf(b.tags[0]).hex : '#C4C3C0'
 
+    // Multi-column layout
+    const colW = contentW / (b._cols || 1)
+    const colX = gutterW + (b._col || 0) * colW
+
     // Block background
-    ctx.fillStyle = tagColor + '26'
-    ctx.fillRect(gutterW, y, contentW, h)
+    const bgColor = b.tags?.length ? tagStore.colorOf(b.tags[0]).bg : tagStore.colorOf(null).bg
+    ctx.fillStyle = bgColor
+    ctx.fillRect(colX, y, colW - 4, h)
 
     // Color bar
     if (settings.showBlockColorBar) {
       ctx.fillStyle = tagColor
-      ctx.fillRect(gutterW, y, 4, h)
+      ctx.fillRect(colX, y, 4, h)
     }
 
-    const innerX = gutterW + (settings.showBlockColorBar ? 8 : 4)
+    const innerX = colX + (settings.showBlockColorBar ? 8 : 4)
     let textY = y + 16
-    const maxW = contentW - (settings.showBlockColorBar ? 12 : 8)
+    const maxW = colW - 4 - (settings.showBlockColorBar ? 12 : 8)
 
     // Title
     if (settings.showBlockTitle) {
       ctx.fillStyle = '#2C2C2B'
       ctx.font = '13px -apple-system, sans-serif'
-      ctx.fillText(b.title || '(未命名)', innerX, textY)
+      ctx.fillText(b.title || '(未命名)', innerX, textY, maxW)
       textY += 18
     }
 
     // Time
-    if (settings.showBlockTime) {
+    if (settings.showBlockTime && h >= 32) {
       ctx.fillStyle = '#7D7A75'
       ctx.font = '11px -apple-system, sans-serif'
-      ctx.fillText(fmt(b.start) + '–' + fmt(b.end), innerX, textY)
+      ctx.fillText(fmt(b.start) + '–' + fmt(b.end), innerX, textY, maxW)
       textY += 16
     }
 
     // Tags
-    if (settings.showBlockTags && b.tags?.length) {
+    if (settings.showBlockTags && h >= 50 && b.tags?.length) {
       ctx.fillStyle = '#7D7A75'
       ctx.font = '11px -apple-system, sans-serif'
       b.tags.forEach((t, ti) => {
@@ -347,18 +389,18 @@ function renderTimeline(canvas, scale) {
         ctx.fillStyle = tc
         ctx.fillRect(innerX, textY - 9, 6, 6)
         ctx.fillStyle = '#2C2C2B'
-        ctx.fillText(t, innerX + 9, textY)
+        ctx.fillText(t, innerX + 9, textY, maxW - 9)
         textY += 15
       })
     }
 
     // Note
-    if (settings.showBlockNote && b.note) {
+    if (settings.showBlockNote && b.note && h >= (b.tags?.length ? 66 : 48)) {
       ctx.fillStyle = '#7D7A75'
       ctx.font = '11px -apple-system, sans-serif'
       const lines = b.note.split('\n')
       lines.forEach(line => {
-        ctx.fillText(line, innerX, textY)
+        ctx.fillText(line, innerX, textY, maxW)
         textY += 14
       })
     }
@@ -373,6 +415,7 @@ function renderTimeline(canvas, scale) {
     // Avatar
     if (settings.authorAvatar) {
       const img = new Image()
+      img.onload = () => updatePreview()
       img.src = settings.authorAvatar
       if (img.complete) {
         let ax
@@ -389,7 +432,7 @@ function renderTimeline(canvas, scale) {
     ctx.fillStyle = '#2C2C2B'
     let tx
     if (settings.authorAlign === 'left') tx = gutterW + padding + (settings.authorAvatar ? 50 : 0)
-    else if (settings.authorAlign === 'right') tx = w - padding - 200
+    else if (settings.authorAlign === 'right') tx = w - padding
     else tx = w / 2
     ctx.textAlign = settings.authorAlign === 'center' ? 'center' : (settings.authorAlign === 'left' ? 'left' : 'right')
     if (settings.authorName) {
@@ -421,6 +464,7 @@ function renderTimeline(canvas, scale) {
       ctx.fillText(settings.wmText, 0, 0)
     } else if (settings.wmType === 'image' && settings.wmImage) {
       const img = new Image()
+      img.onload = () => updatePreview()
       img.src = settings.wmImage
       if (img.complete) {
         const cx = w / 2
@@ -457,8 +501,7 @@ function updatePreview() {
   const container = canvas.parentElement
   const scale = container.clientWidth / settings.exportWidth
   canvas.width = container.clientWidth
-  canvas.height = DAY_MIN * PX_MIN * scale
-  renderTimeline(canvas, scale)
+  renderTimeline(canvas)
 }
 
 // Re-render on settings change
@@ -489,7 +532,7 @@ function trapFocus(e) {
 async function doExport() {
   // Render at full resolution
   const offscreen = document.createElement('canvas')
-  renderTimeline(offscreen, 1)
+  renderTimeline(offscreen)
 
   // Get blob
   const blob = await new Promise(resolve => offscreen.toBlob(resolve, 'image/png'))
@@ -497,14 +540,13 @@ async function doExport() {
   // Save via Tauri dialog
   if (window.__TAURI__) {
     try {
-      const { save } = await import('@tauri-apps/plugin-dialog')
-      const { writeFile } = await import('@tauri-apps/plugin-fs')
       const filePath = await save({
         defaultPath: 'timelog-' + dkey(timelogStore.curDate) + '.png',
         filters: [{ name: 'PNG', extensions: ['png'] }],
       })
       if (filePath) {
         await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()))
+        toast('已导出到：' + filePath)
       }
     } catch (e) {
       console.error('Export failed:', e)
