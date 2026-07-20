@@ -195,7 +195,7 @@ function computeBlockStyle(ev) {
   const has = ev.tags && ev.tags.length
   const c0 = colorOf(has ? ev.tags[0] : null)
   const top = ev.start * PX_MIN
-  const height = Math.max((ev.end - ev.start) * PX_MIN, 16)
+  const height = (ev.end - ev.start) * PX_MIN
   const w = 100 / (ev._cols || 1)
   const left = (ev._col || 0) * w
   return {

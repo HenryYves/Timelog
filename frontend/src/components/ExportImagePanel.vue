@@ -509,7 +509,7 @@ function layoutOverlap(blocks) {
 
 function blockStyle(b) {
   const top = b.start * PX_MIN
-  const height = Math.max((b.end - b.start) * PX_MIN, 16)
+  const height = (b.end - b.start) * PX_MIN
   const w = 100 / (b._cols || 1)
   const left = ((b._col || 0) / (b._cols || 1)) * 100
   return {
