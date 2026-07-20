@@ -86,6 +86,8 @@ kbd {
 .dropdown-item img { width: 18px; height: 18px; flex: none; opacity: .75; }
 .dropdown-item .dot { margin-left: auto; flex: none; }
 
+#scroller { padding-top: 8px; padding-bottom: 24px; }
+
 /* ── Dropdown submenu flyout ── */
 .submenu-wrap {
   position: relative;

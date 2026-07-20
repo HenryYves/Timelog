@@ -761,6 +761,8 @@ async function doExport() {
 .exp-blocks {
   position: relative;
   height: 100%;
+  padding-top: 8px;
+  padding-bottom: 24px;
 }
 
 /* Block styles — matching Timeline.vue */
