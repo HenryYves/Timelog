@@ -135,7 +135,7 @@
             </div>
           </div>
         </div>
-        <div class="export-right" ref="previewWrap" @mousedown="onPreviewMouseDown" @wheel.prevent="onPreviewWheel">
+        <div class="export-right" ref="previewWrap" @mousedown="onPreviewMouseDown" @wheel.prevent="onPreviewWheel" @dblclick="fitPreview">
           <div class="export-timeline" ref="timelineDom" :style="timelineStyle" data-export-root>
             <!-- Author info (top) -->
             <div v-if="showAuthorBlock && settings.authorPosition === 'top'" class="exp-author" :style="authorStyle">
@@ -653,6 +653,7 @@ async function doExport() {
   flex: 1; display: flex; align-items: flex-start; justify-content: center;
   border-radius: 8px; overflow: hidden;
   min-height: 300px; max-height: calc(72vh / var(--zoom, 1)); cursor: grab; position: relative;
+  user-select: none;
   /* Checkerboard to indicate preview area (matches obsidian export-image) */
   background-size: 20px 20px;
   background-position: 0 0, 10px 10px;
