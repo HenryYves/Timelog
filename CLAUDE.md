@@ -94,7 +94,7 @@ src-tauri/src/
 - **打包自动构建** — `tauri.conf.json` 里配了 `beforeBuildCommand`，确保不打包旧前端
 - **默认窗口隐藏** — `tauri.conf.json` 中 `visible: false`，状态恢复后再显示，消除启动闪烁
 - **WebView2 only** — 最终只跑在 Tauri WebView2，不考虑跨浏览器兼容。不需要考虑 Firefox/Safari/Chrome 差异，CSS/JS 只需对 WebView2 有效。不要因为跨浏览器顾虑增加额外方案或 fallback。
-- **WebView2 contenteditable 怪异行为** — 详见 `docs/webview2-contenteditable-quirks.md`，含 14 条踩坑记录（含 html2canvas）。后续发现新的浏览器/渲染行为问题必须更新该文档。
+- **WebView2 contenteditable 怪异行为** — 详见 `docs/webview2-contenteditable-quirks.md`，含 15 条踩坑记录（含 html2canvas）。后续发现新的浏览器/渲染行为问题必须更新该文档。
 - **勿假设浏览器行为** — contenteditable 行为各浏览器实现不同。遇问题先加诊断日志验证实际行为，不要凭经验或标准文档猜测。`[cursor]` 日志格式见 `saveCursor` 内 `_walk`。
 - **改 bug 前先读文件当前内容** — 不靠记忆、不靠"上次看到的样子"。sed / 批量替换 / 合并冲突可能静默改坏 CSS 属性值（如 `display:flex`→`text-align:center`），基于幻觉修 bug 越修越歪。
 - **先隔离故障层再动手** — 遇 bug 先问"到底是哪一层/哪个元素出问题"（如"导出糊"→全图糊还是只水印糊？→"保存清晰复制模糊"→差在 doCopy vs doExport），而不是直接调参数碰运气。
