@@ -146,6 +146,8 @@
                 <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
               </div>
             </div>
+            <!-- Date title -->
+            <div class="exp-date-title">{{ exportDateTitle }}</div>
             <!-- Blocks area (gutter + hour lines + time blocks, always aligned) -->
             <div class="exp-blocks" :style="{
               marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px',
@@ -355,8 +357,13 @@ const showAuthorBlock = computed(() =>
   settings.showAuthor && !!(settings.authorName || settings.authorAvatar)
 )
 
+const exportDateTitle = computed(() => {
+  const d = new Date()
+  return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日'
+})
+
 const exportHeight = computed(() => {
-  let h = DAY_MIN
+  let h = DAY_MIN + 36  // date title
   if (showAuthorBlock.value) h += 80
   return h
 })
@@ -626,7 +633,7 @@ async function doExport() {
     if (window.__TAURI__) {
       try {
         const filePath = await save({
-          defaultPath: 'timelog-' + dkey(timelogStore.curDate) + '.png',
+          defaultPath: 'timelog-' + dkey(new Date()) + '.png',
           filters: [{ name: 'PNG', extensions: ['png'] }],
         })
         if (filePath) {
@@ -708,6 +715,15 @@ async function doExport() {
 .collapse-body {
   padding: 8px 10px 10px; border-top: 1px solid var(--soft);
   display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+}
+
+.exp-date-title {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 8px 0 4px;
+  line-height: 1.4;
 }
 
 /* ---- Export Timeline DOM styles ---- */
