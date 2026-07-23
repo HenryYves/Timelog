@@ -65,7 +65,15 @@ let isComposing = false    // IME composition in progress — skip undo tracking
 let clickFocus = false
 
 function onEditorFocus() {
-  if (navMode.value) return
+  if (navMode.value) {
+    if (clickFocus) {
+      navMode.value = false
+      const el = editorEl.value
+      if (el) el.style.outline = ''
+    }
+    clickFocus = false
+    return
+  }
   if (clickFocus) {
     clickFocus = false
     return
@@ -529,8 +537,8 @@ function onKeydown(e) {
       editorEl.value.style.outline = ''
       return
     }
-    // Typing any printable char or Backspace/Delete → enter edit mode, let key through
-    if ((e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    // Typing, arrow keys, Backspace/Delete → enter edit mode, let key through
+    if ((e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete' || e.key.startsWith('Arrow')) && !e.ctrlKey && !e.metaKey && !e.altKey) {
       navMode.value = false
       editorEl.value.style.outline = ''
       return
