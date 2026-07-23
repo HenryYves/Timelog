@@ -136,7 +136,7 @@
             </div>
           </div>
         </div>
-        <div class="export-right" ref="previewWrap" @mousedown="onPreviewMouseDown" @wheel.prevent="onPreviewWheel" @dblclick="fitPreview">
+        <div class="export-right" ref="previewWrap" @mousedown="onMouseDown" @wheel.prevent="onWheel" @dblclick="fitPreview(settings.exportWidth)">
           <div class="export-timeline" ref="timelineDom" :style="timelineStyle" data-export-root>
             <!-- Author info (top) -->
             <div v-if="showAuthorBlock && settings.authorPosition === 'top'" class="exp-author" :style="authorStyle">
@@ -202,9 +202,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, computed, nextTick, onMounted, onUnmounted } from 'vue'
-import html2canvas from 'html2canvas'
+import { ref, reactive, watch, computed, nextTick, onMounted } from 'vue'
 import { mdToHtml } from '../utils/markdown.js'
+import { loadImg, compressImage, resolveAssetUrl, clearAssetCache, captureElement, copyCanvasToClipboard, saveCanvasToFile } from '../utils/capture.js'
+import { buildWatermarkOverlay } from '../utils/watermark.js'
+import { usePanZoom } from '../composables/usePanZoom.js'
 
 const showBlockOpts = ref(false)
 const showAuthorOpts = ref(false)
@@ -213,10 +215,8 @@ import { STR } from '../strings.js'
 import { useTimelogStore, fmt, dkey } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { PX_MIN, DAY_MIN, GUTTER_WIDTH, DATA_DIR } from '../constants.js'
-import { save } from '@tauri-apps/plugin-dialog'
-import { writeFile } from '@tauri-apps/plugin-fs'
 import { useToast } from '../composables/useToast.js'
-import { tWriteBinary, tReadBinary, tEnsureSubDir } from '../utils/tauri.js'
+import { tWriteBinary, tEnsureSubDir } from '../utils/tauri.js'
 
 const SETTINGS_KEY = 'timelog:export-image-settings'
 
@@ -264,30 +264,8 @@ const settings = reactive({ ...defaults })
 loadSettings()
 
 // Resolve asset paths to displayable data URLs (Tauri reads from file, browser uses as-is)
-const assetUrlCache = new Map()
 const authorAvatarUrl = ref('')
 const wmImageUrl = ref('')
-
-async function resolveAssetUrl(raw) {
-  if (!raw) return ''
-  if (raw.startsWith('data:')) return raw                               // browser dev / legacy
-  if (window.__TAURI__) {
-    const cached = assetUrlCache.get(raw)
-    if (cached) return cached
-    try {
-      const bytes = await tReadBinary(DATA_DIR + '/' + raw)
-      if (!bytes) return raw
-      const ext = (raw.split('.').pop() || 'png').toLowerCase()
-      const mime = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp' }[ext] || 'image/png'
-      let binary = ''
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
-      const url = 'data:' + mime + ';base64,' + btoa(binary)
-      assetUrlCache.set(raw, url)
-      return url
-    } catch (e) { console.error('resolveAssetUrl failed:', raw, e); return raw }
-  }
-  return raw
-}
 
 watch(() => settings.authorAvatar, async v => { authorAvatarUrl.value = await resolveAssetUrl(v) }, { immediate: true })
 watch(() => settings.wmImage, async v => { wmImageUrl.value = await resolveAssetUrl(v) }, { immediate: true })
@@ -308,67 +286,16 @@ watch(settings, () => {
 
 const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close'])
-const previewWrap = ref(null)
 const timelineDom = ref(null)
-const previewOffset = reactive({ x: 0, y: 0 })
-const previewScale = ref(1)
 const { toast } = useToast()
 const timelogStore = useTimelogStore()
 const tagStore = useTagStore()
 
-// ----- Pan / Zoom state -----
-let _panStart = null
-let _panOffset = null
-
-function onPreviewMouseDown(e) {
-  _panStart = { x: e.clientX, y: e.clientY }
-  _panOffset = { x: previewOffset.x, y: previewOffset.y }
-  document.addEventListener('mousemove', onPreviewMouseMove)
-  document.addEventListener('mouseup', onPreviewMouseUp)
-}
-
-function onPreviewMouseMove(e) {
-  if (!_panStart) return
-  previewOffset.x = _panOffset.x + (e.clientX - _panStart.x)
-  previewOffset.y = _panOffset.y + (e.clientY - _panStart.y)
-}
-
-function onPreviewMouseUp() {
-  _panStart = null
-  document.removeEventListener('mousemove', onPreviewMouseMove)
-  document.removeEventListener('mouseup', onPreviewMouseUp)
-}
-
-function onPreviewWheel(e) {
-  e.preventDefault()
-  const rect = previewWrap.value.getBoundingClientRect()
-  const mx = e.clientX - rect.left
-  const my = e.clientY - rect.top
-  const factor = e.deltaY < 0 ? 1.1 : 0.9
-  const newScale = Math.max(0.1, Math.min(5, previewScale.value * factor))
-
-  // Zoom centered on mouse
-  previewOffset.x = mx - (mx - previewOffset.x) * (newScale / previewScale.value)
-  previewOffset.y = my - (my - previewOffset.y) * (newScale / previewScale.value)
-  previewScale.value = newScale
-}
-
-function fitPreview() {
-  const container = previewWrap.value
-  if (!container) return
-  const scale = container.clientWidth / settings.exportWidth
-  previewScale.value = Math.min(scale, 1)
-  previewOffset.x = 0
-  previewOffset.y = 0
-}
+// Preview pan/zoom
+const { previewWrap, previewOffset, previewScale, onMouseDown, onWheel, fitPreview } = usePanZoom()
 
 onMounted(() => {
-  nextTick(() => fitPreview())
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousemove', onPreviewMouseMove)
-  document.removeEventListener('mouseup', onPreviewMouseUp)
+  nextTick(() => fitPreview(settings.exportWidth))
 })
 
 // ----- Timeline data -----
@@ -430,89 +357,32 @@ const authorStyle = computed(() => {
   }
 })
 
-// ----- Tiled watermark (full-size overlay canvas, staggered like obsidian-export-image) -----
-// Rendered as one <img> covering the export area — html2canvas' background-size+repeat
-// handling is unreliable (stretches tiles → blurry), <img> at 2x is always sharp.
+// Watermark overlay
 const wmOverlayUrl = ref('')
 
-function loadImg(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => resolve(img)
-    img.onerror = reject
-    img.src = src
-  })
-}
-
-async function buildWatermarkOverlay() {
+async function buildWatermark() {
   if (!settings.showWatermark) { wmOverlayUrl.value = ''; return }
-  const gapX = Math.max(0, settings.wmGapX || 0)
-  const gapY = Math.max(0, settings.wmGapY || 0)
-  const rot = (settings.wmRotation || 0) * Math.PI / 180
-  const cos = Math.abs(Math.cos(rot))
-  const sin = Math.abs(Math.sin(rot))
-
-  const canvas = document.createElement('canvas')
-  const ctx = canvas.getContext('2d')
-
-  let draw  // (ctx) => void, draws content centered at origin
-  let cw, ch  // content size before rotation
-
-  if (settings.wmType === 'text' && settings.wmText) {
-    const fontSize = 24
-    const font = `bold ${fontSize}px ${getComputedStyle(document.body).fontFamily}`
-    ctx.font = font
-    cw = ctx.measureText(settings.wmText).width
-    ch = fontSize * 1.3
-    const color = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#888'
-    draw = (c) => {
-      c.font = font
-      c.fillStyle = color
-      c.textAlign = 'center'
-      c.textBaseline = 'middle'
-      c.fillText(settings.wmText, 0, 0)
-    }
-  } else if (settings.wmType === 'image' && settings.wmImage) {
-    const wmSrc = await resolveAssetUrl(settings.wmImage)
-    if (!wmSrc) { wmOverlayUrl.value = ''; return }
-    let img
-    try { img = await loadImg(wmSrc) } catch { wmOverlayUrl.value = ''; return }
-    cw = settings.wmWidth || img.naturalWidth
-    ch = settings.wmHeight || (img.naturalHeight * cw / img.naturalWidth)
-    draw = (c) => c.drawImage(img, -cw / 2, -ch / 2, cw, ch)
-  } else {
-    wmOverlayUrl.value = ''
-    return
-  }
-
-  // Staggered (brick) layout: horizontal period 2 cells, odd rows offset by one cell
-  const SCALE = Math.max(2, window.devicePixelRatio || 1)
-  const cellW = cw * cos + ch * sin + gapX
-  const cellH = cw * sin + ch * cos + gapY
-  const W = settings.exportWidth
-  const H = exportHeight.value
-  canvas.width = W * SCALE
-  canvas.height = H * SCALE
-  ctx.scale(SCALE, SCALE)
-  let row = 0
-  for (let y = cellH / 2; y < H + cellH; y += cellH, row++) {
-    const xStart = (row % 2 ? 1.5 : 0.5) * cellW
-    for (let x = xStart; x < W + cellW; x += 2 * cellW) {
-      ctx.save()
-      ctx.translate(x, y)
-      ctx.rotate(rot)
-      draw(ctx)
-      ctx.restore()
-    }
-  }
-  wmOverlayUrl.value = canvas.toDataURL()
+  wmOverlayUrl.value = await buildWatermarkOverlay({
+    width: settings.exportWidth,
+    height: exportHeight.value,
+    wmType: settings.wmType,
+    wmText: settings.wmText,
+    wmImage: settings.wmImage,
+    wmOpacity: settings.wmOpacity,
+    wmRotation: settings.wmRotation,
+    wmWidth: settings.wmWidth,
+    wmHeight: settings.wmHeight,
+    wmGapX: settings.wmGapX,
+    wmGapY: settings.wmGapY,
+    resolveAssetUrl,
+  })
 }
 
 watch(
   () => [settings.showWatermark, settings.wmType, settings.wmText, settings.wmImage,
     settings.wmRotation, settings.wmWidth, settings.wmHeight, settings.wmGapX, settings.wmGapY,
     settings.exportWidth, exportHeight.value],
-  buildWatermarkOverlay,
+  buildWatermark,
   { immediate: true }
 )
 
@@ -571,21 +441,6 @@ function blockStyle(b) {
   }
 }
 
-async function compressImage(source, maxWidth) {
-  const img = await loadImg(source)
-  let w = img.naturalWidth, h = img.naturalHeight
-  if (w > maxWidth) {
-    h = Math.round(h * maxWidth / w)
-    w = maxWidth
-  }
-  const canvas = document.createElement('canvas')
-  canvas.width = w; canvas.height = h
-  const ctx = canvas.getContext('2d')
-  ctx.drawImage(img, 0, 0, w, h)
-  const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
-  return { blob, dataUrl: canvas.toDataURL('image/png'), bytes: new Uint8Array(await blob.arrayBuffer()) }
-}
-
 async function pickAsset(target, callback) {
   const maxWidth = target === 'avatar' ? 256 : 800
   const fileName = target === 'avatar' ? 'avatar.png' : 'watermark.png'
@@ -604,7 +459,7 @@ async function pickAsset(target, callback) {
     const { bytes: compressed } = await compressImage(new Blob([bytes]), maxWidth)
     await tEnsureSubDir('export-assets')
     await tWriteBinary(DATA_DIR + '/' + assetPath, compressed)
-    assetUrlCache.delete(assetPath)
+    clearAssetCache(assetPath)
     callback(assetPath)
   } else {
     const input = document.createElement('input')
@@ -641,38 +496,12 @@ function trapFocus(e) {
 async function captureCanvas() {
   const el = timelineDom.value
   if (!el) return null
-
-  // Wait for images/fonts to settle
-  await document.fonts.ready
-  await new Promise(r => setTimeout(r, 100))
-
-  const w = settings.exportWidth
-  const h = exportHeight.value
-  return await html2canvas(el, {
-    width: w,
-    height: h,
-    // Clone viewport = export size, and in the clone reparent the export root
-    // to <body> at 0,0 — escapes the preview container's overflow:hidden
-    // clipping and any viewport cropping (gutter/author were cut off before).
-    windowWidth: w,
-    windowHeight: h,
-    scale: Math.max(2, window.devicePixelRatio || 1),
-    useCORS: true,
+  return await captureElement(el, {
+    width: settings.exportWidth,
+    height: exportHeight.value,
     backgroundColor: settings.bgMode === 'custom'
       ? settings.bgColor
       : getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim(),
-    onclone(doc) {
-      const cloned = doc.querySelector('[data-export-root]')
-      if (!cloned) return
-      doc.body.style.margin = '0'
-      doc.body.style.overflow = 'visible'
-      doc.body.appendChild(cloned)
-      cloned.style.position = 'absolute'
-      cloned.style.left = '0'
-      cloned.style.top = '0'
-      cloned.style.margin = '0'
-      cloned.style.transform = 'none'
-    },
   })
 }
 
@@ -680,20 +509,7 @@ async function doCopy() {
   try {
     const canvas = await captureCanvas()
     if (!canvas) return
-    if (window.__TAURI__) {
-      const ctx2 = canvas.getContext('2d')
-      const imageData = ctx2.getImageData(0, 0, canvas.width, canvas.height)
-      const bytes = new Uint8Array(imageData.data)
-      let binary = ''
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
-      const rgbaBase64 = btoa(binary)
-      await window.__TAURI__.core.invoke('clipboard_write_image', {
-        width: canvas.width, height: canvas.height, rgbaBase64,
-      })
-    } else {
-      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-    }
+    await copyCanvasToClipboard(canvas)
     toast(STR.exportImage.copied)
   } catch (e) {
     console.error('Copy failed:', e)
@@ -705,33 +521,7 @@ async function doExport() {
   try {
     const canvas = await captureCanvas()
     if (!canvas) return
-
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
-
-    // Save via Tauri dialog
-    if (window.__TAURI__) {
-      try {
-        const filePath = await save({
-          defaultPath: 'timelog-' + dkey(new Date()) + '.png',
-          filters: [{ name: 'PNG', extensions: ['png'] }],
-        })
-        if (filePath) {
-          await writeFile(filePath, new Uint8Array(await blob.arrayBuffer()))
-          toast('已导出到：' + filePath)
-        }
-      } catch (e) {
-        console.error('Export failed:', e)
-      }
-    } else {
-      // Fallback: browser download
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'timelog-' + dkey(timelogStore.curDate) + '.png'
-      a.click()
-      URL.revokeObjectURL(url)
-    }
-
+    await saveCanvasToFile(canvas, 'timelog-' + dkey(new Date()) + '.png')
     emit('close')
   } catch (e) {
     console.error('Export failed:', e)
