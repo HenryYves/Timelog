@@ -110,12 +110,6 @@ export async function captureElement(element, { width, height, backgroundColor, 
         cloned.style.margin = '0'
         cloned.style.transform = 'none'
       }
-      // Fix html2canvas overflow clipping: remove overflow:hidden on note elements
-      doc.querySelectorAll('.bnote').forEach(el => { el.style.overflow = 'visible' })
-      doc.querySelectorAll('.block').forEach(el => { el.style.overflow = 'visible' })
-      doc.querySelectorAll('.btags').forEach(el => { el.style.overflow = 'visible' })
-      doc.querySelectorAll('.bt, .bs').forEach(el => { el.style.overflow = 'visible'; el.style.textOverflow = 'clip' })
-
       // Caller's extra onclone hook
       if (onclone) onclone(doc)
     },
