@@ -140,14 +140,12 @@
 import { ref, computed, watch } from 'vue'
 import { STR } from '../strings.js'
 import { useTagStore } from '../store/tags.js'
-import { captureElement, saveCanvasToFile } from '../utils/capture.js'
-import { dkey } from '../store/timelog.js'
 import { computeCardsData, buildPieChart, fmtDur, pctOf } from '../utils/stats.js'
 import PieChart from './PieChart.vue'
 import BarChart from './BarChart.vue'
 
 const props = defineProps({ show: Boolean })
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'export-image', 'export-card'])
 const statsRoot = ref(null)
 
 const tagStore = useTagStore()
@@ -306,37 +304,13 @@ function onStatsKeydown(e) {
   trapFocus(e)
 }
 
-async function exportPanel() {
-  const el = statsRoot.value
-  if (!el) return
-  try {
-    const canvas = await captureElement(el, {
-      width: el.scrollWidth,
-      height: el.scrollHeight,
-    })
-    await saveCanvasToFile(canvas, 'timelog-stats-' + dkey(new Date()) + '.png')
-  } catch (e) {
-    console.error('Stats export failed:', e)
-  }
+function exportPanel() {
+  emit('export-image')
 }
 
-async function exportCard(cardId) {
-  const el = document.querySelector('.stat-card[data-card-id="' + cardId + '"]')
-  if (!el) return
-  // Close config modal first so its overlay doesn't appear in the capture
+function exportCard(cardId) {
   closeConfig()
-  try {
-    const canvas = await captureElement(el, {
-      width: el.scrollWidth,
-      height: el.scrollHeight,
-    })
-    const card = cards.value.find(c => c.id === cardId)
-    const raw = (card?.name || cardId).replace(/[\/\\:*?"<>|]/g, '_')
-    const fn = 'timelog-stats-' + raw + '.png'
-    await saveCanvasToFile(canvas, fn)
-  } catch (e) {
-    console.error('Card export failed:', e)
-  }
+  emit('export-card', cardId)
 }
 
 // ── Data ──
