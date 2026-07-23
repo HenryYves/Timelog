@@ -521,10 +521,16 @@ function onPaste(e) {
 }
 
 function onKeydown(e) {
-  // Nav mode: Space/Enter to edit, others blocked (Tab handled below at ~870)
+  // Nav mode: Space/Enter to edit, typing auto-enters, others blocked
   if (navMode.value) {
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault()
+      navMode.value = false
+      editorEl.value.style.outline = ''
+      return
+    }
+    // Typing any printable char or Backspace/Delete → enter edit mode, let key through
+    if ((e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') && !e.ctrlKey && !e.metaKey && !e.altKey) {
       navMode.value = false
       editorEl.value.style.outline = ''
       return
