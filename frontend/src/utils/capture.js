@@ -110,12 +110,9 @@ export async function captureElement(element, { width, height, backgroundColor, 
         cloned.style.margin = '0'
         cloned.style.transform = 'none'
       }
-      // Diagnostic: log note elements for overlap debugging
+      // Fix html2canvas font-size inheritance: .bnote children may inherit 12.5px from .block
       const notes = doc.querySelectorAll('.bnote')
-      notes.forEach((el, i) => {
-        const style = doc.defaultView.getComputedStyle(el)
-        console.log('[capture] bnote#' + i, 'font=' + style.fontFamily, 'width=' + style.width, 'innerHTML=' + el.innerHTML.slice(0, 120))
-      })
+      notes.forEach(el => { el.style.fontSize = '11px'; el.style.lineHeight = '1.35' })
 
       // Caller's extra onclone hook
       if (onclone) onclone(doc)
