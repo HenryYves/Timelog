@@ -41,12 +41,29 @@ export const logger = {
   error: (s, m, x) => log('error', s, m, x),
 }
 
-export function exportLogs() {
+export async function exportLogs() {
   const logs = getLogs()
   const text = logs.map(e => `[${e.t}] [${e.l.toUpperCase()}] [${e.s}] ${e.m}` + (e.x ? ' ' + JSON.stringify(e.x) : '')).join('\n')
-  const blob = new Blob([text], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = 'timelog-debug-' + new Date().toISOString().slice(0, 10) + '.log'
-  a.click(); URL.revokeObjectURL(url)
+  const defaultName = 'timelog-debug-' + new Date().toISOString().slice(0, 10) + '.log'
+
+  if (window.__TAURI__) {
+    const { save } = await import('@tauri-apps/plugin-dialog')
+    const { writeTextFile } = await import('@tauri-apps/plugin-fs')
+    const path = await save({
+      defaultPath: defaultName,
+      filters: [{ name: '日志', extensions: ['log', 'txt'] }],
+    })
+    if (path) {
+      await writeTextFile(path, text)
+      return path
+    }
+    return null
+  } else {
+    const blob = new Blob([text], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = defaultName
+    a.click(); URL.revokeObjectURL(url)
+    return defaultName
+  }
 }

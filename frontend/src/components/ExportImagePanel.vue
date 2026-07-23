@@ -302,8 +302,12 @@ const defaults = {
 
 function loadSettings() {
   try {
-    const saved = JSON.parse(localStorage.getItem(settingsKey.value))
-    if (saved) Object.assign(settings, defaults, saved)
+    const raw = localStorage.getItem(settingsKey.value)
+    logger.info('export', 'loadSettings key=' + settingsKey.value + ' found=' + !!raw)
+    if (raw) {
+      const saved = JSON.parse(raw)
+      Object.assign(settings, defaults, saved)
+    }
   } catch (e) { logger.error('export', 'loadSettings failed', e) }
 }
 
@@ -324,6 +328,7 @@ watch(settings, () => {
   _saveTimer = setTimeout(() => {
     try {
       localStorage.setItem(settingsKey.value, JSON.stringify(settings))
+      logger.info('export', 'saveSettings key=' + settingsKey.value + ' size=' + JSON.stringify(settings).length)
     } catch (e) {
       logger.error('export', 'settings save failed', e)
       toast('导出设置保存失败，如已选图片请重新选择较小的图片')

@@ -47,7 +47,7 @@
 
       <div class="help-section">
         <h3>{{ STR.help.sectionDebug }}</h3>
-        <button @click="exportLogs">{{ STR.help.exportLogs }}</button>
+        <button @click="doExportLogs">{{ STR.help.exportLogs }}</button>
       </div>
 
       <div class="help-footer">
@@ -65,6 +65,19 @@
 <script setup>
 import { STR } from '../strings.js'
 import { exportLogs } from '../utils/log.js'
+import { useToast } from '../composables/useToast.js'
+
+const { toast } = useToast()
+
+async function doExportLogs() {
+  try {
+    const path = await exportLogs()
+    if (path) toast('日志已导出到：' + path)
+    else toast('已取消')
+  } catch (e) {
+    toast('导出日志失败')
+  }
+}
 
 const props = defineProps({
   show: Boolean,
