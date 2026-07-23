@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="emit('close')">
-    <div class="modal stats-modal" @keydown="trapFocus">
+    <div class="modal stats-modal" ref="statsRoot" @keydown="onStatsKeydown">
       <h2>{{ STR.stats.title }}</h2>
 
       <!-- Time range filter -->
@@ -28,7 +28,7 @@
 
       <!-- Card list -->
       <div class="stats-cards" v-if="cards.length > 0">
-        <div class="stat-card" v-for="(card, idx) in cards" :key="card.id">
+        <div class="stat-card" v-for="(card, idx) in cards" :key="card.id" :data-card-id="card.id">
           <div class="card-header">
             <span class="card-title">{{ card.name || (card.type === 'pie' ? STR.stats.pie : STR.stats.bar) }}</span>
             <span v-if="hovered && hovered.cardId === card.id" class="hover-badge">
@@ -139,6 +139,7 @@
       </div>
       <div class="actions">
         <button v-if="editingCard" class="danger" @click="deleteCard">{{ STR.stats.deleteView }}</button>
+        <button v-if="editingCard" @click="exportCard(editingCard.id)">{{ STR.stats.exportImage }}</button>
         <span class="spacer"></span>
         <button @click="closeConfig">{{ STR.stats.cancel }}</button>
         <button class="primary" @click="saveConfig">{{ STR.stats.confirm }}</button>
@@ -151,9 +152,12 @@
 import { ref, computed, watch } from 'vue'
 import { STR } from '../strings.js'
 import { useTagStore } from '../store/tags.js'
+import { captureElement, saveCanvasToFile } from '../utils/capture.js'
+import { dkey } from '../store/timelog.js'
 
 const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close'])
+const statsRoot = ref(null)
 
 const tagStore = useTagStore()
 const tagGroups = computed(() => [...new Set(tagStore.tags.map(t => t.group).filter(Boolean))])
@@ -298,6 +302,48 @@ function trapFocus(e) {
   } else {
     e.preventDefault()
     visible[idx === -1 || idx >= visible.length - 1 ? 0 : idx + 1].focus()
+  }
+}
+
+function onStatsKeydown(e) {
+  // Ctrl+P: export whole panel as image
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+    e.preventDefault()
+    exportPanel()
+    return
+  }
+  trapFocus(e)
+}
+
+async function exportPanel() {
+  const el = statsRoot.value
+  if (!el) return
+  try {
+    const canvas = await captureElement(el, {
+      width: el.scrollWidth,
+      height: el.scrollHeight,
+    })
+    await saveCanvasToFile(canvas, 'timelog-stats-' + dkey(new Date()) + '.png')
+  } catch (e) {
+    console.error('Stats export failed:', e)
+  }
+}
+
+async function exportCard(cardId) {
+  const el = document.querySelector('.stat-card[data-card-id="' + cardId + '"]')
+  if (!el) return
+  // Close config modal first so its overlay doesn't appear in the capture
+  closeConfig()
+  try {
+    const canvas = await captureElement(el, {
+      width: el.scrollWidth,
+      height: el.scrollHeight,
+    })
+    const card = cards.value.find(c => c.id === cardId)
+    const fn = 'timelog-stats-' + (card?.name || cardId) + '.png'
+    await saveCanvasToFile(canvas, fn)
+  } catch (e) {
+    console.error('Card export failed:', e)
   }
 }
 

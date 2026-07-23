@@ -216,6 +216,7 @@ export const STR = {
     settings: '视图设置',
     confirm: '确认',
     cancel: '取消',
+    exportImage: '导出图片',
   },
 
   help: {
