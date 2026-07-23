@@ -58,3 +58,5 @@ export function compareSemver(a, b) {
   return 0
 }
 export const GUTTER_WIDTH = 56
+export const EXPORT_DATE_TITLE_H = 36
+export const EXPORT_AUTHOR_BLOCK_H = 80

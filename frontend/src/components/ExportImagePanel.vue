@@ -259,7 +259,7 @@ const showWatermarkOpts = ref(false)
 import { STR } from '../strings.js'
 import { useTimelogStore, fmt, dkey } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
-import { PX_MIN, DAY_MIN, GUTTER_WIDTH, DATA_DIR } from '../constants.js'
+import { PX_MIN, DAY_MIN, GUTTER_WIDTH, DATA_DIR, EXPORT_DATE_TITLE_H, EXPORT_AUTHOR_BLOCK_H } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
 import { logger } from '../utils/log.js'
 import { tWriteBinary, tEnsureSubDir } from '../utils/tauri.js'
@@ -452,8 +452,8 @@ const displayTitle = computed(() => {
 
 const exportHeight = computed(() => {
   if (props.mode === 'stats') return 0  // auto from scrollHeight
-  let h = DAY_MIN + 36
-  if (showAuthorBlock.value) h += 80
+  let h = DAY_MIN + EXPORT_DATE_TITLE_H
+  if (showAuthorBlock.value) h += EXPORT_AUTHOR_BLOCK_H
   return h
 })
 
