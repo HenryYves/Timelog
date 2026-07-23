@@ -1,7 +1,10 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="emit('close')">
     <div class="modal" ref="modalEl" @keydown="trapFocus">
-      <h2>数据管理</h2>
+      <div class="dm-head">
+        <h2>数据管理</h2>
+        <span class="dm-range" v-if="dateRange">{{ dateRange }}</span>
+      </div>
       <div class="sub">按日期段删除，或逐天删除。</div>
 
       <label>删除日期段（含起止当天）</label>
@@ -77,6 +80,14 @@ const fileInput = ref(null)
 const selectedDays = ref(new Set())
 
 const allSelected = computed(() => days.value.length > 0 && selectedDays.value.size === days.value.length)
+
+const dateRange = computed(() => {
+  if (!days.value.length) return ''
+  // days sorted newest-first; last = earliest, first = latest
+  const first = days.value[days.value.length - 1].date
+  const last = days.value[0].date
+  return first === last ? first : first + ' — ' + last
+})
 
 function toggleDay(date) {
   const s = new Set(selectedDays.value)
@@ -274,6 +285,9 @@ async function onFileSelected(e) {
 </script>
 
 <style scoped>
+.dm-head { display: flex; align-items: baseline; justify-content: space-between; }
+.dm-head h2 { margin: 0; }
+.dm-range { font-size: 12px; color: var(--text2); white-space: nowrap; }
 .modal { max-height: calc(82vh / var(--zoom, 1)); overflow: auto; }
 .day-list { max-height: 35vh; overflow-y: auto; }
 .dayrow {
