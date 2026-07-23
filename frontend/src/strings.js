@@ -43,6 +43,7 @@ export const STR = {
     noRecords: '没有任何记录。',
     deleteAllConfirm: (days, count) => `确定删除全部 ${days} 天、共 ${count} 条记录？此操作不可恢复。`,
     discardEdit: '放弃编辑？未保存的内容将丢失。',
+    shortBlock: (dur, min) => `时间块跨度仅 ${dur} 分钟（小于设定的 ${min} 分钟），确定创建吗？`,
   },
   btn: {
     ok: '确定',

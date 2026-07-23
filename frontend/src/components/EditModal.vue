@@ -201,10 +201,16 @@ function focusFirstChip() {
 }
 
 // Save
-function save() {
+async function save() {
   const s = fromInput(mStart.value)
   let en = fromInput(mEnd.value)
   if (en <= s) en = s + 1
+  const dur = en - s
+  // Confirm short blocks (new blocks only, not edits)
+  if (!props.editingBlock && settings.minBlockMinutes > 0 && dur < settings.minBlockMinutes) {
+    const confirmed = await showConfirm(STR.confirm.shortBlock(dur, settings.minBlockMinutes))
+    if (!confirmed) return  // stay in editor
+  }
   const rec = {
     id: props.editingBlock?.id || ('b' + Date.now() + Math.random().toString(36).slice(2, 6)),
     start: s,

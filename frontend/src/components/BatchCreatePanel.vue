@@ -138,6 +138,18 @@ async function onCreate() {
   const blocks = parsed.value
   if (!blocks.length) return
 
+  // Short-block check (independent of checkBeforeCreate)
+  if (settings.minBlockMinutes > 0) {
+    const short = blocks.filter(b => (b.end - b.start) < settings.minBlockMinutes)
+    if (short.length) {
+      const names = short.map(b => `${toInput(b.start)}-${toInput(b.end)} ${b.title}`).join('\n')
+      const confirmed = await showConfirm(
+        `以下 ${short.length} 个时间块跨度不足 ${settings.minBlockMinutes} 分钟：\n${names}\n\n${STR.confirm.shortBlock(short[0].end - short[0].start, settings.minBlockMinutes)}`
+      )
+      if (!confirmed) return
+    }
+  }
+
   if (settings.checkBeforeCreate) {
     const lines = [`${STR.batchCreate.preview(blocks.length)}\n`]
     for (const b of blocks) {
