@@ -142,3 +142,13 @@ Backspace/Delete 处理 EditMarkdown 元素时的规则（`onKeydown` Case 1/1b�
 `linear-gradient(to bottom, transparent, #fff 90%)` 在浏览器中正常，html2canvas 导出时 `transparent` 位置显示为灰色。
 
 **方案**：将 `transparent` 替换为等价的目标色 + `00` alpha：`linear-gradient(to bottom, #ffffff00, #fff 90%)`。功能完全等价，html2canvas 正确渲染。见 commit `72058dd`。
+
+### 16. CJK 自动分词导致 html2canvas 换行点与浏览器不一致——文字重叠
+
+浏览器对 CJK 文本有隐含的自动分词行为（`word-break: normal` 默认值），视"好的""跟随"等复合词为不可分割单元，提前将整词拉到下一行，避免词内断行。html2canvas 在 canvas 上用 `fillText()` 逐字测量宽度，无 CJK 分词概念，换行点是纯数学的——哪个字超宽就断哪个字。
+
+结果：一段长备注在预览里"好"被拉到了第二行开头，导出图里"好"还在第一行末尾，第二行只从"的"开始。两边的行宽和换行位置不同，导致第一行尾部与第二行头部文字重叠。
+
+**调试要点**：重叠文字恰好是两个 CJK 字、位置恰好在行首/行尾、不随字体变化（mango 字体改变字宽触发的是另一个路径但根源相同）。
+
+**方案**：在导出预览 CSS（scoped）中加 `word-break: break-all`，强制浏览器和 html2canvas 都采用逐字换行，换行点完全一致。见 commit `60e1109`。
