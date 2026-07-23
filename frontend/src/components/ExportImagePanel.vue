@@ -142,6 +142,9 @@
             <div v-if="props.mode === 'stats'" class="setting-group" style="margin-top:12px">
               <label><input type="checkbox" v-model="settings.showStatsLegend" /> {{ STR.exportImage.showStatsLegend }}</label>
             </div>
+            <div class="setting-group" style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
+              <button class="del" @click="resetSettings">{{ STR.exportImage.resetSettings }}</button>
+            </div>
           </div>
         </div>
         <div class="export-right" ref="previewWrap" @mousedown="onMouseDown" @wheel.prevent="onWheel" @dblclick="fitPreview(settings.exportWidth)">
@@ -614,6 +617,14 @@ async function pickAsset(target, callback) {
 
 function pickAvatar() { pickAsset('avatar', url => settings.authorAvatar = url) }
 function pickWmImage() { pickAsset('watermark', url => settings.wmImage = url) }
+
+function resetSettings() {
+  localStorage.removeItem(settingsKey.value)
+  Object.assign(settings, defaults)
+  authorAvatarUrl.value = ''
+  wmImageUrl.value = ''
+  toast('已重置为默认设置')
+}
 
 function trapFocus(e) {
   if (e.key !== 'Tab') return
