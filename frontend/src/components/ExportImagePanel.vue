@@ -258,6 +258,7 @@ import { useTimelogStore, fmt, dkey } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { PX_MIN, DAY_MIN, GUTTER_WIDTH, DATA_DIR } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
+import { logger } from '../utils/log.js'
 import { tWriteBinary, tEnsureSubDir } from '../utils/tauri.js'
 import { computeCardsData, buildPieChart, fmtDur, pctOf } from '../utils/stats.js'
 import PieChart from './PieChart.vue'
@@ -303,7 +304,7 @@ function loadSettings() {
   try {
     const saved = JSON.parse(localStorage.getItem(settingsKey.value))
     if (saved) Object.assign(settings, defaults, saved)
-  } catch { /* use defaults */ }
+  } catch (e) { logger.error('export', 'loadSettings failed', e) }
 }
 
 const settings = reactive({ ...defaults })
@@ -324,7 +325,7 @@ watch(settings, () => {
     try {
       localStorage.setItem(settingsKey.value, JSON.stringify(settings))
     } catch (e) {
-      console.error('export-image-settings save failed:', e)
+      logger.error('export', 'settings save failed', e)
       toast('导出设置保存失败，如已选图片请重新选择较小的图片')
     }
   }, 300)
@@ -383,7 +384,7 @@ watch(() => props.show, (val) => {
   if (val && props.mode === 'stats') {
     try {
       statsCards.value = JSON.parse(localStorage.getItem('timelog:stats-cards') || '[]')
-    } catch { statsCards.value = [] }
+    } catch (e) { logger.error('export', 'statsCards parse failed', e); statsCards.value = [] }
     statsTimeRange.value = localStorage.getItem('timelog:stats-time-range') || 'today'
     statsCustomStart.value = localStorage.getItem('timelog:stats-custom-start') || ''
     statsCustomEnd.value = localStorage.getItem('timelog:stats-custom-end') || ''
@@ -629,7 +630,7 @@ async function doCopy() {
     await copyCanvasToClipboard(canvas)
     toast(STR.exportImage.copied)
   } catch (e) {
-    console.error('Copy failed:', e)
+    logger.error('export', 'copy failed', e)
     toast(STR.exportImage.copyFail)
   }
 }
@@ -645,7 +646,7 @@ async function doExport() {
     if (path) toast('已导出到：' + path)
     emit('close')
   } catch (e) {
-    console.error('Export failed:', e)
+    logger.error('export', 'export failed', e)
     toast(STR.exportImage.copyFail)
   }
 }
