@@ -852,6 +852,7 @@ async function doExport() {
   line-height: 1.35;
   opacity: .9;
   overflow: hidden;
+  word-break: break-all;
 }
 .tdot {
   display: inline-block;

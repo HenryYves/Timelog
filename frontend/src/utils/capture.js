@@ -110,10 +110,6 @@ export async function captureElement(element, { width, height, backgroundColor, 
         cloned.style.margin = '0'
         cloned.style.transform = 'none'
       }
-      // Re-apply overflow:hidden on cloned blocks — html2canvas may lose scoped CSS
-      doc.querySelectorAll('.block').forEach(el => { el.style.overflow = 'hidden' })
-      doc.querySelectorAll('.bnote, .btags').forEach(el => { el.style.overflow = 'hidden' })
-
       // Caller's extra onclone hook
       if (onclone) onclone(doc)
     },
