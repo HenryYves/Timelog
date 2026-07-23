@@ -15,9 +15,9 @@
               <input v-if="settings.bgMode === 'custom'" type="color" v-model="settings.bgColor" />
             </div>
 
-            <div class="setting-group">
-              <label><input type="checkbox" v-model="settings.showGutter" /> {{ STR.exportImage.showGutter }}</label>
-            </div>
+            <div v-if="props.mode === 'timeline'" class="setting-group">
+            <label><input type="checkbox" v-model="settings.showGutter" /> {{ STR.exportImage.showGutter }}</label>
+          </div>
 
             <div class="setting-group">
               <label>{{ STR.exportImage.exportWidth }}</label>
@@ -138,15 +138,15 @@
         </div>
         <div class="export-right" ref="previewWrap" @mousedown="onMouseDown" @wheel.prevent="onWheel" @dblclick="fitPreview(settings.exportWidth)">
           <div class="export-timeline" ref="timelineDom" :style="timelineStyle" data-export-root>
-            <template v-if="props.mode === 'timeline'">
-              <!-- Author info (top) -->
-              <div v-if="showAuthorBlock && settings.authorPosition === 'top'" class="exp-author" :style="authorStyle">
-                <img v-if="authorAvatarUrl" :src="authorAvatarUrl" class="exp-avatar" />
-                <div class="exp-author-text">
-                  <div v-if="settings.authorName" class="exp-author-name">{{ settings.authorName }}</div>
-                  <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
-                </div>
+            <!-- Author info (top) — shared -->
+            <div v-if="showAuthorBlock && settings.authorPosition === 'top'" class="exp-author" :style="authorStyle">
+              <img v-if="authorAvatarUrl" :src="authorAvatarUrl" class="exp-avatar" />
+              <div class="exp-author-text">
+                <div v-if="settings.authorName" class="exp-author-name">{{ settings.authorName }}</div>
+                <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
               </div>
+            </div>
+            <template v-if="props.mode === 'timeline'">
               <!-- Date title -->
               <div class="exp-date-title">{{ exportDateTitle }}</div>
               <!-- Blocks area (gutter + hour lines + time blocks, always aligned) -->
@@ -178,17 +178,6 @@
                   <div v-if="settings.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
                 </div>
               </div>
-              <!-- Author info (bottom) -->
-              <div v-if="showAuthorBlock && settings.authorPosition === 'bottom'" class="exp-author" :style="authorStyle">
-                <img v-if="authorAvatarUrl" :src="authorAvatarUrl" class="exp-avatar" />
-                <div class="exp-author-text">
-                  <div v-if="settings.authorName" class="exp-author-name">{{ settings.authorName }}</div>
-                  <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
-                </div>
-              </div>
-              <!-- Watermark (tiled repeat, like obsidian-export-image) -->
-              <img v-if="settings.showWatermark && wmOverlayUrl" class="exp-watermark"
-                :src="wmOverlayUrl" />
             </template>
             <!-- Stats preview -->
             <div v-if="props.mode === 'stats'" class="exp-stats">
@@ -214,6 +203,17 @@
               </div>
               <div v-if="statsCards.length === 0" style="text-align:center;color:var(--text2);padding:20px">{{ STR.stats.noData }}</div>
             </div>
+            <!-- Author info (bottom) — shared -->
+            <div v-if="showAuthorBlock && settings.authorPosition === 'bottom'" class="exp-author" :style="authorStyle">
+              <img v-if="authorAvatarUrl" :src="authorAvatarUrl" class="exp-avatar" />
+              <div class="exp-author-text">
+                <div v-if="settings.authorName" class="exp-author-name">{{ settings.authorName }}</div>
+                <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
+              </div>
+            </div>
+            <!-- Watermark (shared) -->
+            <img v-if="settings.showWatermark && wmOverlayUrl" class="exp-watermark"
+              :src="wmOverlayUrl" />
           </div>
         </div>
       </div>
@@ -369,7 +369,7 @@ watch(() => props.show, (val) => {
     statsCustomStart.value = localStorage.getItem('timelog:stats-custom-start') || ''
     statsCustomEnd.value = localStorage.getItem('timelog:stats-custom-end') || ''
   }
-})
+}, { immediate: true })
 
 // Preview pan/zoom
 const { previewWrap, previewOffset, previewScale, onMouseDown, onWheel, fitPreview } = usePanZoom()
