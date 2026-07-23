@@ -766,6 +766,11 @@ function onKeydown(e) {
               r.collapse(true)
               sel.removeAllRanges()
               sel.addRange(r)
+              // Quirk #4 guard: WebView2 merges empty divs without <br>
+              const parent = node.parentNode
+              if (parent && parent !== editorEl.value && !parent.textContent.trim() && !parent.querySelector('br')) {
+                parent.appendChild(document.createElement('br'))
+              }
               return
             }
           }
