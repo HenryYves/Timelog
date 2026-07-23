@@ -110,6 +110,13 @@ export async function captureElement(element, { width, height, backgroundColor, 
         cloned.style.margin = '0'
         cloned.style.transform = 'none'
       }
+      // Diagnostic: log note elements for overlap debugging
+      const notes = doc.querySelectorAll('.bnote')
+      notes.forEach((el, i) => {
+        const style = doc.defaultView.getComputedStyle(el)
+        console.log('[capture] bnote#' + i, 'font=' + style.fontFamily, 'width=' + style.width, 'innerHTML=' + el.innerHTML.slice(0, 120))
+      })
+
       // Caller's extra onclone hook
       if (onclone) onclone(doc)
     },
