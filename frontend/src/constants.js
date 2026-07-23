@@ -43,6 +43,7 @@ export const DEFAULT_SHOW_BLOCK_COLOR_BAR = true
 export const DEFAULT_MASK_BLOCK_OVERFLOW = false
 export const DEFAULT_RENDER_NOTE_MARKDOWN = true
 export const DEFAULT_END_TIME_AT_NOW = true
+export const DEFAULT_MIN_BLOCK_MINUTES = 10
 
 // ---------- UI ----------
 export const APP_VERSION = 'v0.9.46'

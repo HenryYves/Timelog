@@ -10,6 +10,7 @@ import {
   DEFAULT_MASK_BLOCK_OVERFLOW,
   DEFAULT_RENDER_NOTE_MARKDOWN,
   DEFAULT_END_TIME_AT_NOW,
+  DEFAULT_MIN_BLOCK_MINUTES,
 } from '../constants.js'
 
 function loadNum(k, d) {
@@ -52,6 +53,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const maskBlockOverflow = ref(loadBool('maskBlockOverflow', DEFAULT_MASK_BLOCK_OVERFLOW))
   const renderNoteMarkdown = ref(loadBool('renderNoteMarkdown', DEFAULT_RENDER_NOTE_MARKDOWN))
   const endTimeAtNow = ref(loadBool('endTimeAtNow', DEFAULT_END_TIME_AT_NOW))
+  const minBlockMinutes = ref(loadNum('minBlockMinutes', DEFAULT_MIN_BLOCK_MINUTES))
 
   function saveNum(k, v) { localStorage.setItem(KEY_PREFIX + k, String(v)) }
   function saveBool(k, v) { localStorage.setItem(KEY_PREFIX + k, v ? '1' : '0') }
@@ -161,6 +163,10 @@ export const useSettingsStore = defineStore('settings', () => {
   function setMaskBlockOverflow(v) { maskBlockOverflow.value = v; saveBool('maskBlockOverflow', v) }
   function setRenderNoteMarkdown(v) { renderNoteMarkdown.value = v; saveBool('renderNoteMarkdown', v) }
   function setEndTimeAtNow(v) { endTimeAtNow.value = v; saveBool('endTimeAtNow', v) }
+  function setMinBlockMinutes(v) {
+    minBlockMinutes.value = Math.max(0, Math.min(120, parseInt(v) || DEFAULT_MIN_BLOCK_MINUTES))
+    saveNum('minBlockMinutes', minBlockMinutes.value)
+  }
 
   function reloadSettings() {
     defaultDuration.value = loadNum('defaultDuration', DEFAULT_DURATION)
@@ -192,6 +198,7 @@ export const useSettingsStore = defineStore('settings', () => {
     maskBlockOverflow.value = loadBool('maskBlockOverflow', DEFAULT_MASK_BLOCK_OVERFLOW)
     renderNoteMarkdown.value = loadBool('renderNoteMarkdown', DEFAULT_RENDER_NOTE_MARKDOWN)
     endTimeAtNow.value = loadBool('endTimeAtNow', DEFAULT_END_TIME_AT_NOW)
+    minBlockMinutes.value = loadNum('minBlockMinutes', DEFAULT_MIN_BLOCK_MINUTES)
   }
 
   return {
@@ -205,9 +212,11 @@ export const useSettingsStore = defineStore('settings', () => {
     showBlockTitle, showBlockTime, showBlockTags, showBlockNote, showBlockColorBar, maskBlockOverflow,
     renderNoteMarkdown,
     endTimeAtNow,
+    minBlockMinutes,
     setShowBlockTitle, setShowBlockTime, setShowBlockTags, setShowBlockNote, setShowBlockColorBar, setMaskBlockOverflow,
     setRenderNoteMarkdown,
     setEndTimeAtNow,
+    setMinBlockMinutes,
     setMarkdownPreview, setBatchMarkdownPreview, setTabToIndent, setBatchTabToIndent, setEditorFontSize, setCustomCss,
     reloadSettings,
   }

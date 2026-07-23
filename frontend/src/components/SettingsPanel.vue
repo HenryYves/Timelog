@@ -99,6 +99,17 @@
             </div>
 
             <div class="row">
+              <label>{{ STR.settings.minBlockMinutes }}</label>
+              <div>
+                <input type="number" min="0" max="120" style="width:80px;" :value="settings.minBlockMinutes" @change="onMinBlockMinutesChange">
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setMinBlockMinutes(DEFAULT_MIN_BLOCK_MINUTES)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descMinBlockMinutes }}</div>
+
+            <div class="row">
               <label>{{ STR.settings.defaultDuration }}</label>
               <div>
                 <input type="number" min="1" max="1440" style="width:80px;" :value="settings.defaultDuration" @change="onDurationChange">
@@ -435,6 +446,7 @@ import {
   DEFAULT_MASK_BLOCK_OVERFLOW,
   DEFAULT_RENDER_NOTE_MARKDOWN,
   DEFAULT_END_TIME_AT_NOW,
+  DEFAULT_MIN_BLOCK_MINUTES,
 } from '../constants.js'
 import { STR } from '../strings.js'
 
@@ -488,6 +500,11 @@ watch(() => props.show, (val) => {
 function onDurationChange(e) {
   settings.setDuration(e.target.value)
   e.target.value = settings.defaultDuration
+}
+
+function onMinBlockMinutesChange(e) {
+  settings.setMinBlockMinutes(e.target.value)
+  e.target.value = settings.minBlockMinutes
 }
 
 function onEditorFontSizeChange(e) {

@@ -153,6 +153,8 @@ export const STR = {
     maskBlockOverflow: '启用溢出遮罩',
     renderNoteMarkdown: '渲染备注中的Markdown',
     endTimeAtNow: '结束时间默认为当前时间',
+    minBlockMinutes: '最小时间块确认',
+    descMinBlockMinutes: '当创建的时间块时间跨度小于 n 分钟时弹出确认框。避免创建肉眼不可见的时间块，过于零碎的记录反而不利于时间管理。',
     descBorderless: '启用后隐藏原生标题栏，顶部右侧显示窗口控制按钮',
     descExportTimestamp: '例：timelog-backup-2026-07-04-1730.json',
     descExportDialog: '导出时弹出系统文件对话框选择保存位置',
