@@ -581,7 +581,11 @@ async function pickAsset(target, callback) {
       const bytes = await readFile(path)
       const ext = (path.split('.').pop() || 'png').toLowerCase()
       const mime = 'image/' + (ext === 'jpg' ? 'jpeg' : ext)
-      const { bytes: compressed } = await compressImage(new Blob([bytes], { type: mime }), maxWidth)
+      // Convert to data URL (Blob from Uint8Array can fail in WebView2)
+      let binary = ''
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+      const dataUrl = 'data:' + mime + ';base64,' + btoa(binary)
+      const { bytes: compressed } = await compressImage(dataUrl, maxWidth)
       await tEnsureSubDir('export-assets')
       await tWriteBinary(DATA_DIR + '/' + assetPath, compressed)
       clearAssetCache(assetPath)
