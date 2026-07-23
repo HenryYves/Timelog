@@ -13,7 +13,7 @@
       @compositionstart="isComposing = true"
       @compositionend="isComposing = false; startUndoEntry('insertText'); onInput"
       @focus="onEditorFocus"
-      @mousedown="lastEditorMousedown = Date.now()"
+      @mousedown="clickFocus = true"
     />
     <textarea
       v-else
@@ -62,16 +62,17 @@ let inputLock = 0
 const editorUndo = new UndoManager()
 let pendingUndoEntry = null // snapshot taken before current input
 let isComposing = false    // IME composition in progress — skip undo tracking
-let lastEditorMousedown = 0
+let clickFocus = false
 
 function onEditorFocus() {
   if (navMode.value) return
-  // Focus via keyboard (Tab / Enter) → nav mode; mouse click → edit mode
-  if (Date.now() - lastEditorMousedown > 300) {
-    navMode.value = true
-    const el = editorEl.value
-    if (el) el.style.outline = '2px solid var(--text2)'
+  if (clickFocus) {
+    clickFocus = false
+    return
   }
+  navMode.value = true
+  const el = editorEl.value
+  if (el) el.style.outline = '2px solid var(--text2)'
 }
 let _scanning = false     // scanAndHighlight in progress — suppress selectionchange
 
@@ -860,8 +861,8 @@ function onKeydown(e) {
       e.preventDefault()
       e.stopPropagation()
       const focusable = [...document.querySelectorAll(
-        '.modal button:not([disabled]), .modal input:not([disabled]), [tabindex="0"]'
-      )]
+        '.modal button:not([disabled]), .modal input:not([disabled]), .modal [tabindex="0"]'
+      )].filter(el => el.offsetParent !== null)  // skip hidden (v-show=false) elements
       const idx = focusable.indexOf(editorEl.value)
       let next
       if (e.shiftKey) {

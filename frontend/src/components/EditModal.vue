@@ -3,7 +3,7 @@
     <div class="modal" ref="modalEl" @keydown="trapFocus">
       <div class="modal-head">
         <h2>{{ editingBlock ? '编辑时间块' : '记录时间块' }}</h2>
-        <span v-if="editingBlock" class="duration">{{ duration }}</span>
+        <span class="duration">{{ duration }}</span>
       </div>
 
       <label>做了什么</label>
