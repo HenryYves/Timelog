@@ -484,8 +484,8 @@ const wmOverlayUrl = ref('')
 
 async function buildWatermark() {
   if (!settings.showWatermark) { wmOverlayUrl.value = ''; return }
-  const h = props.mode === 'stats' && timelineDom.value
-    ? timelineDom.value.scrollHeight
+  const h = props.mode === 'stats'
+    ? (timelineDom.value ? timelineDom.value.scrollHeight : exportHeight.value)
     : exportHeight.value
   wmOverlayUrl.value = await buildWatermarkOverlay({
     width: settings.exportWidth,
@@ -604,7 +604,9 @@ async function pickAsset(target, callback) {
       const file = e.target.files[0]
       if (!file) return
       try {
-        const { dataUrl } = await compressImage(file, maxWidth)
+        const url = URL.createObjectURL(file)
+        const { dataUrl } = await compressImage(url, maxWidth)
+        URL.revokeObjectURL(url)
         callback(dataUrl)
       } catch (e) {
         logger.error('export', 'pickAsset browser failed', e)
@@ -679,7 +681,7 @@ async function doExport() {
     emit('close')
   } catch (e) {
     logger.error('export', 'export failed', e)
-    toast(STR.exportImage.copyFail)
+    toast(STR.exportImage.exportFail)
   }
 }
 </script>

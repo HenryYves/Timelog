@@ -29,6 +29,7 @@ export async function compressImage(source, maxWidth) {
   const ctx = canvas.getContext('2d')
   ctx.drawImage(img, 0, 0, w, h)
   const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
+  if (!blob) throw new Error('canvas.toBlob returned null (possibly tainted canvas)')
   return { blob, dataUrl: canvas.toDataURL('image/png'), bytes: new Uint8Array(await blob.arrayBuffer()) }
 }
 
@@ -127,7 +128,9 @@ export async function copyCanvasToClipboard(canvas) {
 
   if (window.__TAURI__) {
     const ctx = canvas.getContext('2d')
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    let imageData
+    try { imageData = ctx.getImageData(0, 0, canvas.width, canvas.height) }
+    catch (e) { throw new Error('Cannot read canvas image data (tainted by cross-origin image)') }
     const bytes = new Uint8Array(imageData.data)
     let binary = ''
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
@@ -137,6 +140,7 @@ export async function copyCanvasToClipboard(canvas) {
     })
   } else {
     const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
+    if (!blob) throw new Error('canvas.toBlob returned null (possibly tainted canvas)')
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
   }
 }
@@ -155,6 +159,7 @@ export async function saveCanvasToFile(canvas, defaultFilename) {
   if (!canvas) throw new Error('No canvas to save')
 
   const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+  if (!blob) throw new Error('canvas.toBlob returned null (possibly tainted canvas)')
 
   if (window.__TAURI__) {
     const { save } = await import('@tauri-apps/plugin-dialog')
@@ -173,7 +178,7 @@ export async function saveCanvasToFile(canvas, defaultFilename) {
     a.href = url
     a.download = defaultFilename
     a.click()
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
     return defaultFilename
   }
 }

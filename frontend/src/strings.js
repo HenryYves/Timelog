@@ -285,6 +285,7 @@ export const STR = {
     save: '保存图片',
     copied: '已复制到剪贴板',
     copyFail: '复制失败',
+    exportFail: '导出失败',
     bgMode: '背景色',
     bgTheme: '跟随主题',
     bgCustom: '自定义',

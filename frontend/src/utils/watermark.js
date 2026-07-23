@@ -42,6 +42,8 @@ export async function buildWatermarkOverlay({
   fontFamily,
   textColor,
 }) {
+  if (!width || !height) return ''
+
   const W = width
   const H = height
   const gapX = Math.max(0, wmGapX || 0)
@@ -76,7 +78,8 @@ export async function buildWatermarkOverlay({
       c.fillText(wmText, 0, 0)
     }
   } else if (wmType === 'image' && wmImage) {
-    const wmSrc = await resolveAsset(wmImage)
+    let wmSrc
+    try { wmSrc = await resolveAsset(wmImage) } catch { return '' }
     if (!wmSrc) return ''
     let img
     try { img = await loadImg(wmSrc) } catch { return '' }
