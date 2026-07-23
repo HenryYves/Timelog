@@ -410,7 +410,8 @@ const exportDateTitle = computed(() => {
 })
 
 const exportHeight = computed(() => {
-  let h = DAY_MIN + 36  // date title
+  if (props.mode === 'stats') return 0  // auto from scrollHeight
+  let h = DAY_MIN + 36
   if (showAuthorBlock.value) h += 80
   return h
 })
@@ -419,7 +420,7 @@ const timelineStyle = computed(() => {
   const s = previewScale.value
   return {
     width: settings.exportWidth + 'px',
-    height: exportHeight.value + 'px',
+    height: (props.mode === 'stats' ? 'auto' : exportHeight.value + 'px'),
     '--export-canvas': bgColor.value,
     background: bgColor.value,
     transform: `translate(${previewOffset.x}px, ${previewOffset.y}px) scale(${s})`,
@@ -442,9 +443,12 @@ const wmOverlayUrl = ref('')
 
 async function buildWatermark() {
   if (!settings.showWatermark) { wmOverlayUrl.value = ''; return }
+  const h = props.mode === 'stats' && timelineDom.value
+    ? timelineDom.value.scrollHeight
+    : exportHeight.value
   wmOverlayUrl.value = await buildWatermarkOverlay({
     width: settings.exportWidth,
-    height: exportHeight.value,
+    height: h,
     wmType: settings.wmType,
     wmText: settings.wmText,
     wmImage: settings.wmImage,
@@ -461,7 +465,7 @@ async function buildWatermark() {
 watch(
   () => [settings.showWatermark, settings.wmType, settings.wmText, settings.wmImage,
     settings.wmRotation, settings.wmWidth, settings.wmHeight, settings.wmGapX, settings.wmGapY,
-    settings.exportWidth, exportHeight.value],
+    settings.exportWidth, exportHeight.value, statsCards.value],
   buildWatermark,
   { immediate: true }
 )
@@ -576,9 +580,10 @@ function trapFocus(e) {
 async function captureCanvas() {
   const el = timelineDom.value
   if (!el) return null
+  const h = props.mode === 'stats' ? el.scrollHeight : exportHeight.value
   return await captureElement(el, {
     width: settings.exportWidth,
-    height: exportHeight.value,
+    height: h,
     backgroundColor: settings.bgMode === 'custom'
       ? settings.bgColor
       : getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim(),
