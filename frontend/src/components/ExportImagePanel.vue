@@ -173,7 +173,7 @@
                 </div>
                 <!-- Hour lines -->
                 <div v-for="h in hours" :key="'hl'+h" class="exp-hourline" :style="{ top: h * 60 + 'px' }" />
-                <div v-for="h in 24" :key="'hfl'+h" class="exp-halfline" :style="{ top: h * 60 + 30 + 'px' }" />
+                <div v-for="h in 24" :key="'hfl'+h" class="exp-halfline" :style="{ top: (h - 1) * 60 + 30 + 'px' }" />
                 <!-- Time blocks -->
                 <div v-for="b in layoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
                   <div v-if="settings.showBlockColorBar" class="cbar">
