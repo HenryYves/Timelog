@@ -340,7 +340,8 @@ async function exportCard(cardId) {
       height: el.scrollHeight,
     })
     const card = cards.value.find(c => c.id === cardId)
-    const fn = 'timelog-stats-' + (card?.name || cardId) + '.png'
+    const raw = (card?.name || cardId).replace(/[\/\\:*?"<>|]/g, '_')
+    const fn = 'timelog-stats-' + raw + '.png'
     await saveCanvasToFile(canvas, fn)
   } catch (e) {
     console.error('Card export failed:', e)
