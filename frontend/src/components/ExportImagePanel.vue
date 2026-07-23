@@ -25,6 +25,11 @@
               <span class="unit">px</span>
             </div>
 
+            <div class="setting-group">
+              <label><input type="checkbox" v-model="settings.showTitle" /> {{ STR.exportImage.showTitle }}</label>
+              <input v-if="settings.showTitle" type="text" v-model="settings.titleText" style="width:100%;margin-top:4px" :placeholder="defaultTitleText" />
+            </div>
+
             <!-- Phase 0: Block display (collapsible) -->
             <div v-if="props.mode === 'timeline'" class="setting-collapse">
               <div class="collapse-header" @click="showBlockOpts = !showBlockOpts">
@@ -134,6 +139,9 @@
                 </template>
               </div>
             </div>
+            <div v-if="props.mode === 'stats'" class="setting-group" style="margin-top:12px">
+              <label><input type="checkbox" v-model="settings.showStatsLegend" /> 为所有饼图添加图例</label>
+            </div>
           </div>
         </div>
         <div class="export-right" ref="previewWrap" @mousedown="onMouseDown" @wheel.prevent="onWheel" @dblclick="fitPreview(settings.exportWidth)">
@@ -148,7 +156,7 @@
             </div>
             <template v-if="props.mode === 'timeline'">
               <!-- Date title -->
-              <div class="exp-date-title">{{ exportDateTitle }}</div>
+              <div v-if="displayTitle" class="exp-date-title">{{ displayTitle }}</div>
               <!-- Blocks area (gutter + hour lines + time blocks, always aligned) -->
               <div class="exp-blocks" :style="{
                 marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px',
@@ -192,6 +200,14 @@
                   :showPercent="card.chartPercent"
                   :noDataText="STR.stats.noData"
                 />
+                <div v-if="card.type === 'pie' && settings.showStatsLegend" class="legend">
+                  <div v-for="d in (statsCardData[card.id] || [])" :key="d.tag" class="legend-item">
+                    <span class="legend-dot" :style="{ background: d.color }"></span>
+                    <span class="legend-name">{{ d.tag }}</span>
+                    <span class="legend-val">{{ fmtDur(d.minutes) }}</span>
+                    <span class="legend-pct">{{ pctOf(statsCardData[card.id] || [], d.minutes) }}</span>
+                  </div>
+                </div>
                 <BarChart
                   v-else
                   :items="statsCardData[card.id] || []"
@@ -282,6 +298,9 @@ const defaults = {
   wmHeight: 0,            // 0 = auto
   wmGapX: 100,            // horizontal spacing between tiles
   wmGapY: 100,            // vertical spacing between tiles
+  showTitle: true,
+  titleText: '',
+  showStatsLegend: true,
 }
 
 function loadSettings() {
@@ -407,6 +426,19 @@ const showAuthorBlock = computed(() =>
 const exportDateTitle = computed(() => {
   const d = new Date()
   return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日'
+})
+
+const defaultTitleText = computed(() => {
+  if (props.mode === 'stats') {
+    const labels = { today: '今天', '24h': '24h', week: '本周', '168h': '24×7h', '7d': '最近 7 天', month: '本月', custom: '自定义' }
+    return exportDateTitle.value + ' (' + (labels[statsTimeRange.value] || '') + ')'
+  }
+  return exportDateTitle.value
+})
+
+const displayTitle = computed(() => {
+  if (!settings.showTitle) return ''
+  return settings.titleText || defaultTitleText.value
 })
 
 const exportHeight = computed(() => {
@@ -832,6 +864,12 @@ async function doExport() {
 
 /* Stats export preview */
 .exp-stats { padding: 16px 24px; display: flex; flex-direction: column; gap: 24px; }
+.exp-stats .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; }
+.exp-stats .legend-item { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text2); }
+.exp-stats .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.exp-stats .legend-name { font-weight: 500; color: var(--text); }
+.exp-stats .legend-val { margin-left: 4px; }
+.exp-stats .legend-pct { margin-left: 2px; }
 .exp-stat-card { border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: var(--canvas); }
 .exp-stat-card-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
 </style>
