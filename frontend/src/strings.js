@@ -238,7 +238,7 @@ export const STR = {
       'T  快速记录当前时间',
       'N  批量创建',
       'S  打开统计视图',
-      'Ctrl+P  导出切图',
+      'Ctrl+P  导出图片',
       'P  导出文本',
       '← →  切换上/下一天',
       '↑ ↓  拖动时微调时间（±1 分钟）',
@@ -278,7 +278,7 @@ export const STR = {
   },
 
   exportImage: {
-    title: '导出切图',
+    title: '导出图片',
     cancel: '取消',
     export: '导出 PNG',
     copy: '复制到剪贴板',
