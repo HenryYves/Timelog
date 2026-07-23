@@ -170,10 +170,10 @@
                 </div>
                 <div v-if="settings.showBlockTitle" class="bt">{{ b.title || '(未命名)' }}</div>
                 <div v-if="settings.showBlockTime && (b.end - b.start) >= 32" class="bs">{{ fmt(b.start) }}–{{ fmt(b.end) }}</div>
-                <div v-if="settings.showBlockTags && (b.end - b.start) >= 50 && b.tags?.length" class="btags">
+                <div v-if="settings.showBlockTags && (b.end - b.start) >= 18 && b.tags?.length" class="btags">
                   <span v-for="t in b.tags" :key="t"><span class="tdot" :style="{ background: tagColor(t) }" />{{ t }}</span>
                 </div>
-                <div v-if="settings.showBlockNote && b.note && (b.end - b.start) >= (b.tags?.length ? 66 : 48)" class="bnote" v-html="mdToHtml(b.note)" />
+                <div v-if="settings.showBlockNote && b.note && (b.end - b.start) >= 16" class="bnote" v-html="mdToHtml(b.note)" />
                 <div v-if="settings.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
               </div>
             </div>

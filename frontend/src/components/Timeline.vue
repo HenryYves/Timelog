@@ -77,7 +77,7 @@
           {{ fmt(ev.start) }}–{{ fmt(ev.end) }}
         </div>
         <div
-          v-if="settingsStore.showBlockTags && (ev.end - ev.start) * PX_MIN >= 50 && ev.tags && ev.tags.length"
+          v-if="settingsStore.showBlockTags && (ev.end - ev.start) * PX_MIN >= 18 && ev.tags && ev.tags.length"
           class="btags"
         >
           <span v-for="t in ev.tags" :key="t">
@@ -85,7 +85,7 @@
           </span>
         </div>
         <div
-          v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && settingsStore.renderNoteMarkdown"
+          v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= 16 && settingsStore.renderNoteMarkdown"
           class="bnote"
           v-html="mdToHtml(ev.note)"
         />
