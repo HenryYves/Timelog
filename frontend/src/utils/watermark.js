@@ -94,6 +94,7 @@ export async function buildWatermarkOverlay({
   canvas.width = W * SCALE
   canvas.height = H * SCALE
   ctx.scale(SCALE, SCALE)
+  ctx.globalAlpha = (wmOpacity ?? 30) / 100
   let row = 0
   for (let y = cellH / 2; y < H + cellH; y += cellH, row++) {
     const xStart = (row % 2 ? 1.5 : 0.5) * cellW
