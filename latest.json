@@ -1,11 +1,11 @@
 {
-  "version": "v0.9.14",
-  "notes": "新增：导出切图DOM渲染+原生剪贴板+2x高清+作者水印、块溢出遮罩、二级子菜单+焦点管理、编辑器nav模式、结束时间默认当前时间\n变更：移除块最小高度、统计移至设置下、移除hint/导出文本按钮、上下内边距、空页从00:00开始\n修复：导出裁剪/作者对齐/水印模糊灰色/gutter灰底、文本复制走原生剪贴板Win+V、遮罩叠加加深",
-  "pub_date": "2026-07-20T00:00:00Z",
+  "version": "v0.9.46",
+  "notes": "新增：ExportImagePanel解耦+stats完整导出面板+持久化修复+日志系统+标题/图例配置\n变更：导出切图→导出图片、设置key按mode分离、StatsPanel拆为子组件\n修复：持久化TDZ/100%饼图/虚线偏移/水印透明度/BarChart CSS/封面缺失/静默catch日志化",
+  "pub_date": "2026-07-23T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbU1BaHlUOEE4WWl2OG43SHZTNEdiaDlUWk0yaW5UdjRnRVZzdllGcnF5Nm5wU2Z3TWduaTlMMEpRQ0tvNS8yRlhYZ3lBQjM2QmdMVzR1OW9wYm5JNndBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0NTUyNDMxCWZpbGU6dGltZWxvZ18wLjkuMTRfeDY0X2VuLVVTLm1zaQpobGdlQmZVdW0rd2g3dXR1eDdBRlVCVjBJMEt6MVZvWUhHZDlseXdWSHpOVGZQWEhUN0NySStNQUtaSVpwQkRNVzRpamJBT25uUHlBYXpKQ2pLZzZBQT09Cg==",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.9.14/timelog_0.9.14_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUlUYXpqTW1GQWxVZ25iejUvY20rakpHejNqd0tqK2xMYXFJYWtmZGw2Yjlpc09HdWpSdHRKZFMwd0d5aExReFNKZW1aaUtkTnBCR1JidVBwRFlWbmdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0ODA2MTcyCWZpbGU6dGltZWxvZ18wLjkuNDZfeDY0X2VuLVVTLm1zaQpmM2M0K2ljZkNGN3Y5dHVQN0ZBMlg3MVpJTXZiTHFsNUlYQ1pibVNXNVhUU1hpRFl0M2s4TjBxVDVyWVRDc1RyZXJyL1owL1hISzduTTNwZWdubUFDUT09Cg==",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.9.46/timelog_0.9.46_x64_en-US.msi"
     }
   }
 }
