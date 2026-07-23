@@ -26,7 +26,7 @@
             </div>
 
             <!-- Phase 0: Block display (collapsible) -->
-            <div class="setting-collapse">
+            <div v-if="props.mode === 'timeline'" class="setting-collapse">
               <div class="collapse-header" @click="showBlockOpts = !showBlockOpts">
                 <span>{{ STR.exportImage.blockDisplay }}</span>
                 <span class="arrow" :class="{ open: showBlockOpts }">▸</span>
@@ -138,56 +138,82 @@
         </div>
         <div class="export-right" ref="previewWrap" @mousedown="onMouseDown" @wheel.prevent="onWheel" @dblclick="fitPreview(settings.exportWidth)">
           <div class="export-timeline" ref="timelineDom" :style="timelineStyle" data-export-root>
-            <!-- Author info (top) -->
-            <div v-if="showAuthorBlock && settings.authorPosition === 'top'" class="exp-author" :style="authorStyle">
-              <img v-if="authorAvatarUrl" :src="authorAvatarUrl" class="exp-avatar" />
-              <div class="exp-author-text">
-                <div v-if="settings.authorName" class="exp-author-name">{{ settings.authorName }}</div>
-                <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
-              </div>
-            </div>
-            <!-- Date title -->
-            <div class="exp-date-title">{{ exportDateTitle }}</div>
-            <!-- Blocks area (gutter + hour lines + time blocks, always aligned) -->
-            <div class="exp-blocks" :style="{
-              marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px',
-              height: DAY_MIN + 'px',
-            }">
-              <!-- Gutter (time labels) -->
-              <div v-if="settings.showGutter" class="exp-gutter" :style="{ width: GUTTER_WIDTH + 'px', left: -GUTTER_WIDTH + 'px' }">
-                <div v-for="h in hours" :key="h" class="exp-hlabel" :style="{ top: h * 60 + 'px' }">
-                  {{ String(h).padStart(2, '0') }}:00
+            <template v-if="props.mode === 'timeline'">
+              <!-- Author info (top) -->
+              <div v-if="showAuthorBlock && settings.authorPosition === 'top'" class="exp-author" :style="authorStyle">
+                <img v-if="authorAvatarUrl" :src="authorAvatarUrl" class="exp-avatar" />
+                <div class="exp-author-text">
+                  <div v-if="settings.authorName" class="exp-author-name">{{ settings.authorName }}</div>
+                  <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
                 </div>
               </div>
-              <!-- Hour lines -->
-              <div v-for="h in hours" :key="'hl'+h" class="exp-hourline" :style="{ top: h * 60 + 'px' }" />
-              <div v-for="h in 24" :key="'hfl'+h" class="exp-halfline" :style="{ top: h * 60 + 30 + 'px' }" />
-              <!-- Time blocks -->
-              <div v-for="b in layoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
-                <div v-if="settings.showBlockColorBar" class="cbar">
-                  <i v-for="(t, ti) in (b.tags || [])" :key="ti" :style="{ background: tagColor(t) }" />
-                  <i v-if="!b.tags || !b.tags.length" style="background:#C4C3C0" />
+              <!-- Date title -->
+              <div class="exp-date-title">{{ exportDateTitle }}</div>
+              <!-- Blocks area (gutter + hour lines + time blocks, always aligned) -->
+              <div class="exp-blocks" :style="{
+                marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px',
+                height: DAY_MIN + 'px',
+              }">
+                <!-- Gutter (time labels) -->
+                <div v-if="settings.showGutter" class="exp-gutter" :style="{ width: GUTTER_WIDTH + 'px', left: -GUTTER_WIDTH + 'px' }">
+                  <div v-for="h in hours" :key="h" class="exp-hlabel" :style="{ top: h * 60 + 'px' }">
+                    {{ String(h).padStart(2, '0') }}:00
+                  </div>
                 </div>
-                <div v-if="settings.showBlockTitle" class="bt">{{ b.title || '(未命名)' }}</div>
-                <div v-if="settings.showBlockTime && (b.end - b.start) >= 32" class="bs">{{ fmt(b.start) }}–{{ fmt(b.end) }}</div>
-                <div v-if="settings.showBlockTags && (b.end - b.start) >= 18 && b.tags?.length" class="btags">
-                  <span v-for="t in b.tags" :key="t"><span class="tdot" :style="{ background: tagColor(t) }" />{{ t }}</span>
+                <!-- Hour lines -->
+                <div v-for="h in hours" :key="'hl'+h" class="exp-hourline" :style="{ top: h * 60 + 'px' }" />
+                <div v-for="h in 24" :key="'hfl'+h" class="exp-halfline" :style="{ top: h * 60 + 30 + 'px' }" />
+                <!-- Time blocks -->
+                <div v-for="b in layoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
+                  <div v-if="settings.showBlockColorBar" class="cbar">
+                    <i v-for="(t, ti) in (b.tags || [])" :key="ti" :style="{ background: tagColor(t) }" />
+                    <i v-if="!b.tags || !b.tags.length" style="background:#C4C3C0" />
+                  </div>
+                  <div v-if="settings.showBlockTitle" class="bt">{{ b.title || '(未命名)' }}</div>
+                  <div v-if="settings.showBlockTime && (b.end - b.start) >= 32" class="bs">{{ fmt(b.start) }}–{{ fmt(b.end) }}</div>
+                  <div v-if="settings.showBlockTags && (b.end - b.start) >= 18 && b.tags?.length" class="btags">
+                    <span v-for="t in b.tags" :key="t"><span class="tdot" :style="{ background: tagColor(t) }" />{{ t }}</span>
+                  </div>
+                  <div v-if="settings.showBlockNote && b.note && (b.end - b.start) >= 16" class="bnote" v-html="mdToHtml(b.note)" />
+                  <div v-if="settings.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
                 </div>
-                <div v-if="settings.showBlockNote && b.note && (b.end - b.start) >= 16" class="bnote" v-html="mdToHtml(b.note)" />
-                <div v-if="settings.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
               </div>
-            </div>
-            <!-- Author info (bottom) -->
-            <div v-if="showAuthorBlock && settings.authorPosition === 'bottom'" class="exp-author" :style="authorStyle">
-              <img v-if="authorAvatarUrl" :src="authorAvatarUrl" class="exp-avatar" />
-              <div class="exp-author-text">
-                <div v-if="settings.authorName" class="exp-author-name">{{ settings.authorName }}</div>
-                <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
+              <!-- Author info (bottom) -->
+              <div v-if="showAuthorBlock && settings.authorPosition === 'bottom'" class="exp-author" :style="authorStyle">
+                <img v-if="authorAvatarUrl" :src="authorAvatarUrl" class="exp-avatar" />
+                <div class="exp-author-text">
+                  <div v-if="settings.authorName" class="exp-author-name">{{ settings.authorName }}</div>
+                  <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
+                </div>
               </div>
+              <!-- Watermark (tiled repeat, like obsidian-export-image) -->
+              <img v-if="settings.showWatermark && wmOverlayUrl" class="exp-watermark"
+                :src="wmOverlayUrl" />
+            </template>
+            <!-- Stats preview -->
+            <div v-if="props.mode === 'stats'" class="exp-stats">
+              <div v-for="card in (props.cardId ? statsCards.filter(c => c.id === props.cardId) : statsCards)" :key="card.id" class="exp-stat-card">
+                <div class="exp-stat-card-title">{{ card.name || (card.type === 'pie' ? '饼图' : '柱状图') }}</div>
+                <PieChart
+                  v-if="card.type === 'pie'"
+                  :slices="(statsPieCharts[card.id] || {}).slices || []"
+                  :labels="(statsPieCharts[card.id] || {}).labels || []"
+                  :interactive="false"
+                  :showData="card.chartData"
+                  :showPercent="card.chartPercent"
+                  :noDataText="STR.stats.noData"
+                />
+                <BarChart
+                  v-else
+                  :items="statsCardData[card.id] || []"
+                  :interactive="false"
+                  :showData="card.chartData"
+                  :showPercent="card.chartPercent"
+                  :noDataText="STR.stats.noData"
+                />
+              </div>
+              <div v-if="statsCards.length === 0" style="text-align:center;color:var(--text2);padding:20px">{{ STR.stats.noData }}</div>
             </div>
-            <!-- Watermark (tiled repeat, like obsidian-export-image) -->
-            <img v-if="settings.showWatermark && wmOverlayUrl" class="exp-watermark"
-              :src="wmOverlayUrl" />
           </div>
         </div>
       </div>
@@ -217,8 +243,13 @@ import { useTagStore } from '../store/tags.js'
 import { PX_MIN, DAY_MIN, GUTTER_WIDTH, DATA_DIR } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
 import { tWriteBinary, tEnsureSubDir } from '../utils/tauri.js'
+import { computeCardsData, buildPieChart, fmtDur, pctOf } from '../utils/stats.js'
+import PieChart from './PieChart.vue'
+import BarChart from './BarChart.vue'
 
-const SETTINGS_KEY = 'timelog:export-image-settings'
+const settingsKey = computed(() => props.mode === 'stats'
+  ? 'timelog:stats-export-settings'
+  : 'timelog:export-image-settings')
 
 const defaults = {
   // Phase 0 — 时间块显示
@@ -255,7 +286,7 @@ const defaults = {
 
 function loadSettings() {
   try {
-    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY))
+    const saved = JSON.parse(localStorage.getItem(settingsKey.value))
     if (saved) Object.assign(settings, defaults, saved)
   } catch { /* use defaults */ }
 }
@@ -276,7 +307,7 @@ watch(settings, () => {
   clearTimeout(_saveTimer)
   _saveTimer = setTimeout(() => {
     try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+      localStorage.setItem(settingsKey.value, JSON.stringify(settings))
     } catch (e) {
       console.error('export-image-settings save failed:', e)
       toast('导出设置保存失败，如已选图片请重新选择较小的图片')
@@ -284,12 +315,61 @@ watch(settings, () => {
   }, 300)
 }, { deep: true })
 
-const props = defineProps({ show: Boolean })
+const props = defineProps({
+  show: Boolean,
+  mode: { type: String, default: 'timeline' },
+  cardId: { type: String, default: '' },
+})
 const emit = defineEmits(['close'])
 const timelineDom = ref(null)
 const { toast } = useToast()
 const timelogStore = useTimelogStore()
 const tagStore = useTagStore()
+
+// Stats data refs
+const statsCards = ref([])
+const statsTimeRange = ref('today')
+const statsCustomStart = ref('')
+const statsCustomEnd = ref('')
+
+function statsTagGroup(name) {
+  const t = tagStore.tags.find(x => x.name === name)
+  return t?.group || ''
+}
+
+const statsCardData = computed(() => {
+  if (props.mode !== 'stats') return {}
+  let cards = statsCards.value
+  if (props.cardId) cards = cards.filter(c => c.id === props.cardId)
+  return computeCardsData(cards, statsTagGroup, tagStore, STR, {
+    timeRange: statsTimeRange.value,
+    customStart: statsCustomStart.value,
+    customEnd: statsCustomEnd.value,
+  })
+})
+
+const statsPieCharts = computed(() => {
+  const map = {}
+  if (props.mode !== 'stats') return map
+  let cards = statsCards.value
+  if (props.cardId) cards = cards.filter(c => c.id === props.cardId)
+  for (const card of cards) {
+    map[card.id] = buildPieChart(statsCardData.value[card.id] || [])
+  }
+  return map
+})
+
+// Load stats data when panel opens in stats mode
+watch(() => props.show, (val) => {
+  if (val && props.mode === 'stats') {
+    try {
+      statsCards.value = JSON.parse(localStorage.getItem('timelog:stats-cards') || '[]')
+    } catch { statsCards.value = [] }
+    statsTimeRange.value = localStorage.getItem('timelog:stats-time-range') || 'today'
+    statsCustomStart.value = localStorage.getItem('timelog:stats-custom-start') || ''
+    statsCustomEnd.value = localStorage.getItem('timelog:stats-custom-end') || ''
+  }
+})
 
 // Preview pan/zoom
 const { previewWrap, previewOffset, previewScale, onMouseDown, onWheel, fitPreview } = usePanZoom()
@@ -521,7 +601,11 @@ async function doExport() {
   try {
     const canvas = await captureCanvas()
     if (!canvas) return
-    await saveCanvasToFile(canvas, 'timelog-' + dkey(new Date()) + '.png')
+    const fn = props.mode === 'stats'
+      ? 'timelog-stats-' + dkey(new Date()) + '.png'
+      : 'timelog-' + dkey(new Date()) + '.png'
+    const path = await saveCanvasToFile(canvas, fn)
+    if (path) toast('已导出到：' + path)
     emit('close')
   } catch (e) {
     console.error('Export failed:', e)
@@ -740,4 +824,9 @@ async function doExport() {
   pointer-events: none;
   z-index: 2;
 }
+
+/* Stats export preview */
+.exp-stats { padding: 16px 24px; display: flex; flex-direction: column; gap: 24px; }
+.exp-stat-card { border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: var(--canvas); }
+.exp-stat-card-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
 </style>
