@@ -18,13 +18,23 @@
       <label>所有日期</label>
       <div class="day-list">
       <div v-if="days.length === 0" class="small">暂无数据</div>
+      <label class="dayrow select-all" v-if="days.length">
+        <input type="checkbox" :checked="allSelected" @change="toggleAll">
+        <span class="small">全选 / 取消</span>
+      </label>
       <div v-for="d in days" :key="d.date" class="dayrow">
+        <label class="dcheck"><input type="checkbox" :checked="selectedDays.has(d.date)" @change="toggleDay(d.date)"></label>
         <div class="dinfo">
           {{ d.date }}
           <span class="dmeta">{{ d.count }} 条 · {{ d.hours.toFixed(1) }} 小时</span>
         </div>
         <button class="del" @click="deleteDate(d.date)">删除整天</button>
       </div>
+      </div>
+
+      <div v-if="selectedDays.size" class="batch-actions">
+        <button class="del" @click="deleteSelected">删除选中 ({{ selectedDays.size }})</button>
+        <button @click="exportSelected">导出选中 ({{ selectedDays.size }})</button>
       </div>
 
       <div style="margin-top:12px;">
@@ -50,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { KEY_PREFIX } from '../constants.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { STR } from '../strings.js'
@@ -64,6 +74,20 @@ const modalEl = ref(null)
 const fromDate = ref('')
 const toDate = ref('')
 const fileInput = ref(null)
+const selectedDays = ref(new Set())
+
+const allSelected = computed(() => days.value.length > 0 && selectedDays.value.size === days.value.length)
+
+function toggleDay(date) {
+  const s = new Set(selectedDays.value)
+  if (s.has(date)) s.delete(date)
+  else s.add(date)
+  selectedDays.value = s
+}
+function toggleAll() {
+  if (allSelected.value) selectedDays.value = new Set()
+  else selectedDays.value = new Set(days.value.map(d => d.date))
+}
 
 function trapFocus(e) {
   if (e.key !== 'Tab') return
@@ -113,6 +137,7 @@ watch(() => props.show, (val) => {
   if (val) {
     fromDate.value = ''
     toDate.value = ''
+    selectedDays.value = new Set()
     loadDays()
   }
 }, { immediate: true })
@@ -145,6 +170,49 @@ async function deleteDateRange() {
   toDel.forEach(d => localStorage.removeItem(KEY_PREFIX + d.date))
   loadDays()
   emit('changed')
+}
+
+async function deleteSelected() {
+  if (!selectedDays.value.size) return
+  const total = [...selectedDays.value].reduce((s, d) => {
+    const day = days.value.find(x => x.date === d)
+    return s + (day?.count || 0)
+  }, 0)
+  const ok = await showConfirm(STR.confirm.deleteRangeConfirm(selectedDays.value.size, total))
+  if (!ok) { refocusModal(); return }
+  selectedDays.value.forEach(d => localStorage.removeItem(KEY_PREFIX + d))
+  selectedDays.value = new Set()
+  loadDays()
+  emit('changed')
+}
+
+async function exportSelected() {
+  if (!selectedDays.value.size) return
+  const data = { version: 3, exported: new Date().toISOString(), tags: [], days: {} }
+  // Include tags
+  try { data.tags = JSON.parse(localStorage.getItem(KEY_PREFIX + 'tags')) || [] } catch {}
+  // Export selected days
+  selectedDays.value.forEach(d => {
+    try { data.days[d] = JSON.parse(localStorage.getItem(KEY_PREFIX + d)) } catch {}
+  })
+  const json = JSON.stringify(data, null, 2)
+  if (window.__TAURI__) {
+    const { save } = await import('@tauri-apps/plugin-dialog')
+    const { writeFile } = await import('@tauri-apps/plugin-fs')
+    const path = await save({
+      defaultPath: 'timelog-partial-' + [...selectedDays.value].sort()[0] + '.json',
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    })
+    if (path) await writeFile(path, new TextEncoder().encode(json))
+  } else {
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'timelog-partial.json'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 }
 
 async function deleteAll() {
@@ -231,6 +299,13 @@ async function onFileSelected(e) {
   margin: 16px 0;
 }
 .spacer { flex: 1; }
+.dcheck { flex-shrink: 0; }
+.dcheck input { cursor: pointer; }
+.select-all { cursor: pointer; gap: 8px; }
+.batch-actions {
+  display: flex; gap: 8px; margin-top: 10px; align-items: center;
+}
+.batch-actions button { font-size: 13px; }
 .small {
   font-size: 12px;
   color: var(--text2);
