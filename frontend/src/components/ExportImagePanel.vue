@@ -263,10 +263,6 @@ import { computeCardsData, buildPieChart, fmtDur, pctOf } from '../utils/stats.j
 import PieChart from './PieChart.vue'
 import BarChart from './BarChart.vue'
 
-const settingsKey = computed(() => props.mode === 'stats'
-  ? 'timelog:stats-export-settings'
-  : 'timelog:export-image-settings')
-
 const defaults = {
   // Phase 0 — 时间块显示
   showBlockTitle: true,
@@ -340,6 +336,10 @@ const props = defineProps({
   cardId: { type: String, default: '' },
 })
 const emit = defineEmits(['close'])
+
+const settingsKey = computed(() => props.mode === 'stats'
+  ? 'timelog:stats-export-settings'
+  : 'timelog:export-image-settings')
 const timelineDom = ref(null)
 const { toast } = useToast()
 const timelogStore = useTimelogStore()
