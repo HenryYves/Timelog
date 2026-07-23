@@ -149,6 +149,20 @@ export function buildPieChart(data) {
   const total = data.reduce((s, d) => s + d.minutes, 0)
   if (total === 0) return { slices: [], labels: [] }
 
+  // Single item = full circle — SVG arcs can't draw 360° sweep (start==end point)
+  if (data.length === 1) {
+    const d = data[0]
+    return {
+      slices: [{ tag: d.tag, path: `M${PIE_CX},${PIE_CY - PIE_R} A${PIE_R},${PIE_R} 0 1 1 ${PIE_CX},${PIE_CY + PIE_R} A${PIE_R},${PIE_R} 0 1 1 ${PIE_CX},${PIE_CY - PIE_R} Z`, color: d.color, minutes: d.minutes }],
+      labels: d.minutes >= 1 ? [{
+        tag: d.tag, color: d.color,
+        linePoints: `${(PIE_CX + PIE_R + 20).toFixed(1)},${PIE_CY.toFixed(1)} ${(PIE_CX + PIE_R + 55).toFixed(1)},${PIE_CY.toFixed(1)} ${(PIE_CX + PIE_R + 90).toFixed(1)},${PIE_CY.toFixed(1)}`,
+        textX: (PIE_CX + PIE_R + 96).toFixed(1), textY: (PIE_CY + 5).toFixed(1), anchor: 'start',
+        dataText: fmtDur(d.minutes), pctText: '100.0%',
+      }] : [],
+    }
+  }
+
   let accDeg = 0
   const items = data.map(d => {
     const spanDeg = (d.minutes / total) * 360
