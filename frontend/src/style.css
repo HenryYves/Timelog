@@ -330,3 +330,29 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
   z-index: 1;
   border-radius: 0 0 6px 6px;
 }
+
+/* ── Scrollbar: thin thumb expands on hover ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  border: 0;
+  background: var(--text2);
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
