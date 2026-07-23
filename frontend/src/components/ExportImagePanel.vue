@@ -140,7 +140,7 @@
               </div>
             </div>
             <div v-if="props.mode === 'stats'" class="setting-group" style="margin-top:12px">
-              <label><input type="checkbox" v-model="settings.showStatsLegend" /> 为所有饼图添加图例</label>
+              <label><input type="checkbox" v-model="settings.showStatsLegend" /> {{ STR.exportImage.showStatsLegend }}</label>
             </div>
           </div>
         </div>
@@ -154,9 +154,9 @@
                 <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
               </div>
             </div>
+            <!-- Date title -->
+            <div v-if="displayTitle" class="exp-date-title">{{ displayTitle }}</div>
             <template v-if="props.mode === 'timeline'">
-              <!-- Date title -->
-              <div v-if="displayTitle" class="exp-date-title">{{ displayTitle }}</div>
               <!-- Blocks area (gutter + hour lines + time blocks, always aligned) -->
               <div class="exp-blocks" :style="{
                 marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px',

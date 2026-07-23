@@ -287,6 +287,8 @@ export const STR = {
     bgTheme: '跟随主题',
     bgCustom: '自定义',
     showGutter: '包含时间标尺',
+    showTitle: '显示标题',
+    showStatsLegend: '饼图显示图例',
     exportWidth: '导出宽度',
     blockDisplay: '时间块显示',
     sectionAuthor: '作者信息',
