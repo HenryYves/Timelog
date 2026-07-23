@@ -187,7 +187,7 @@
             </div>
             <!-- Watermark (tiled repeat, like obsidian-export-image) -->
             <img v-if="settings.showWatermark && wmOverlayUrl" class="exp-watermark"
-              :src="wmOverlayUrl" :style="{ opacity: settings.wmOpacity / 100 }" />
+              :src="wmOverlayUrl" />
           </div>
         </div>
       </div>
@@ -204,7 +204,7 @@
 <script setup>
 import { ref, reactive, watch, computed, nextTick, onMounted } from 'vue'
 import { mdToHtml } from '../utils/markdown.js'
-import { loadImg, compressImage, resolveAssetUrl, clearAssetCache, captureElement, copyCanvasToClipboard, saveCanvasToFile } from '../utils/capture.js'
+import { compressImage, resolveAssetUrl, clearAssetCache, captureElement, copyCanvasToClipboard, saveCanvasToFile } from '../utils/capture.js'
 import { buildWatermarkOverlay } from '../utils/watermark.js'
 import { usePanZoom } from '../composables/usePanZoom.js'
 
