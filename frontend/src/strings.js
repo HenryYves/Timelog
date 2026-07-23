@@ -271,6 +271,8 @@ export const STR = {
       '<b>"导入"</b>：JSON 备份还原，同样支持按内容选择',
       '<b>"文本导入"</b>：解析之前导出的文本',
     ],
+    sectionDebug: '调试',
+    exportLogs: '导出日志',
     footer: 'Made by Yves / 陈虹宇 · 2026',
     close: '关闭',
   },

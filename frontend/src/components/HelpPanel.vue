@@ -45,6 +45,11 @@
         </ul>
       </div>
 
+      <div class="help-section">
+        <h3>{{ STR.help.sectionDebug }}</h3>
+        <button @click="exportLogs">{{ STR.help.exportLogs }}</button>
+      </div>
+
       <div class="help-footer">
         {{ STR.help.footer }}
       </div>
@@ -59,6 +64,7 @@
 
 <script setup>
 import { STR } from '../strings.js'
+import { exportLogs } from '../utils/log.js'
 
 const props = defineProps({
   show: Boolean,
