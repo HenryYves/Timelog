@@ -300,6 +300,17 @@ const defaults = {
   showStatsLegend: true,
 }
 
+const props = defineProps({
+  show: Boolean,
+  mode: { type: String, default: 'timeline' },
+  cardId: { type: String, default: '' },
+})
+const emit = defineEmits(['close'])
+
+const settingsKey = computed(() => props.mode === 'stats'
+  ? 'timelog:stats-export-settings'
+  : 'timelog:export-image-settings')
+
 function loadSettings() {
   try {
     const raw = localStorage.getItem(settingsKey.value)
@@ -314,7 +325,7 @@ function loadSettings() {
 const settings = reactive({ ...defaults })
 loadSettings()
 
-// Resolve asset paths to displayable data URLs (Tauri reads from file, browser uses as-is)
+// Resolve asset paths to displayable data URLs
 const authorAvatarUrl = ref('')
 const wmImageUrl = ref('')
 
@@ -335,17 +346,6 @@ watch(settings, () => {
     }
   }, 300)
 }, { deep: true })
-
-const props = defineProps({
-  show: Boolean,
-  mode: { type: String, default: 'timeline' },
-  cardId: { type: String, default: '' },
-})
-const emit = defineEmits(['close'])
-
-const settingsKey = computed(() => props.mode === 'stats'
-  ? 'timelog:stats-export-settings'
-  : 'timelog:export-image-settings')
 const timelineDom = ref(null)
 const { toast } = useToast()
 const timelogStore = useTimelogStore()
