@@ -209,7 +209,7 @@
                   </div>
                 </div>
                 <BarChart
-                  v-else
+                  v-if="card.type !== 'pie'"
                   :items="statsCardData[card.id] || []"
                   :interactive="false"
                   :showData="card.chartData"
