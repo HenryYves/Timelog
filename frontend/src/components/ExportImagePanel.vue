@@ -505,7 +505,7 @@ async function buildWatermark() {
 
 watch(
   () => [settings.showWatermark, settings.wmType, settings.wmText, settings.wmImage,
-    settings.wmRotation, settings.wmWidth, settings.wmHeight, settings.wmGapX, settings.wmGapY,
+    settings.wmOpacity, settings.wmRotation, settings.wmWidth, settings.wmHeight, settings.wmGapX, settings.wmGapY,
     settings.exportWidth, exportHeight.value, statsCards.value],
   buildWatermark,
   { immediate: true }
