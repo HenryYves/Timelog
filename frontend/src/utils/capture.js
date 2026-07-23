@@ -11,7 +11,7 @@ export function loadImg(src) {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.onload = () => resolve(img)
-    img.onerror = reject
+    img.onerror = () => reject(new Error('Failed to load image: ' + (typeof src === 'string' ? src.slice(0, 50) : '[blob]')))
     img.src = src
   })
 }

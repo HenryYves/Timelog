@@ -41,9 +41,13 @@ export const logger = {
   error: (s, m, x) => log('error', s, m, x),
 }
 
-export async function exportLogs() {
+export function getLogText() {
   const logs = getLogs()
-  const text = logs.map(e => `[${e.t}] [${e.l.toUpperCase()}] [${e.s}] ${e.m}` + (e.x ? ' ' + JSON.stringify(e.x) : '')).join('\n')
+  return logs.map(e => `[${e.t}] [${e.l.toUpperCase()}] [${e.s}] ${e.m}` + (e.x ? ' ' + JSON.stringify(e.x) : '')).join('\n') || '(暂无日志)'
+}
+
+export async function exportLogs() {
+  const text = getLogText() === '(暂无日志)' ? '' : getLogText()
   const defaultName = 'timelog-debug-' + new Date().toISOString().slice(0, 10) + '.log'
 
   if (window.__TAURI__) {

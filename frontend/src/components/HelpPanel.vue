@@ -47,7 +47,11 @@
 
       <div class="help-section">
         <h3>{{ STR.help.sectionDebug }}</h3>
-        <button @click="doExportLogs">{{ STR.help.exportLogs }}</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button @click="toggleLogs">{{ showLogs ? '隐藏日志' : '查看日志' }}</button>
+          <button @click="doExportLogs">{{ STR.help.exportLogs }}</button>
+        </div>
+        <pre v-if="showLogs" class="log-view">{{ logContent }}</pre>
       </div>
 
       <div class="help-footer">
@@ -63,11 +67,14 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { STR } from '../strings.js'
-import { exportLogs } from '../utils/log.js'
+import { exportLogs, getLogText } from '../utils/log.js'
 import { useToast } from '../composables/useToast.js'
 
 const { toast } = useToast()
+const showLogs = ref(false)
+const logContent = ref('')
 
 async function doExportLogs() {
   try {
@@ -77,6 +84,11 @@ async function doExportLogs() {
   } catch (e) {
     toast('导出日志失败')
   }
+}
+
+function toggleLogs() {
+  showLogs.value = !showLogs.value
+  if (showLogs.value) logContent.value = getLogText()
 }
 
 const props = defineProps({
@@ -154,6 +166,12 @@ function trapFocus(e) {
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
+}
+.log-view {
+  margin-top: 8px; max-height: 200px; overflow: auto;
+  background: var(--soft); padding: 8px; border-radius: 4px;
+  font-size: 11px; line-height: 1.5; white-space: pre-wrap; word-break: break-all;
+  color: var(--text2);
 }
 .actions {
   display: flex;

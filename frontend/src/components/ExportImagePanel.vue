@@ -577,20 +577,32 @@ async function pickAsset(target, callback) {
       multiple: false,
     })
     if (!path) return
-    const bytes = await readFile(path)
-    const { bytes: compressed } = await compressImage(new Blob([bytes]), maxWidth)
-    await tEnsureSubDir('export-assets')
-    await tWriteBinary(DATA_DIR + '/' + assetPath, compressed)
-    clearAssetCache(assetPath)
-    callback(assetPath)
+    try {
+      const bytes = await readFile(path)
+      const ext = (path.split('.').pop() || 'png').toLowerCase()
+      const mime = 'image/' + (ext === 'jpg' ? 'jpeg' : ext)
+      const { bytes: compressed } = await compressImage(new Blob([bytes], { type: mime }), maxWidth)
+      await tEnsureSubDir('export-assets')
+      await tWriteBinary(DATA_DIR + '/' + assetPath, compressed)
+      clearAssetCache(assetPath)
+      callback(assetPath)
+    } catch (e) {
+      logger.error('export', 'pickAsset Tauri failed', e)
+      toast('图片加载失败，请选择有效的图片文件')
+    }
   } else {
     const input = document.createElement('input')
     input.type = 'file'; input.accept = 'image/*'
     input.onchange = async (e) => {
       const file = e.target.files[0]
       if (!file) return
-      const { dataUrl } = await compressImage(file, maxWidth)
-      callback(dataUrl)
+      try {
+        const { dataUrl } = await compressImage(file, maxWidth)
+        callback(dataUrl)
+      } catch (e) {
+        logger.error('export', 'pickAsset browser failed', e)
+        toast('图片加载失败，请选择有效的图片文件')
+      }
     }
     input.click()
   }
