@@ -123,12 +123,21 @@
     <StatsPanel
       v-if="showStats"
       :show="showStats"
-      @close="showStats = false"
+      @close="showStats = false; statsExportCardId = ''"
+      @export-image="showStatsExport = true; statsExportCardId = ''"
+      @export-card="cardId => { statsExportCardId = cardId; showStatsExport = true }"
     />
     <ExportImagePanel
       v-if="showExportImage"
       :show="showExportImage"
       @close="showExportImage = false"
+    />
+    <ExportImagePanel
+      v-if="showStatsExport"
+      :show="showStatsExport"
+      mode="stats"
+      :cardId="statsExportCardId"
+      @close="showStatsExport = false; statsExportCardId = ''"
     />
   </div>
 </template>
@@ -318,6 +327,8 @@ const showBatchCreate = ref(false)
 const batchCreateClose = useModal(showBatchCreate)
 const showStats = ref(false)
 const statsClose = useModal(showStats)
+const showStatsExport = ref(false)
+const statsExportCardId = ref('')
 const showExportImage = ref(false)
 const exportImageClose = useModal(showExportImage)
 const showExportSub = ref(false)
