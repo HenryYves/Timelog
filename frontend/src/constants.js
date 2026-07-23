@@ -7,6 +7,7 @@ export const EDGE = 6
 export const MAX_BACKUP_COUNT = 4
 export const DATA_DIR = 'timelog_data'
 export const MAIN_NAME = 'timelog.json'
+export const EXPORT_ASSETS_DIR = 'export-assets'
 
 // ---------- Storage ----------
 export const KEY_PREFIX = 'timelog:'

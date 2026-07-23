@@ -60,7 +60,7 @@
                   </div>
                   <div class="setting-group">
                     <label>{{ STR.exportImage.authorAvatar }}</label>
-                    <button @click="pickImage(url => settings.authorAvatar = url)">{{ STR.exportImage.chooseImage }}</button>
+                    <button @click="pickAvatar">{{ STR.exportImage.chooseImage }}</button>
                   </div>
                   <div class="setting-group">
                     <div style="font-size:13.5px;margin-bottom:4px">{{ STR.exportImage.authorAlign }}</div>
@@ -100,7 +100,7 @@
                   <template v-if="settings.wmType === 'image'">
                     <div class="setting-group">
                       <label>{{ STR.exportImage.wmImage }}</label>
-                      <button @click="pickImage(url => settings.wmImage = url)">{{ STR.exportImage.chooseImage }}</button>
+                      <button @click="pickWmImage">{{ STR.exportImage.chooseImage }}</button>
                     </div>
                   </template>
                   <div class="setting-group">
@@ -140,7 +140,7 @@
           <div class="export-timeline" ref="timelineDom" :style="timelineStyle" data-export-root>
             <!-- Author info (top) -->
             <div v-if="showAuthorBlock && settings.authorPosition === 'top'" class="exp-author" :style="authorStyle">
-              <img v-if="settings.authorAvatar" :src="settings.authorAvatar" class="exp-avatar" />
+              <img v-if="authorAvatarUrl" :src="authorAvatarUrl" class="exp-avatar" />
               <div class="exp-author-text">
                 <div v-if="settings.authorName" class="exp-author-name">{{ settings.authorName }}</div>
                 <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
@@ -179,7 +179,7 @@
             </div>
             <!-- Author info (bottom) -->
             <div v-if="showAuthorBlock && settings.authorPosition === 'bottom'" class="exp-author" :style="authorStyle">
-              <img v-if="settings.authorAvatar" :src="settings.authorAvatar" class="exp-avatar" />
+              <img v-if="authorAvatarUrl" :src="authorAvatarUrl" class="exp-avatar" />
               <div class="exp-author-text">
                 <div v-if="settings.authorName" class="exp-author-name">{{ settings.authorName }}</div>
                 <div v-if="settings.authorExtra" class="exp-author-extra">{{ settings.authorExtra }}</div>
@@ -212,10 +212,11 @@ const showWatermarkOpts = ref(false)
 import { STR } from '../strings.js'
 import { useTimelogStore, fmt, dkey } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
-import { PX_MIN, DAY_MIN, GUTTER_WIDTH } from '../constants.js'
+import { PX_MIN, DAY_MIN, GUTTER_WIDTH, DATA_DIR } from '../constants.js'
 import { save } from '@tauri-apps/plugin-dialog'
 import { writeFile } from '@tauri-apps/plugin-fs'
 import { useToast } from '../composables/useToast.js'
+import { tWriteBinary, tReadBinary, tEnsureSubDir } from '../utils/tauri.js'
 
 const SETTINGS_KEY = 'timelog:export-image-settings'
 
@@ -234,7 +235,7 @@ const defaults = {
   exportWidth: 800,
   // Phase 2 — 作者
   showAuthor: false,
-  authorAvatar: null,     // base64 data URL
+  authorAvatar: '',         // path string (Tauri) or compressed data URL (browser dev)
   authorName: '',
   authorExtra: '',
   authorAlign: 'center',  // 'left' | 'center' | 'right'
@@ -243,7 +244,7 @@ const defaults = {
   showWatermark: false,
   wmType: 'text',         // 'text' | 'image'
   wmText: '',
-  wmImage: null,          // base64 data URL
+  wmImage: '',            // path string (Tauri) or compressed data URL (browser dev)
   wmOpacity: 30,
   wmRotation: 0,
   wmWidth: 200,
@@ -262,12 +263,46 @@ function loadSettings() {
 const settings = reactive({ ...defaults })
 loadSettings()
 
+// Resolve asset paths to displayable data URLs (Tauri reads from file, browser uses as-is)
+const assetUrlCache = new Map()
+const authorAvatarUrl = ref('')
+const wmImageUrl = ref('')
+
+async function resolveAssetUrl(raw) {
+  if (!raw) return ''
+  if (raw.startsWith('data:')) return raw                               // browser dev / legacy
+  if (window.__TAURI__) {
+    const cached = assetUrlCache.get(raw)
+    if (cached) return cached
+    try {
+      const bytes = await tReadBinary(DATA_DIR + '/' + raw)
+      if (!bytes) return raw
+      const ext = (raw.split('.').pop() || 'png').toLowerCase()
+      const mime = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp' }[ext] || 'image/png'
+      let binary = ''
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+      const url = 'data:' + mime + ';base64,' + btoa(binary)
+      assetUrlCache.set(raw, url)
+      return url
+    } catch (e) { console.error('resolveAssetUrl failed:', raw, e); return raw }
+  }
+  return raw
+}
+
+watch(() => settings.authorAvatar, async v => { authorAvatarUrl.value = await resolveAssetUrl(v) }, { immediate: true })
+watch(() => settings.wmImage, async v => { wmImageUrl.value = await resolveAssetUrl(v) }, { immediate: true })
+
 // Debounced save
 let _saveTimer
 watch(settings, () => {
   clearTimeout(_saveTimer)
   _saveTimer = setTimeout(() => {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+    } catch (e) {
+      console.error('export-image-settings save failed:', e)
+      toast('导出设置保存失败，如已选图片请重新选择较小的图片')
+    }
   }, 300)
 }, { deep: true })
 
@@ -359,7 +394,7 @@ const maskGradientStyle = computed(() => ({
 }))
 
 const showAuthorBlock = computed(() =>
-  settings.showAuthor && !!(settings.authorName || settings.authorAvatar)
+  settings.showAuthor && !!(settings.authorName || authorAvatarUrl.value)
 )
 
 const exportDateTitle = computed(() => {
@@ -438,8 +473,10 @@ async function buildWatermarkOverlay() {
       c.fillText(settings.wmText, 0, 0)
     }
   } else if (settings.wmType === 'image' && settings.wmImage) {
+    const wmSrc = await resolveAssetUrl(settings.wmImage)
+    if (!wmSrc) { wmOverlayUrl.value = ''; return }
     let img
-    try { img = await loadImg(settings.wmImage) } catch { wmOverlayUrl.value = ''; return }
+    try { img = await loadImg(wmSrc) } catch { wmOverlayUrl.value = ''; return }
     cw = settings.wmWidth || img.naturalWidth
     ch = settings.wmHeight || (img.naturalHeight * cw / img.naturalWidth)
     draw = (c) => c.drawImage(img, -cw / 2, -ch / 2, cw, ch)
@@ -534,19 +571,56 @@ function blockStyle(b) {
   }
 }
 
-function pickImage(callback) {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = 'image/*'
-  input.onchange = (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => callback(reader.result)
-    reader.readAsDataURL(file)
+async function compressImage(source, maxWidth) {
+  const img = await loadImg(source)
+  let w = img.naturalWidth, h = img.naturalHeight
+  if (w > maxWidth) {
+    h = Math.round(h * maxWidth / w)
+    w = maxWidth
   }
-  input.click()
+  const canvas = document.createElement('canvas')
+  canvas.width = w; canvas.height = h
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(img, 0, 0, w, h)
+  const blob = await new Promise(r => canvas.toBlob(r, 'image/png'))
+  return { blob, dataUrl: canvas.toDataURL('image/png'), bytes: new Uint8Array(await blob.arrayBuffer()) }
 }
+
+async function pickAsset(target, callback) {
+  const maxWidth = target === 'avatar' ? 256 : 800
+  const fileName = target === 'avatar' ? 'avatar.png' : 'watermark.png'
+  const assetPath = 'export-assets/' + fileName
+
+  if (window.__TAURI__) {
+    const { open } = await import('@tauri-apps/plugin-dialog')
+    const { readFile } = await import('@tauri-apps/plugin-fs')
+    const path = await open({
+      title: target === 'avatar' ? '选择头像' : '选择水印图',
+      filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'] }],
+      multiple: false,
+    })
+    if (!path) return
+    const bytes = await readFile(path)
+    const { bytes: compressed } = await compressImage(new Blob([bytes]), maxWidth)
+    await tEnsureSubDir('export-assets')
+    await tWriteBinary(DATA_DIR + '/' + assetPath, compressed)
+    assetUrlCache.delete(assetPath)
+    callback(assetPath)
+  } else {
+    const input = document.createElement('input')
+    input.type = 'file'; input.accept = 'image/*'
+    input.onchange = async (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+      const { dataUrl } = await compressImage(file, maxWidth)
+      callback(dataUrl)
+    }
+    input.click()
+  }
+}
+
+function pickAvatar() { pickAsset('avatar', url => settings.authorAvatar = url) }
+function pickWmImage() { pickAsset('watermark', url => settings.wmImage = url) }
 
 function trapFocus(e) {
   if (e.key !== 'Tab') return

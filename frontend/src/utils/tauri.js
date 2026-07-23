@@ -76,6 +76,35 @@ export async function tExport(name, text) {
   } catch (e) { logger.error('tauri', 'tExport failed', e); return false }
 }
 
+export async function tWriteBinary(name, bytes) {
+  if (!TAURI) return
+  try {
+    await tEnsureDir()
+    const { path, options } = resolvePath(name)
+    await TAURI.fs.writeFile(path, bytes, options)
+  } catch (e) { logger.error('tauri', 'tWriteBinary failed', name, e) }
+}
+
+export async function tReadBinary(name) {
+  if (!TAURI) return null
+  try {
+    const { path, options } = resolvePath(name)
+    return await TAURI.fs.readFile(path, options)
+  } catch (e) { logger.error('tauri', 'tReadBinary failed', name, e); return null }
+}
+
+export async function tEnsureSubDir(sub) {
+  if (!TAURI) return
+  try {
+    const { path: parent, options } = resolvePath(DATA_DIR)
+    const subPath = parent + '/' + sub
+    const exists = await TAURI.fs.exists(subPath, options)
+    if (!exists) {
+      await TAURI.fs.mkdir(subPath, { ...options, recursive: true })
+    }
+  } catch (e) { logger.error('tauri', 'tEnsureSubDir failed', sub, e) }
+}
+
 export async function tRemove(name) {
   if (!TAURI) return
   try {
