@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.9.46] - 2026-07-23
+
+### Added
+- 导出切图设置持久化：头像/水印选图压缩存文件，settings 只存路径，杜绝 localStorage 配额炸仓
+- 通用画布捕获工具 capture.js（loadImg/compressImage/captureElement/copyClipboard/saveFile）
+- 通用水印叠加构建器 watermark.js（含透明度控制，支持任意宽高）
+- 预览平移缩放 composable usePanZoom.js
+- StatsPanel 完整导出面板（mode="stats"）：图表真实 DOM 渲染 + 作者 + 水印 + 复制/保存
+- StatsPanel Ctrl+P 整面板导出 + 卡片齿轮"导出图片"按钮（均走完整面板）
+- StatsPanel 饼图/柱状图拆为 PieChart/BarChart 独立组件（支持 interactive prop）
+- 统计数据计算工具 stats.js（getDaysInRange/computeCardsData/buildPieChart/fmtDur/pctOf/barWidth）
+- 导出标题可配置（默认日期+时间范围标注）+ 饼图图例强制开关（stats 模式）
+- 水印透明度立即渲染（wmOpacity 补入 watcher 依赖）
+- 日志系统（200条环形缓冲 + 导出日志文件对话框 + Help 面板查看日志）
+- 导出设置重置按钮（清坏数据恢复默认）
+- 123 tests（+38 new：stats/capture/watermark/PieChart/BarChart）
+- data-card-id DOM 属性（统计卡片索引）
+
+### Changed
+- ExportImagePanel 解耦：953→840 行，通用代码抽入 capture/watermark/usePanZoom 模块
+- StatsPanel 701→478 行（图表渲染拆入 PieChart/BarChart 子组件）
+- 导出设置 key 按 mode 分离（timeline:export-image-settings / timeline:stats-export-settings）
+- "导出切图"→"导出图片"文案统一
+- 导出文件名含当日日期（stats 模式含时间范围标签如"(今天)"）
+
+### Fixed
+- 头像/水印选图持久化失败——localStorage 配额超限静默崩溃
+- 导出设置完全不加载——defineProps 在 settings 初始化代码之后（TDZ）
+- 饼图单 tag 100% 显示 0%——360°弧 SVG 起点终点重合
+- 导出预览虚线偏移 +60px——v-for h in 24 未减 1
+- 水印透明度双倍（canvas globalAlpha + CSS opacity 叠加）
+- BarChart bar-fill display:block 缺失 + min-width + transition
+- v-else 误绑定 legend div 导致饼图图例关闭时多渲染柱状图
+- stats 导出空白——watch 缺 immediate + author/水印误入 timeline 专属模板
+- 导出标题 stats 模式下不显示——日期标题在 timeline 模板内
+- csv 导出文件名非法字符清理
+- File→Blob→img.src 在 WebView2 中 PNG 可能拒解（改为 base64 data URL）
+- canvas.toBlob null guard / getImageData try-catch / blob URL 延迟 revoke
+- doExport 错误 toast 显示"复制失败"
+- watermark 零尺寸 early return + resolveAsset try-catch
+- 魔法数字 36/80 替换为 EXPORT_DATE_TITLE_H/EXPORT_AUTHOR_BLOCK_H 常量
+- StatsExport 面板漏 useModal（ESC+焦点管理失效）
+
 ## [0.9.14] - 2026-07-20
 
 ### Added
