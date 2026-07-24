@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.9.59] - 2026-07-24
+
+### Added
+- 导入操作支持 Ctrl+Z 撤回（文本导入、JSON 备份导入、文件导入——写前快照旧状态）
+- 文本导入日期与当前页面不同时红色粗体警示
+- 单实例检测——第二个实例启动时聚焦已有窗口 + toast "软件已在运行"后退出
+
+### Fixed
+- 文本导入后刷新判断用当前显示日期而非今天（dateKey 替代 dkey(new Date())）
+- 右键框选改为真正 2D 矩形重叠检测，支持多列布局列区分
+- 2D 框选 X 轴坐标 bug——offsetWidth 已是 pre-transform，不应再除以 zoom
+- 统计导出图例——showLegend 与 card 取逻辑或，legendData/Percent 按 card 原有属性
+- Ctrl+P 在统计子弹窗中触发浏览器默认打印——handler 提前到 modalStack 之前
+- 导出 JSON "仅设置" 误包含所有日期数据——`slice(7)`→`slice(8)`；导入侧兼容无 days 的 JSON
+
 ## [0.9.46] - 2026-07-23
 
 ### Added
