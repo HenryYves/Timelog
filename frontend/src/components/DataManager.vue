@@ -65,6 +65,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { KEY_PREFIX } from '../constants.js'
+import { pushStoreUndo } from '../store/timelog.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { STR } from '../strings.js'
 
@@ -253,12 +254,18 @@ async function onFileSelected(e) {
       const data = JSON.parse(reader.result)
       let count = 0
       if (data.days && typeof data.days === 'object') {
+        // Snapshot before any mutations
+        const snapDays = {}
+        Object.keys(data.days).forEach(date => {
+          snapDays[date] = localStorage.getItem(KEY_PREFIX + date)
+        })
+
         Object.entries(data.days).forEach(([date, blocks]) => {
           if (Array.isArray(blocks) && blocks.length) {
             // Merge with existing data
             const key = KEY_PREFIX + date
             let existing = []
-            try { existing = JSON.parse(localStorage.getItem(key)) || [] } catch { /* ignore */ }
+            try { existing = JSON.parse(snapDays[date]) || [] } catch { /* ignore */ }
             const merged = existing.concat(blocks)
             // Deduplicate by id
             const seen = {}
@@ -269,6 +276,28 @@ async function onFileSelected(e) {
             localStorage.setItem(key, JSON.stringify(Object.values(seen)))
             count += blocks.length
           }
+        })
+
+        // Snapshot final state for redo
+        const finalDays = {}
+        Object.keys(snapDays).forEach(date => {
+          finalDays[date] = localStorage.getItem(KEY_PREFIX + date)
+        })
+
+        // Push undo entry
+        pushStoreUndo({
+          undo: () => {
+            for (const [date, oldVal] of Object.entries(snapDays)) {
+              if (oldVal === null) localStorage.removeItem(KEY_PREFIX + date)
+              else localStorage.setItem(KEY_PREFIX + date, oldVal)
+            }
+          },
+          redo: () => {
+            for (const [date, val] of Object.entries(finalDays)) {
+              if (val === null) localStorage.removeItem(KEY_PREFIX + date)
+              else localStorage.setItem(KEY_PREFIX + date, val)
+            }
+          },
         })
       }
       loadDays()

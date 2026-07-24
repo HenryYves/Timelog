@@ -8,9 +8,18 @@ import { UndoManager } from '../utils/undo.js'
 export const storeUndo = new UndoManager()
 let _undoing = false
 
-function _pushUndo(entry) {
+export function pushStoreUndo(entry) {
   if (_undoing) return
   storeUndo.push(entry)
+}
+
+/** Merge multiple undo/redo pairs into a single undo entry. */
+export function batchUndo(items) {
+  if (!items.length) return
+  pushStoreUndo({
+    undo: () => items.forEach(item => item.undo()),
+    redo: () => [...items].reverse().forEach(item => item.redo()),
+  })
 }
 
 function _wrapUndo(fn) {
@@ -73,7 +82,7 @@ export const useTimelogStore = defineStore('timelog', () => {
   function addBlock(rec) {
     blocks.value.push(rec)
     saveBlocks()
-    _pushUndo({
+    pushStoreUndo({
       undo: () => { blocks.value = blocks.value.filter(b => b.id !== rec.id); saveBlocks() },
       redo: () => { blocks.value.push(rec); saveBlocks() }
     })
@@ -86,7 +95,7 @@ export const useTimelogStore = defineStore('timelog', () => {
     else blocks.value.push(rec)
     saveBlocks()
     if (old) {
-      _pushUndo({
+      pushStoreUndo({
         undo: () => { const i = blocks.value.findIndex(b => b.id === rec.id); if (i !== -1) { blocks.value[i] = old; saveBlocks() } },
         redo: () => { const i = blocks.value.findIndex(b => b.id === rec.id); if (i !== -1) { blocks.value[i] = rec; saveBlocks() } }
       })
@@ -100,7 +109,7 @@ export const useTimelogStore = defineStore('timelog', () => {
     blocks.value = blocks.value.filter(b => b.id !== id)
     selectedBlocks.value.delete(id)
     saveBlocks()
-    _pushUndo({
+    pushStoreUndo({
       undo: () => { blocks.value.push(rec); saveBlocks() },
       redo: () => { blocks.value = blocks.value.filter(b => b.id !== id); selectedBlocks.value.delete(id); saveBlocks() }
     })
@@ -113,7 +122,7 @@ export const useTimelogStore = defineStore('timelog', () => {
     selectedBlocks.value.clear()
     saveBlocks()
     if (deleted.length) {
-      _pushUndo({
+      pushStoreUndo({
         undo: () => { deleted.forEach(b => { blocks.value.push(b); selectedBlocks.value.add(b.id) }); saveBlocks() },
         redo: () => { blocks.value = blocks.value.filter(b => !ids.has(b.id)); selectedBlocks.value.clear(); saveBlocks() }
       })

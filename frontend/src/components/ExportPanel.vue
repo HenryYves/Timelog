@@ -104,7 +104,7 @@
 
 <script setup>
 import { ref, watch, nextTick } from 'vue'
-import { useTimelogStore, fmt, dkey, fromInput } from '../store/timelog.js'
+import { useTimelogStore, fmt, dkey, fromInput, pushStoreUndo } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { useSettingsStore } from '../store/settings.js'
 import { KEY_PREFIX } from '../constants.js'
@@ -243,20 +243,49 @@ async function confirmImport() {
   const mode = importMode.value
   const key = KEY_PREFIX + date
 
+  // Snapshot before import
+  const oldExisting = localStorage.getItem(key) // null if no data
+  const oldTagNames = new Set(tagStore.tags.map(t => t.name))
+
   let existing = []
-  try { existing = JSON.parse(localStorage.getItem(key)) || [] } catch { /* empty */ }
+  try { existing = JSON.parse(oldExisting) || [] } catch { /* empty */ }
   existing = (mode === 'merge') ? existing.concat(recs) : recs
   localStorage.setItem(key, JSON.stringify(existing))
 
   // Auto-add unknown tags
-  let added = false
+  const addedTags = []
   recs.forEach(r => (r.tags || []).forEach(tn => {
     if (tn && !tagStore.tags.find(t => t.name === tn)) {
       tagStore.addTag({ name: tn, color: '#8A8A8A', group: '' })
-      added = true
+      addedTags.push(tn)
     }
   }))
-  if (added) tagStore.saveTags()
+  if (addedTags.length) tagStore.saveTags()
+
+  // Push undo entry
+  pushStoreUndo({
+    undo: () => {
+      if (oldExisting === null) localStorage.removeItem(key)
+      else localStorage.setItem(key, oldExisting)
+      // Remove auto-added tags
+      addedTags.forEach(tn => {
+        const idx = tagStore.tags.findIndex(t => t.name === tn)
+        if (idx !== -1) tagStore.tags.splice(idx, 1)
+      })
+      if (addedTags.length) tagStore.saveTags()
+      if (date === timelogStore.dateKey) timelogStore.loadBlocks()
+    },
+    redo: () => {
+      localStorage.setItem(key, JSON.stringify(existing))
+      addedTags.forEach(tn => {
+        if (!tagStore.tags.find(t => t.name === tn)) {
+          tagStore.addTag({ name: tn, color: '#8A8A8A', group: '' })
+        }
+      })
+      if (addedTags.length) tagStore.saveTags()
+      if (date === timelogStore.dateKey) timelogStore.loadBlocks()
+    },
+  })
 
   emit('close')
   if (date === dkey(new Date())) {
@@ -321,6 +350,51 @@ async function confirmJsonImport() {
   const doStats = jsonImportStats.value
   const doSettings = jsonImportSettings.value
 
+  // ── Snapshot BEFORE any mutation ──
+  const snapDays = {}    // { [date]: localStorage value or null }
+  const snapTags = doTags ? tagStore.tags.map(t => ({ ...t })) : null
+  const snapStats = doStats ? {
+    cards: localStorage.getItem('timelog:stats-cards'),
+    timeRange: localStorage.getItem('timelog:stats-time-range'),
+    customStart: localStorage.getItem('timelog:stats-custom-start'),
+    customEnd: localStorage.getItem('timelog:stats-custom-end'),
+  } : null
+  const snapSettings = doSettings && data.settings
+    ? Object.keys(data.settings).reduce((acc, k) => {
+        acc[k] = localStorage.getItem('timelog:' + k)
+        return acc
+      }, {})
+    : null
+
+  // Collect which dates will be affected
+  const affectedDates = []
+  if (doDays) {
+    if (mode === 'replace') {
+      // Snapshot all existing day keys (they'll be deleted)
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i)
+        if (isDayKey(k)) {
+          snapDays[k.slice(KEY_PREFIX.length)] = localStorage.getItem(k)
+        }
+      }
+    }
+    Object.keys(data.days).forEach(d => {
+      if (df && d < df) return
+      if (dt && d > dt) return
+      if (!data.days[d].some(b => {
+        if (tfm != null && b.start < tfm) return false
+        if (ttm != null && b.start > ttm) return false
+        return true
+      })) return
+      affectedDates.push(d)
+      if (mode === 'merge') {
+        snapDays[d] = localStorage.getItem(KEY_PREFIX + d)
+      }
+    })
+  }
+
+  // ── Perform import ──
+
   // Import days
   if (doDays) {
     if (mode === 'replace') {
@@ -370,20 +444,96 @@ async function confirmJsonImport() {
   }
 
   // Import stats views
+  const finalStats = doStats ? {} : null
   if (doStats) {
-    if (data.statsCards) localStorage.setItem('timelog:stats-cards', JSON.stringify(data.statsCards))
-    if (data.statsTimeRange) localStorage.setItem('timelog:stats-time-range', data.statsTimeRange)
-    if (data.statsCustomStart) localStorage.setItem('timelog:stats-custom-start', data.statsCustomStart)
-    if (data.statsCustomEnd) localStorage.setItem('timelog:stats-custom-end', data.statsCustomEnd)
+    if (data.statsCards) { localStorage.setItem('timelog:stats-cards', JSON.stringify(data.statsCards)); finalStats.cards = JSON.stringify(data.statsCards) }
+    if (data.statsTimeRange) { localStorage.setItem('timelog:stats-time-range', data.statsTimeRange); finalStats.timeRange = data.statsTimeRange }
+    if (data.statsCustomStart) { localStorage.setItem('timelog:stats-custom-start', data.statsCustomStart); finalStats.customStart = data.statsCustomStart }
+    if (data.statsCustomEnd) { localStorage.setItem('timelog:stats-custom-end', data.statsCustomEnd); finalStats.customEnd = data.statsCustomEnd }
   }
 
   // Import settings
+  const finalSettings = doSettings && data.settings ? {} : null
   if (doSettings && data.settings) {
     Object.entries(data.settings).forEach(([key, val]) => {
       localStorage.setItem('timelog:' + key, val)
+      finalSettings[key] = val
     })
     settingsStore.reloadSettings()
   }
+
+  // ── Snapshot final state for redo ──
+  const finalTags = doTags ? tagStore.tags.map(t => ({ ...t })) : null
+
+  // ── Snapshot final day state for redo ──
+  const allAffectedDates = new Set([...Object.keys(snapDays), ...affectedDates])
+  const finalDays = {}
+  for (const d of allAffectedDates) {
+    finalDays[d] = localStorage.getItem(KEY_PREFIX + d)
+  }
+
+  // ── Push undo entry ──
+  pushStoreUndo({
+    undo: () => {
+      // Restore days
+      for (const [date, oldVal] of Object.entries(snapDays)) {
+        if (oldVal === null) localStorage.removeItem(KEY_PREFIX + date)
+        else localStorage.setItem(KEY_PREFIX + date, oldVal)
+      }
+      // Restore tags
+      if (snapTags) {
+        tagStore.tags.splice(0, tagStore.tags.length, ...snapTags)
+        tagStore.saveTags()
+      }
+      // Restore stats
+      if (snapStats) {
+        const rest = (k, v) => { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v) }
+        rest('timelog:stats-cards', snapStats.cards)
+        rest('timelog:stats-time-range', snapStats.timeRange)
+        rest('timelog:stats-custom-start', snapStats.customStart)
+        rest('timelog:stats-custom-end', snapStats.customEnd)
+      }
+      // Restore settings
+      if (snapSettings) {
+        Object.entries(snapSettings).forEach(([k, v]) => {
+          if (v === null) localStorage.removeItem('timelog:' + k)
+          else localStorage.setItem('timelog:' + k, v)
+        })
+        settingsStore.reloadSettings()
+      }
+      // Refresh current view
+      timelogStore.loadBlocks()
+      tagStore.loadTags()
+    },
+    redo: () => {
+      // Re-apply days
+      for (const [date, val] of Object.entries(finalDays)) {
+        if (val === null) localStorage.removeItem(KEY_PREFIX + date)
+        else localStorage.setItem(KEY_PREFIX + date, val)
+      }
+      // Re-apply tags
+      if (finalTags) {
+        tagStore.tags.splice(0, tagStore.tags.length, ...finalTags)
+        tagStore.saveTags()
+      }
+      // Re-apply stats
+      if (finalStats) {
+        if (finalStats.cards !== undefined) localStorage.setItem('timelog:stats-cards', finalStats.cards)
+        if (finalStats.timeRange !== undefined) localStorage.setItem('timelog:stats-time-range', finalStats.timeRange)
+        if (finalStats.customStart !== undefined) localStorage.setItem('timelog:stats-custom-start', finalStats.customStart)
+        if (finalStats.customEnd !== undefined) localStorage.setItem('timelog:stats-custom-end', finalStats.customEnd)
+      }
+      // Re-apply settings
+      if (finalSettings) {
+        Object.entries(finalSettings).forEach(([k, v]) => {
+          localStorage.setItem('timelog:' + k, v)
+        })
+        settingsStore.reloadSettings()
+      }
+      timelogStore.loadBlocks()
+      tagStore.loadTags()
+    },
+  })
 
   emit('close')
   timelogStore.loadBlocks()
