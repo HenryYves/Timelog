@@ -415,18 +415,20 @@ function onMouseUp() {
     const selLeft = Math.min(sr.left, sr.right)
     const selRight = Math.max(sr.left, sr.right)
     const z = settingsStore.zoom / 100
-    const dayW = dayRef.value.offsetWidth / z
+    // offsetWidth is layout (pre-transform) width — CSS percentages compute against it directly.
+    // selRect coords are also pre-transform px, so no /z needed here.
+    const dayW = dayRef.value.offsetWidth
     // AABB overlap: selection rect vs each block's bounding box
     store.blocks.forEach(bl => {
       // Y axis
       const blockTop = bl.start * PX_MIN
       const blockBottom = bl.end * PX_MIN
       if (selBottom <= blockTop || selTop >= blockBottom) return
-      // X axis — percentage layout → container px
+      // X axis — percentage layout → container px (accounts for 2px CSS margins)
       const cols = bl._cols || 1
       const colW = dayW / cols
-      const blockLeft = (bl._col || 0) * colW
-      const blockRight = blockLeft + colW
+      const blockLeft = (bl._col || 0) * colW + 2   // calc(col% + 2px)
+      const blockRight = blockLeft + colW - 4        // calc(colW - 4px)
       if (selRight > blockLeft && selLeft < blockRight) {
         store.selectedBlocks.add(bl.id)
       }
