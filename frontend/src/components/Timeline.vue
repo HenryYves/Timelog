@@ -32,6 +32,8 @@
         :style="{
           top: Math.min(selRect.top, selRect.bottom) + 'px',
           height: Math.abs(selRect.bottom - selRect.top) + 'px',
+          left: Math.min(selRect.left, selRect.right) + 'px',
+          width: Math.abs(selRect.right - selRect.left) + 'px',
         }"
       />
       <!-- Hour lines -->
@@ -143,8 +145,8 @@ let dlabel = null
 const suppressClick = ref(false)
 
 // --- Right-drag selection ---
-const selRect = ref(null) // { top, bottom } in container px
-let selPending = null // { clientY } — wait for drag threshold
+const selRect = ref(null) // { top, bottom, left, right } in container px
+let selPending = null // { clientX, clientY } — wait for drag threshold
 let selMoved = false // true once drag threshold passed — suppress block toggle
 
 // --- Hover tracking (for paste) ---
@@ -326,7 +328,7 @@ function onDayMouseDown(e) {
   // Right-click: pending selection drag (starts on mousemove past threshold)
   if (e.button === 2) {
     e.preventDefault()
-    selPending = { clientY: e.clientY }
+    selPending = { clientX: e.clientX, clientY: e.clientY }
     return
   }
   if (e.button !== 0 || adrag) return
@@ -376,12 +378,15 @@ function onMouseMove(e) {
   }
   if (selPending) {
     const dy = Math.abs(e.clientY - selPending.clientY)
-    if (dy > 3) {
+    const dx = Math.abs(e.clientX - selPending.clientX)
+    if (dy > 3 || dx > 3) {
       const r = dayRef.value.getBoundingClientRect()
       const z = settingsStore.zoom / 100
       const top = (selPending.clientY - r.top) / z
       const bottom = (e.clientY - r.top) / z
-      selRect.value = { top, bottom }
+      const left = (selPending.clientX - r.left) / z
+      const right = (e.clientX - r.left) / z
+      selRect.value = { top, bottom, left, right }
       selPending = null
       selMoved = true
     }
@@ -390,7 +395,7 @@ function onMouseMove(e) {
   if (selRect.value) {
     const r = dayRef.value.getBoundingClientRect()
     const z = settingsStore.zoom / 100
-    selRect.value = { ...selRect.value, bottom: (e.clientY - r.top) / z }
+    selRect.value = { ...selRect.value, bottom: (e.clientY - r.top) / z, right: (e.clientX - r.left) / z }
   }
   lastHoverMin.value = yToMin(e.clientY)
   overGrid.value = true
@@ -405,15 +410,24 @@ function onMouseUp() {
   if (selRect.value) {
     const sr = selRect.value
     selRect.value = null
-    const t = Math.min(sr.top, sr.bottom)
-    const b = Math.max(sr.top, sr.bottom)
-    // Convert container px to minutes
+    const selTop = Math.min(sr.top, sr.bottom)
+    const selBottom = Math.max(sr.top, sr.bottom)
+    const selLeft = Math.min(sr.left, sr.right)
+    const selRight = Math.max(sr.left, sr.right)
     const z = settingsStore.zoom / 100
-    const r = dayRef.value.getBoundingClientRect()
-    const smin = yToMin(r.top + t * z)
-    const smax = yToMin(r.top + b * z)
+    const dayW = dayRef.value.offsetWidth / z
+    // AABB overlap: selection rect vs each block's bounding box
     store.blocks.forEach(bl => {
-      if (bl.end > smin && bl.start < smax) {
+      // Y axis
+      const blockTop = bl.start * PX_MIN
+      const blockBottom = bl.end * PX_MIN
+      if (selBottom <= blockTop || selTop >= blockBottom) return
+      // X axis — percentage layout → container px
+      const cols = bl._cols || 1
+      const colW = dayW / cols
+      const blockLeft = (bl._col || 0) * colW
+      const blockRight = blockLeft + colW
+      if (selRight > blockLeft && selLeft < blockRight) {
         store.selectedBlocks.add(bl.id)
       }
     })
@@ -628,7 +642,6 @@ watch(() => store.dateKey, () => {
 }
 .selrect {
   position: absolute;
-  left: 0; right: 0;
   background: var(--blue-soft);
   border: 1px solid var(--blue);
   opacity: .35;
