@@ -292,7 +292,7 @@ async function confirmImport() {
   })
 
   emit('close')
-  if (date === dkey(new Date())) {
+  if (date === timelogStore.dateKey) {
     timelogStore.loadBlocks()
   }
   scheduleSave()
