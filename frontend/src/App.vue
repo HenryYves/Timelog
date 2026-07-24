@@ -396,14 +396,16 @@ async function doExportJson(opts = {}) {
   const incStats = opts.stats !== false
   const incSettings = opts.settings === true
 
-  let tags = []
+  const data = { version: 3, exported: new Date().toISOString() }
+
+  // Export tags
   if (incTags) {
-    try { tags = JSON.parse(localStorage.getItem('timelog:tags')) || [] } catch {}
+    try { data.tags = JSON.parse(localStorage.getItem('timelog:tags')) || [] } catch {}
   }
-  const data = { version: 3, exported: new Date().toISOString(), tags, days: {} }
 
   // Export days
   if (incDays) {
+    data.days = {}
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i)
       if (k.startsWith('timelog:') && /^\d{4}-\d{2}-\d{2}$/.test(k.slice(7))) {
@@ -425,7 +427,7 @@ async function doExportJson(opts = {}) {
     const settingsKeys = []
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i)
-      if (k && k.startsWith('timelog:') && !k.startsWith('timelog:tags') && !/^\d{4}-\d{2}-\d{2}$/.test(k.slice(7))
+      if (k && k.startsWith('timelog:') && !k.startsWith('timelog:tags') && !/^\d{4}-\d{2}-\d{2}$/.test(k.slice(8))
         && !k.startsWith('timelog:stats-') && k !== 'timelog:rolloutCache' && k !== 'timelog:skipVersion' && k !== 'timelog:pendingDownload') {
         settingsKeys.push(k)
       }

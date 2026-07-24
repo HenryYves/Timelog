@@ -318,8 +318,8 @@ const jsonTimeTo = ref('')
 const jsonImportSummary = ref('')
 
 function buildJsonImportSummary(data) {
-  if (!data || !data.days) return ''
-  const dates = Object.keys(data.days)
+  if (!data) return ''
+  const dates = data.days ? Object.keys(data.days) : []
   let cnt = 0
   dates.forEach(d => cnt += data.days[d].length)
   const sorted = dates.slice().sort()
@@ -339,7 +339,7 @@ function cancelJsonImport() {
 
 async function confirmJsonImport() {
   const data = props.jsonImportData
-  if (!data || !data.days) return
+  if (!data) return
 
   const mode = jsonImportMode.value
   const df = jsonDateFrom.value
@@ -372,7 +372,7 @@ async function confirmJsonImport() {
 
   // Collect which dates will be affected
   const affectedDates = []
-  if (doDays) {
+  if (doDays && data.days) {
     if (mode === 'replace') {
       // Snapshot all existing day keys (they'll be deleted)
       for (let i = 0; i < localStorage.length; i++) {
@@ -400,7 +400,7 @@ async function confirmJsonImport() {
   // ── Perform import ──
 
   // Import days
-  if (doDays) {
+  if (doDays && data.days) {
     if (mode === 'replace') {
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const k = localStorage.key(i)
@@ -548,7 +548,7 @@ async function confirmJsonImport() {
 
 // Watch mode changes to initialize JSON import state
 watch(() => [props.mode, props.jsonImportData], ([mode, data]) => {
-  if (mode === 'json-import' && data && data.days) {
+  if (mode === 'json-import' && data) {
     jsonImportDays.value = true
     jsonImportTags.value = true
     jsonImportStats.value = true
