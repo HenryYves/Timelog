@@ -203,12 +203,12 @@
                   :showPercent="card.chartPercent"
                   :noDataText="STR.stats.noData"
                 />
-                <div v-if="card.type === 'pie' && settings.showStatsLegend" class="legend">
+                <div v-if="card.type === 'pie' && (card.showLegend || settings.showStatsLegend)" class="legend">
                   <div v-for="d in (statsCardData[card.id] || [])" :key="d.tag" class="legend-item">
                     <span class="legend-dot" :style="{ background: d.color }"></span>
                     <span class="legend-name">{{ d.tag }}</span>
-                    <span class="legend-val">{{ fmtDur(d.minutes) }}</span>
-                    <span class="legend-pct">{{ pctOf(statsCardData[card.id] || [], d.minutes) }}</span>
+                    <span v-if="card.legendData" class="legend-val">{{ fmtDur(d.minutes) }}</span>
+                    <span v-if="card.legendPercent" class="legend-pct">{{ pctOf(statsCardData[card.id] || [], d.minutes) }}</span>
                   </div>
                 </div>
                 <BarChart
