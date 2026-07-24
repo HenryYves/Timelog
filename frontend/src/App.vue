@@ -615,6 +615,20 @@ function onWindowKeyDown(e) {
     return
   }
 
+  // Ctrl+P — always intercepted, even when sub-modals are open
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+    e.preventDefault()
+    const el = document.activeElement
+    if (el && (el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return
+    if (showStats.value) {
+      showStatsExport.value = true
+      statsExportCardId.value = ''
+    } else {
+      showExportImage.value = true
+    }
+    return
+  }
+
   // If any modal is open, ignore the rest
   if (modalStack.value.length > 0) return
 
@@ -623,11 +637,6 @@ function onWindowKeyDown(e) {
   if (e.key === 's' || e.key === 'S') {
     e.preventDefault()
     showStats.value = true
-    return
-  }
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
-    e.preventDefault()
-    showExportImage.value = true
     return
   }
   if (e.key === 'p' || e.key === 'P') {
