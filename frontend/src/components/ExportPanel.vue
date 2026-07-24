@@ -24,8 +24,8 @@
           placeholder="- (9:00-10:30:工作)写周报;记得同步进度"
           @input="onImportTextChange"></textarea>
 
-        <label>导入到日期</label>
-        <input type="date" v-model="importDate">
+        <label>导入到日期 <span class="date-warn" v-if="importDateMismatch">（与当前日期不同）</span></label>
+        <input type="date" v-model="importDate" :class="{ 'input-warn': importDateMismatch }">
 
         <label>导入方式</label>
         <div class="radio">
@@ -103,7 +103,7 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useTimelogStore, fmt, dkey, fromInput, pushStoreUndo } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { useSettingsStore } from '../store/settings.js'
@@ -232,6 +232,10 @@ function onImportTextChange() {
   const n = parseImportText(importText.value).length
   importPreview.value = n ? '可解析 ' + n + ' 条记录' : '未解析到有效记录'
 }
+
+const importDateMismatch = computed(() => {
+  return importDate.value && importDate.value !== timelogStore.dateKey
+})
 
 async function confirmImport() {
   const recs = parseImportText(importText.value)
@@ -625,5 +629,14 @@ watch(() => [props.mode, props.jsonImportData], ([mode, data]) => {
 .small {
   font-size: 12px;
   color: var(--text2);
+}
+.date-warn {
+  color: var(--red, #e74c3c);
+  font-weight: 700;
+}
+.input-warn {
+  color: var(--red, #e74c3c);
+  font-weight: 700;
+  border-color: var(--red, #e74c3c);
 }
 </style>
