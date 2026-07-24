@@ -145,6 +145,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, onErrorCaptured, nextTick } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import { tExport } from './utils/tauri.js'
 import { save } from '@tauri-apps/plugin-dialog'
 import { useTimelogStore, dkey, storeUndo } from './store/timelog.js'
@@ -776,6 +777,11 @@ onMounted(async () => {
     }, 100)
   })
   _bnoteMO.observe(document.body, { childList: true, subtree: true })
+
+  // Single-instance: second launch → toast
+  listen('second-instance', () => {
+    toast(STR.toast.alreadyRunning)
+  }).catch(() => {})
 
   window.addEventListener('keydown', onWindowKeyDown)
   window.addEventListener('backup:restored', onBackupRestored)

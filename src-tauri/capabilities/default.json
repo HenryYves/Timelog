@@ -23,6 +23,10 @@
     "window-state:default",
     "updater:default",
     "process:default",
-    "dialog:default"
+    "dialog:default",
+    {
+      "identifier": "core:event:allow-listen",
+      "allow": [{ "event": "second-instance" }]
+    }
   ]
 }

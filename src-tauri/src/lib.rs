@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 use serde::Serialize;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_updater::{UpdaterExt, Update};
 use windows::Win32::System::DataExchange::{
     OpenClipboard, EmptyClipboard, SetClipboardData, CloseClipboard,
@@ -231,6 +231,12 @@ pub fn run(reset_settings: bool, minimized: bool) {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_focus();
+            }
+            let _ = app.emit("second-instance", ());
+        }))
         .setup(move |app| {
             app.manage(PendingUpdate(Mutex::new(None)));
 
