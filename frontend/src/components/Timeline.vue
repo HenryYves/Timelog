@@ -2,15 +2,15 @@
   <!-- Glue from previous day -->
   <div v-if="glueBlocks.fromPrev.length" class="glue-from-prev">
     <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('prev') + 'px' }" @contextmenu.prevent="onGlueAreaRightClick($event, glueSourcePrev)">
-      <div v-for="h in glueHours('prev')" :key="'ghp'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">
-        {{ String(h-1).padStart(2,'0') }}:00
+      <div v-for="h in gluePrevHourCount" :key="'ghp'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">
+        {{ fmt(gluePrevCutAt + (h-1) * 60) }}
       </div>
     </div>
     <div class="day" ref="gluePrevDayRef" :style="{ height: glueHeight('prev') + 'px' }"
       @mousedown="onDayMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseUp"
       @click.self="onDayClick">
-      <div v-for="h in glueHours('prev')" :key="'ghlp'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
-      <div v-for="h in (glueHours('prev') - 1)" :key="'ghflp'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
+      <div v-for="h in gluePrevHourCount" :key="'ghlp'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
+      <div v-for="h in (gluePrevHourCount - 1)" :key="'ghflp'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
       <div
         v-for="ev in gluePrevLayout" :key="ev.id"
         class="block" :class="{ bsel: selectedBlocks.has(ev.id) }"
@@ -32,16 +32,16 @@
 
   <!-- Main grid -->
   <div class="grid">
-    <div class="gutter" ref="gutterRef" :style="{ width: GUTTER_WIDTH + 'px', height: DAY_MIN * PX_MIN + 'px' }" @contextmenu.prevent="onGutterRightClick">
-      <div v-for="h in 25" :key="'h'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">{{ String(h-1).padStart(2,'0') }}:00</div>
+    <div class="gutter" ref="gutterRef" :style="{ width: GUTTER_WIDTH + 'px', height: todayGridH + 'px' }" @contextmenu.prevent="onGutterRightClick">
+      <div v-for="h in todayHourCount" :key="'h'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">{{ String(h-1).padStart(2,'0') }}:00</div>
     </div>
-    <div class="day" ref="dayRef" :style="{ height: DAY_MIN * PX_MIN + 'px' }"
+    <div class="day" ref="dayRef" :style="{ height: todayGridH + 'px' }"
       @mousedown="onDayMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseUp"
       @click.self="onDayClick" @contextmenu.prevent
     >
       <div v-if="selRect" class="selrect" :style="{ top: Math.min(selRect.top, selRect.bottom) + 'px', height: Math.abs(selRect.bottom - selRect.top) + 'px' }" />
-      <div v-for="h in 25" :key="'hl'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
-      <div v-for="h in 24" :key="'hfl'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
+      <div v-for="h in todayHourCount" :key="'hl'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
+      <div v-for="h in (todayHourCount - 1)" :key="'hfl'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
       <div
         v-for="ev in layoutBlocks" :key="ev.id"
         class="block" :class="{ bsel: selectedBlocks.has(ev.id) }"
@@ -201,6 +201,15 @@ function layout(list) {
 const glueBlocks = computed(() => getGlueBlocks(store.blocks, store.dateKey))
 const layoutBlocks = computed(() => layout(glueBlocks.value.today))
 
+// Dynamic grid height — shrinks when blocks are cut away
+const todayMaxEnd = computed(() => {
+  const blocks = glueBlocks.value.today
+  if (!blocks.length) return 0
+  return Math.max(...blocks.map(b => b.end))
+})
+const todayGridH = computed(() => Math.max(todayMaxEnd.value, 60) * PX_MIN)  // min 1hr
+const todayHourCount = computed(() => todayMaxEnd.value ? Math.ceil(todayMaxEnd.value / 60) + 1 : 25)
+
 const gluePrevLayout = computed(() => {
   return glueBlocks.value.fromPrev.map(b => ({ ...b, _col: 0, _cols: 1 }))
 })
@@ -226,6 +235,16 @@ const glueSourceNext = computed(() => {
   const next = glueBlocks.value.fromNext
   if (!next.length) return null
   return next[0]._cut.sourceDate
+})
+// CutAt offset for glue hour labels (from-prev shows source day times)
+const gluePrevCutAt = computed(() => {
+  const prev = glueBlocks.value.fromPrev
+  return prev.length ? prev[0]._cut.cutAt : 0
+})
+// Glue-prev hour count: from cutAt to 24:00
+const gluePrevHourCount = computed(() => {
+  if (!glueBlocks.value.fromPrev.length) return 0
+  return Math.ceil((DAY_MIN - gluePrevCutAt.value) / 60) + 1
 })
 
 function computeBlockStyle(ev) {
