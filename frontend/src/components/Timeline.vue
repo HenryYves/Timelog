@@ -1,120 +1,105 @@
 <template>
-  <div class="grid">
-    <div
-      class="gutter"
-      ref="gutterRef"
-      :style="{ width: GUTTER_WIDTH + 'px', height: DAY_MIN * PX_MIN + 'px' }"
-    >
-      <div
-        v-for="h in 25"
-        :key="'h'+h"
-        class="hlabel"
-        :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }"
-      >
+  <!-- Glue from previous day -->
+  <div v-if="glueBlocks.fromPrev.length" class="glue-section">
+    <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('prev') + 'px' }">
+      <div v-for="h in glueHours('prev')" :key="'ghp'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">
         {{ String(h-1).padStart(2,'0') }}:00
       </div>
     </div>
-    <div
-      class="day"
-      ref="dayRef"
-      :style="{ height: DAY_MIN * PX_MIN + 'px' }"
-      @mousedown="onDayMouseDown"
-      @mousemove="onMouseMove"
-      @mouseup="onMouseUp"
-      @mouseleave="onMouseUp"
-      @click.self="onDayClick"
-      @contextmenu.prevent
-    >
-      <!-- Selection rectangle -->
+    <div class="day" :style="{ height: glueHeight('prev') + 'px' }" @contextmenu.prevent="onGlueAreaRightClick($event, glueSourcePrev)">
+      <div v-for="h in glueHours('prev')" :key="'ghlp'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
+      <div v-for="h in (glueHours('prev') - 1)" :key="'ghflp'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
       <div
-        v-if="selRect"
-        class="selrect"
-        :style="{
-          top: Math.min(selRect.top, selRect.bottom) + 'px',
-          height: Math.abs(selRect.bottom - selRect.top) + 'px',
-        }"
-      />
-      <!-- Hour lines -->
-      <div
-        v-for="h in 25"
-        :key="'hl'+h"
-        class="hourline"
-        :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }"
-      />
-      <!-- Half-hour lines -->
-      <div
-        v-for="h in 24"
-        :key="'hfl'+h"
-        class="halfline"
-        :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }"
-      />
-      <!-- Time blocks -->
-      <div
-        v-for="ev in layoutBlocks"
-        :key="ev.id"
-        class="block"
-        :class="{ bsel: selectedBlocks.has(ev.id) }"
-        :style="computeBlockStyle(ev)"
-        :title="blockTitle(ev)"
-        @mousemove="onBlockMouseMove($event, ev)"
-        @mousedown.left="onBlockMouseDown($event, ev)"
-        @click="onBlockClick($event, ev)"
-        @contextmenu.prevent="onBlockContextMenu(ev)"
+        v-for="ev in gluePrevLayout" :key="ev.id"
+        class="block" :class="{ bsel: selectedBlocks.has(ev.id) }"
+        :style="computeBlockStyle(ev)" :title="blockTitle(ev)"
+        @click="onBlockClick($event, ev)" @contextmenu.prevent="onBlockContextMenu(ev)"
       >
-        <div v-if="settingsStore.showBlockColorBar" class="cbar">
-          <i
-            v-for="(t, ti) in (ev.tags || [])"
-            :key="ti"
-            :style="{ background: colorOf(t).hex }"
-          />
-          <i v-if="!ev.tags || !ev.tags.length" style="background:#C4C3C0" />
-        </div>
+        <div v-if="settingsStore.showBlockColorBar" class="cbar"><i v-for="(t, ti) in (ev.tags || [])" :key="ti" :style="{ background: colorOf(t).hex }" /><i v-if="!ev.tags || !ev.tags.length" style="background:#C4C3C0" /></div>
         <div v-if="settingsStore.showBlockTitle" class="bt">{{ ev.title || '(未命名)' }}</div>
-        <div
-          v-if="settingsStore.showBlockTime && (ev.end - ev.start) * PX_MIN >= 32"
-          class="bs"
-        >
-          {{ fmt(ev.start) }}–{{ fmt(ev.end) }}
-        </div>
-        <div
-          v-if="settingsStore.showBlockTags && (ev.end - ev.start) * PX_MIN >= 18 && ev.tags && ev.tags.length"
-          class="btags"
-        >
-          <span v-for="t in ev.tags" :key="t">
-            <span class="tdot" :style="{ background: colorOf(t).hex }" />{{ t }}
-          </span>
-        </div>
-        <div
-          v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= 16 && settingsStore.renderNoteMarkdown"
-          class="bnote"
-          v-html="mdToHtml(ev.note)"
-        />
-        <div
-          v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && !settingsStore.renderNoteMarkdown"
-          class="bnote"
-          style="white-space: pre-wrap"
-        >{{ ev.note }}</div>
+        <div v-if="settingsStore.showBlockTime && (ev.end - ev.start) * PX_MIN >= 32" class="bs">{{ fmt(ev.start) }}–{{ fmt(ev.end) }}</div>
+        <div v-if="settingsStore.showBlockTags && (ev.end - ev.start) * PX_MIN >= 18 && ev.tags && ev.tags.length" class="btags"><span v-for="t in ev.tags" :key="t"><span class="tdot" :style="{ background: colorOf(t).hex }" />{{ t }}</span></div>
+        <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= 16 && settingsStore.renderNoteMarkdown" class="bnote" v-html="mdToHtml(ev.note)" />
+        <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && !settingsStore.renderNoteMarkdown" class="bnote" style="white-space: pre-wrap">{{ ev.note }}</div>
         <div v-if="settingsStore.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
       </div>
-      <!-- Now line (today only) -->
-      <div
-        v-if="isToday"
-        class="nowline"
-        :style="{ top: nowMin * PX_MIN + 'px' }"
-      />
     </div>
   </div>
+
+  <!-- Main grid -->
+  <div class="grid">
+    <div class="gutter" ref="gutterRef" :style="{ width: GUTTER_WIDTH + 'px', height: DAY_MIN * PX_MIN + 'px' }">
+      <div v-for="h in 25" :key="'h'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">{{ String(h-1).padStart(2,'0') }}:00</div>
+    </div>
+    <div class="day" ref="dayRef" :style="{ height: DAY_MIN * PX_MIN + 'px' }"
+      @mousedown="onDayMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseUp"
+      @click.self="onDayClick" @contextmenu.prevent
+    >
+      <div v-if="selRect" class="selrect" :style="{ top: Math.min(selRect.top, selRect.bottom) + 'px', height: Math.abs(selRect.bottom - selRect.top) + 'px' }" />
+      <div v-for="h in 25" :key="'hl'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
+      <div v-for="h in 24" :key="'hfl'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
+      <div
+        v-for="ev in layoutBlocks" :key="ev.id"
+        class="block" :class="{ bsel: selectedBlocks.has(ev.id) }"
+        :style="computeBlockStyle(ev)" :title="blockTitle(ev)"
+        @mousemove="onBlockMouseMove($event, ev)" @mousedown.left="onBlockMouseDown($event, ev)"
+        @click="onBlockClick($event, ev)" @contextmenu.prevent="onBlockContextMenu(ev)"
+      >
+        <div v-if="settingsStore.showBlockColorBar" class="cbar"><i v-for="(t, ti) in (ev.tags || [])" :key="ti" :style="{ background: colorOf(t).hex }" /><i v-if="!ev.tags || !ev.tags.length" style="background:#C4C3C0" /></div>
+        <div v-if="settingsStore.showBlockTitle" class="bt">{{ ev.title || '(未命名)' }}</div>
+        <div v-if="settingsStore.showBlockTime && (ev.end - ev.start) * PX_MIN >= 32" class="bs">{{ fmt(ev.start) }}–{{ fmt(ev.end) }}</div>
+        <div v-if="settingsStore.showBlockTags && (ev.end - ev.start) * PX_MIN >= 18 && ev.tags && ev.tags.length" class="btags"><span v-for="t in ev.tags" :key="t"><span class="tdot" :style="{ background: colorOf(t).hex }" />{{ t }}</span></div>
+        <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= 16 && settingsStore.renderNoteMarkdown" class="bnote" v-html="mdToHtml(ev.note)" />
+        <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && !settingsStore.renderNoteMarkdown" class="bnote" style="white-space: pre-wrap">{{ ev.note }}</div>
+        <div v-if="settingsStore.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
+      </div>
+      <div v-if="isToday" class="nowline" :style="{ top: nowMin * PX_MIN + 'px' }" />
+    </div>
+  </div>
+
+  <!-- Glue from next day -->
+  <div v-if="glueBlocks.fromNext.length" class="glue-section">
+    <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('next') + 'px' }">
+      <div v-for="h in glueHours('next')" :key="'ghn'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">
+        {{ String(h-1).padStart(2,'0') }}:00
+      </div>
+    </div>
+    <div class="day" :style="{ height: glueHeight('next') + 'px' }" @contextmenu.prevent="onGlueAreaRightClick($event, glueSourceNext)">
+      <div v-for="h in glueHours('next')" :key="'ghln'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
+      <div v-for="h in (glueHours('next') - 1)" :key="'ghfln'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
+      <div
+        v-for="ev in glueNextLayout" :key="ev.id"
+        class="block" :class="{ bsel: selectedBlocks.has(ev.id) }"
+        :style="computeBlockStyle(ev)" :title="blockTitle(ev)"
+        @click="onBlockClick($event, ev)" @contextmenu.prevent="onBlockContextMenu(ev)"
+      >
+        <div v-if="settingsStore.showBlockColorBar" class="cbar"><i v-for="(t, ti) in (ev.tags || [])" :key="ti" :style="{ background: colorOf(t).hex }" /><i v-if="!ev.tags || !ev.tags.length" style="background:#C4C3C0" /></div>
+        <div v-if="settingsStore.showBlockTitle" class="bt">{{ ev.title || '(未命名)' }}</div>
+        <div v-if="settingsStore.showBlockTime && (ev.end - ev.start) * PX_MIN >= 32" class="bs">{{ fmt(ev.start) }}–{{ fmt(ev.end) }}</div>
+        <div v-if="settingsStore.showBlockTags && (ev.end - ev.start) * PX_MIN >= 18 && ev.tags && ev.tags.length" class="btags"><span v-for="t in ev.tags" :key="t"><span class="tdot" :style="{ background: colorOf(t).hex }" />{{ t }}</span></div>
+        <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= 16 && settingsStore.renderNoteMarkdown" class="bnote" v-html="mdToHtml(ev.note)" />
+        <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && !settingsStore.renderNoteMarkdown" class="bnote" style="white-space: pre-wrap">{{ ev.note }}</div>
+        <div v-if="settingsStore.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Cut/Glue modals -->
+  <CutConfirm :show="showCutConfirm" :initialMin="cutInitialMin" :availableDirs="availableDirs" @confirm="onCutConfirm" @close="showCutConfirm = false" />
+  <GlueConfirm :show="showGlueConfirm" :sourceDate="glueTarget" @confirm="onGlueBackConfirm" @close="showGlueConfirm = false; glueTarget = null" />
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useTimelogStore, fmt, dkey, toInput, fromInput } from '../store/timelog.js'
+import { useTimelogStore, fmt, dkey, toInput, fromInput, getGlueBlocks, cutDay, glueBack, canCutForward, canCutBackward, addDays, isBefore } from '../store/timelog.js'
 import { useSettingsStore } from '../store/settings.js'
 import { mdToHtml } from '../utils/markdown.js'
 import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { STR } from '../strings.js'
+import CutConfirm from './CutConfirm.vue'
+import GlueConfirm from './GlueConfirm.vue'
 
 const props = defineProps({
   modalOpen: { type: Boolean, default: false },
@@ -130,6 +115,10 @@ const maskGradientStyle = computed(() => {
 const emit = defineEmits(['edit-block', 'create-block'])
 const { toast } = useToast()
 const { showConfirm } = useConfirm()
+const showCutConfirm = ref(false)
+const cutInitialMin = ref(0)
+const showGlueConfirm = ref(false)
+const glueTarget = ref(null)
 
 const dayRef = ref(null)
 const gutterRef = ref(null)
@@ -146,6 +135,7 @@ const suppressClick = ref(false)
 const selRect = ref(null) // { top, bottom } in container px
 let selPending = null // { clientY } — wait for drag threshold
 let selMoved = false // true once drag threshold passed — suppress block toggle
+let _rightClickOnEmpty = false
 
 // --- Hover tracking (for paste) ---
 const lastHoverMin = ref(0)
@@ -199,7 +189,35 @@ function layout(list) {
   return evs
 }
 
-const layoutBlocks = computed(() => layout(store.blocks))
+const glueBlocks = computed(() => getGlueBlocks(store.blocks, store.dateKey))
+const layoutBlocks = computed(() => layout(glueBlocks.value.today))
+
+const gluePrevLayout = computed(() => {
+  return glueBlocks.value.fromPrev.map(b => ({ ...b, _col: 0, _cols: 1 }))
+})
+const glueNextLayout = computed(() => {
+  return glueBlocks.value.fromNext.map(b => ({ ...b, _col: 0, _cols: 1 }))
+})
+
+const canCutFwd = computed(() => canCutForward(store.blocks, store.dateKey))
+const canCutBwd = computed(() => canCutBackward(store.blocks, store.dateKey))
+const availableDirs = computed(() => {
+  const dirs = []
+  if (canCutFwd.value) dirs.push('forward')
+  if (canCutBwd.value) dirs.push('backward')
+  return dirs
+})
+
+const glueSourcePrev = computed(() => {
+  const prev = glueBlocks.value.fromPrev
+  if (!prev.length) return null
+  return prev[0]._cut.sourceDate
+})
+const glueSourceNext = computed(() => {
+  const next = glueBlocks.value.fromNext
+  if (!next.length) return null
+  return next[0]._cut.sourceDate
+})
 
 function computeBlockStyle(ev) {
   const has = ev.tags && ev.tags.length
@@ -323,10 +341,11 @@ function onDayClick() {
 }
 
 function onDayMouseDown(e) {
-  // Right-click: pending selection drag (starts on mousemove past threshold)
+  // Right-click: distinguish empty area (scissors) vs on block (existing toggle)
   if (e.button === 2) {
     e.preventDefault()
-    selPending = { clientY: e.clientY }
+    _rightClickOnEmpty = !e.target.closest('.block')
+    selPending = { clientX: e.clientX, clientY: e.clientY }
     return
   }
   if (e.button !== 0 || adrag) return
@@ -396,10 +415,18 @@ function onMouseMove(e) {
   overGrid.value = true
 }
 
-function onMouseUp() {
-  if (adrag) {
-    endDrag(true)
+function onMouseUp(e) {
+  if (adrag) { endDrag(true) }
+
+  // Right-click on empty area (no drag) → scissors
+  if (_rightClickOnEmpty && !selMoved && selPending) {
+    _rightClickOnEmpty = false
+    selPending = null
+    selMoved = false
+    onDayRightClick(e)
+    return
   }
+  _rightClickOnEmpty = false
   selPending = null
   selMoved = false
   if (selRect.value) {
@@ -445,6 +472,105 @@ function onBlockContextMenu(ev) {
     store.selectedBlocks.add(ev.id)
     toast(STR.toast.contextSelected(store.selectedBlocks.size))
   }
+}
+
+// --- Scissors / Glue handlers ---
+function onDayRightClick(e) {
+  if (!availableDirs.value.length) return
+  const min = yToMin(e.clientY)
+  if (!canCutFwd.value && min <= 0) return
+  if (!canCutBwd.value && min >= DAY_MIN) return
+  cutInitialMin.value = min
+  showCutConfirm.value = true
+}
+
+async function onCutConfirm(cutAt, direction) {
+  // Check extreme cases — moving ALL blocks
+  if (direction === 'forward' && cutAt <= 0) {
+    const ok = await showConfirm(STR.cut.extremeAll)
+    if (!ok) return
+  }
+  if (direction === 'backward' && cutAt >= DAY_MIN) {
+    const ok = await showConfirm(STR.cut.extremeAll)
+    if (!ok) return
+  }
+  // Check no-op extremes
+  if (direction === 'forward' && cutAt >= DAY_MIN) {
+    toast(STR.cut.extremeNone)
+    return
+  }
+  if (direction === 'backward' && cutAt <= 0) {
+    toast(STR.cut.extremeNone)
+    return
+  }
+
+  // Check for short fragments (< 10 min)
+  const todayBlocksList = glueBlocks.value.today
+  let hasShort = false
+  let shortDur = 0
+  for (const b of todayBlocksList) {
+    if (direction === 'forward') {
+      if (b.start >= cutAt && b.end - b.start < 10) { hasShort = true; shortDur = b.end - b.start; break }
+      if (b.start < cutAt && b.end > cutAt) {
+        const secondHalf = b.end - cutAt
+        const firstHalf = cutAt - b.start
+        if (secondHalf < 10 || firstHalf < 10) { hasShort = true; shortDur = Math.min(secondHalf, firstHalf); break }
+      }
+    } else {
+      if (b.end <= cutAt && b.end - b.start < 10) { hasShort = true; shortDur = b.end - b.start; break }
+      if (b.start < cutAt && b.end > cutAt) {
+        const firstHalf = cutAt - b.start
+        const secondHalf = b.end - cutAt
+        if (firstHalf < 10 || secondHalf < 10) { hasShort = true; shortDur = Math.min(firstHalf, secondHalf); break }
+      }
+    }
+  }
+  if (hasShort) {
+    const ok = await showConfirm(STR.cut.shortBlock(shortDur))
+    if (!ok) return
+  }
+
+  const result = cutDay(store.dateKey, cutAt, direction)
+  if (result) {
+    store.loadBlocks()
+    toast(`已剪切 ${result.moved} 个块到 ${direction === 'forward' ? '明天' : '昨天'}`)
+  }
+  showCutConfirm.value = false
+}
+
+function onGlueAreaRightClick(e, sourceDate) {
+  e.preventDefault()
+  if (e.target.closest('.block')) return
+  if (!sourceDate) return
+  glueTarget.value = sourceDate
+  showGlueConfirm.value = true
+}
+
+function onGlueBackConfirm() {
+  const sourceDate = glueTarget.value
+  if (!sourceDate) return
+  const result = glueBack(store.dateKey, sourceDate)
+  if (result) {
+    store.loadBlocks()
+    toast('已粘回')
+  }
+  showGlueConfirm.value = false
+  glueTarget.value = null
+}
+
+// --- Glue area helpers ---
+function glueHeight(area) {
+  const blocks = area === 'prev' ? glueBlocks.value.fromPrev : glueBlocks.value.fromNext
+  if (!blocks.length) return 0
+  const maxEnd = Math.max(...blocks.map(b => b.end))
+  return Math.max(maxEnd, 60) * PX_MIN
+}
+
+function glueHours(area) {
+  const blocks = area === 'prev' ? glueBlocks.value.fromPrev : glueBlocks.value.fromNext
+  if (!blocks.length) return 0
+  const maxEnd = Math.max(...blocks.map(b => b.end))
+  return Math.ceil(maxEnd / 60) + 1
 }
 
 // --- Keyboard ---
@@ -595,6 +721,13 @@ watch(() => store.dateKey, () => {
 .grid {
   position: relative;
   display: flex;
+}
+.glue-section {
+  position: relative;
+  display: flex;
+}
+.glue-section .day {
+  cursor: default;
 }
 .gutter {
   flex: none;
