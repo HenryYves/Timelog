@@ -300,6 +300,12 @@
         </div>
       </div>
       <div class="actions">
+        <template v-if="croppedPreviewUrl">
+          <div style="margin-bottom:12px;text-align:center">
+            <div style="font-size:12px;color:var(--text2);margin-bottom:4px">裁剪预览</div>
+            <img :src="croppedPreviewUrl" style="max-width:100%;max-height:200px;border:1px solid var(--border);border-radius:4px" />
+          </div>
+        </template>
         <button @click="emit('close')">{{ STR.exportImage.cancel }}</button>
         <span class="spacer"></span>
         <button @click="doCopy">{{ STR.exportImage.copy }}</button>
@@ -434,6 +440,10 @@ const timelineDom = ref(null)
 const { toast } = useToast()
 const timelogStore = useTimelogStore()
 const tagStore = useTagStore()
+
+// Cropped preview for custom time range
+const croppedPreviewUrl = ref('')
+let _cropTimer = null
 
 // Stats data refs
 const statsCards = ref([])
@@ -593,6 +603,32 @@ watch(
     settings.exportWidth, exportHeight.value, statsCards.value],
   buildWatermark,
   { immediate: true }
+)
+
+// Update cropped preview when custom time range inputs change
+function scheduleCropPreview() {
+  clearTimeout(_cropTimer)
+  _cropTimer = setTimeout(async () => {
+    if (props.mode !== 'timeline' || settings.exportTimeRange !== 'custom') {
+      croppedPreviewUrl.value = ''
+      return
+    }
+    await nextTick()
+    try {
+      const canvas = await captureCanvas()
+      if (canvas) croppedPreviewUrl.value = canvas.toDataURL('image/png')
+    } catch { croppedPreviewUrl.value = '' }
+  }, 500)
+}
+
+watch(
+  () => [settings.exportTimeRange, settings.customRangeTodayStart, settings.customRangeTodayEnd,
+    settings.customRangePrevStart, settings.customRangePrevEnd,
+    settings.customRangeNextStart, settings.customRangeNextEnd,
+    settings.showTitle, settings.showAuthor, settings.authorPosition,
+    settings.exportWidth, settings.showGutter],
+  scheduleCropPreview,
+  { deep: false }
 )
 
 // ----- Block overlap layout (three-section) -----
