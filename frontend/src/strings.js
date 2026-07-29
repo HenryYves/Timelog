@@ -223,6 +223,27 @@ export const STR = {
     exportImage: '导出图片',
   },
 
+  cut: {
+    forward: '便是明朝',
+    backward: '溯与昨宵',
+    confirmTitleFwd: (time) => `剪刀落处，${time}，[便是明朝▾]。`,
+    confirmTitleBwd: (time) => `剪刀落处，${time}，[溯与昨宵▾]。`,
+    shortBlock: (dur) => `切出片段不足10分钟（${dur}分），是否保留？`,
+    extremeAll: '将移走当天所有时间块，确定？',
+    extremeNone: '该时刻无内容可切。',
+  },
+  glue: {
+    confirm: (date) => `粘回 ${date}？`,
+  },
+  export: {
+    timeRange: '时间范围',
+    timeRangeAll: '全天',
+    timeRangeCustom: '自定义',
+    timeRangePrefixPrev: '- ',
+    timeRangePrefixNext: '+ ',
+    glueBlockPrefix: (date) => `[来自${date}] `,
+  },
+
   help: {
     title: '操作指南',
     sectionBlocks: '时间块操作',
@@ -246,6 +267,8 @@ export const STR = {
       'P  导出文本',
       '← →  切换上/下一天',
       '↑ ↓  拖动时微调时间（±1 分钟）',
+      '右键 空白处  剪刀切分时间轴（便是明朝/溯与昨宵）',
+      '右键 胶水区  粘回时间块',
       '?  打开此帮助',
     ],
     sectionWindow: '窗口操作',

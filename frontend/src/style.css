@@ -356,3 +356,38 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
 ::-webkit-scrollbar-button {
   display: none;
 }
+
+/* ── Glue areas ── */
+.glue-from-prev,
+.glue-from-next {
+  display: flex;
+  position: relative;
+}
+
+.glue-from-prev .gutter,
+.glue-from-next .gutter {
+  background: #89c3eb;
+}
+
+.glue-from-prev .day,
+.glue-from-next .day {
+  background: var(--canvas);
+  position: relative;
+}
+
+/* Cursor: scissors on normal day area */
+.day {
+  cursor: url('./assets/scissors.svg') 16 16, auto;
+}
+
+/* Cursor: glue on glue area (but not on blocks) */
+.glue-from-prev .day,
+.glue-from-next .day {
+  cursor: url('./assets/glue.svg') 16 16, auto;
+}
+
+/* Blocks inside glue areas use normal cursors */
+.glue-from-prev .block,
+.glue-from-next .block {
+  cursor: pointer;
+}
