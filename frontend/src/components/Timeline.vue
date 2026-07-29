@@ -6,13 +6,17 @@
         {{ String(h-1).padStart(2,'0') }}:00
       </div>
     </div>
-    <div class="day" :style="{ height: glueHeight('prev') + 'px' }">
+    <div class="day" ref="gluePrevDayRef" :style="{ height: glueHeight('prev') + 'px' }"
+      @mousedown="onDayMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseUp"
+      @click.self="onDayClick">
       <div v-for="h in glueHours('prev')" :key="'ghlp'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
       <div v-for="h in (glueHours('prev') - 1)" :key="'ghflp'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
       <div
         v-for="ev in gluePrevLayout" :key="ev.id"
         class="block" :class="{ bsel: selectedBlocks.has(ev.id) }"
         :style="computeBlockStyle(ev)" :title="blockTitle(ev)"
+        @mousemove="onBlockMouseMove($event, ev)"
+        @mousedown.left="onBlockMouseDown($event, ev)"
         @click="onBlockClick($event, ev)" @contextmenu.prevent="onBlockContextMenu(ev)"
       >
         <div v-if="settingsStore.showBlockColorBar" class="cbar"><i v-for="(t, ti) in (ev.tags || [])" :key="ti" :style="{ background: colorOf(t).hex }" /><i v-if="!ev.tags || !ev.tags.length" style="background:#C4C3C0" /></div>
@@ -64,13 +68,17 @@
         {{ String(h-1).padStart(2,'0') }}:00
       </div>
     </div>
-    <div class="day" :style="{ height: glueHeight('next') + 'px' }">
+    <div class="day" ref="glueNextDayRef" :style="{ height: glueHeight('next') + 'px' }"
+      @mousedown="onDayMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseUp"
+      @click.self="onDayClick">
       <div v-for="h in glueHours('next')" :key="'ghln'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
       <div v-for="h in (glueHours('next') - 1)" :key="'ghfln'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
       <div
         v-for="ev in glueNextLayout" :key="ev.id"
         class="block" :class="{ bsel: selectedBlocks.has(ev.id) }"
         :style="computeBlockStyle(ev)" :title="blockTitle(ev)"
+        @mousemove="onBlockMouseMove($event, ev)"
+        @mousedown.left="onBlockMouseDown($event, ev)"
         @click="onBlockClick($event, ev)" @contextmenu.prevent="onBlockContextMenu(ev)"
       >
         <div v-if="settingsStore.showBlockColorBar" class="cbar"><i v-for="(t, ti) in (ev.tags || [])" :key="ti" :style="{ background: colorOf(t).hex }" /><i v-if="!ev.tags || !ev.tags.length" style="background:#C4C3C0" /></div>
@@ -122,6 +130,8 @@ const glueTarget = ref(null)
 
 const dayRef = ref(null)
 const gutterRef = ref(null)
+const gluePrevDayRef = ref(null)
+const glueNextDayRef = ref(null)
 
 // --- Drag state (pure DOM — matches old code for per-frame drag precision) ---
 let adrag = null
@@ -245,8 +255,8 @@ function blockTitle(ev) {
 
 
 // --- Mouse helpers ---
-function yToMin(y) {
-  const r = dayRef.value.getBoundingClientRect()
+function yToMin(y, el) {
+  const r = (el || dayRef.value).getBoundingClientRect()
   return Math.max(0, Math.min(DAY_MIN, Math.round((y - r.top) / (settingsStore.zoom / 100) / PX_MIN)))
 }
 
@@ -346,8 +356,9 @@ function onDayMouseDown(e) {
     return
   }
   if (e.button !== 0 || adrag) return
-  const s = yToMin(e.clientY)
-  adrag = { type: 'create', anchor: s, cur: s }
+  const dayEl = e.currentTarget
+  const s = yToMin(e.clientY, dayEl)
+  adrag = { type: 'create', anchor: s, cur: s, dayEl }
   applyDrag()
 }
 
@@ -387,7 +398,7 @@ function onBlockMouseDown(e, ev) {
 
 function onMouseMove(e) {
   if (adrag) {
-    adrag.cur = yToMin(e.clientY)
+    adrag.cur = yToMin(e.clientY, adrag.dayEl)
     applyDrag()
   }
   if (selPending) {
@@ -701,7 +712,7 @@ onUnmounted(() => {
 // Window-level mouse events for drag (robust when mouse leaves .day)
 function onWindowMouseMove(e) {
   if (!adrag) return
-  adrag.cur = yToMin(e.clientY)
+  adrag.cur = yToMin(e.clientY, adrag.dayEl)
   applyDrag()
 }
 
