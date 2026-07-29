@@ -105,10 +105,9 @@ export function cutDay(sourceDate, cutAt, direction) {
   const srcSnap = JSON.parse(JSON.stringify(srcBlocks))
   const tgtSnap = JSON.parse(JSON.stringify(tgtBlocks))
 
-  console.log('[cut] cutDay START srcKey:', srcKey, 'tgtKey:', tgtKey, 'cutAt:', cutAt, 'direction:', direction, 'srcBlocks:', srcBlocks.length, 'tgtBlocks before:', tgtBlocks.length)
   // Validate constraint
-  if (direction === 'forward' && !canCutForward(tgtBlocks, targetDate)) { console.log('[cut] cutDay BLOCKED: canCutForward false'); return false }
-  if (direction === 'backward' && !canCutBackward(tgtBlocks, targetDate)) { console.log('[cut] cutDay BLOCKED: canCutBackward false'); return false }
+  if (direction === 'forward' && !canCutForward(tgtBlocks, targetDate)) return false
+  if (direction === 'backward' && !canCutBackward(tgtBlocks, targetDate)) return false
 
   // Filter out existing _cut blocks from srcBlocks (they stay)
   const normalBlocks = srcBlocks.filter(b => !b._cut)
@@ -201,7 +200,6 @@ export function cutDay(sourceDate, cutAt, direction) {
 
   // Save src: remaining + existing cut blocks
   srcBlocks = [...toStay, ...existingCutBlocks]
-  console.log('[cut] cutDay saving: srcBlocks:', srcBlocks.length, 'toStay:', toStay.length, 'toMove:', toMove.length)
   if (srcBlocks.length) {
     localStorage.setItem(srcKey, JSON.stringify(srcBlocks))
   } else {
@@ -214,7 +212,6 @@ export function cutDay(sourceDate, cutAt, direction) {
   } else {
     localStorage.removeItem(tgtKey)
   }
-  console.log('[cut] cutDay DONE srcKey:', srcKey, 'src saved:', localStorage.getItem(srcKey), 'tgtKey:', tgtKey, 'tgt saved:', localStorage.getItem(tgtKey))
 
   // Push undo
   pushStoreUndo({

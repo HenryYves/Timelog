@@ -1,7 +1,7 @@
 <template>
   <!-- Glue from previous day -->
   <div v-if="glueBlocks.fromPrev.length" class="glue-from-prev">
-    <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('prev') + 'px' }" @contextmenu.prevent="onGlueAreaRightClick($event, glueSourcePrev)">
+    <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('prev') + 'px' }" @contextmenu.prevent="onGlueAreaRightClick($event, glueSourcePrev)" @mousemove="onGutterHover" @mouseleave="onGutterLeave">
       <div v-for="h in gluePrevHourCount" :key="'ghp'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">
         {{ fmt(gluePrevCutAt + (h-1) * 60) }}
       </div>
@@ -28,12 +28,13 @@
         <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && !settingsStore.renderNoteMarkdown" class="bnote" style="white-space: pre-wrap">{{ ev.note }}</div>
         <div v-if="settingsStore.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
       </div>
+      <div v-if="hoverLine && hoverLine.area === 'prev'" class="cut-hover" :style="{ top: hoverLine.y + 'px' }"><span class="cut-hover-label">{{ hoverLine.label }}</span></div>
     </div>
   </div>
 
   <!-- Main grid -->
   <div class="grid">
-    <div class="gutter" ref="gutterRef" :style="{ width: GUTTER_WIDTH + 'px', height: todayGridH + 'px' }" @contextmenu.prevent="onGutterRightClick">
+    <div class="gutter" ref="gutterRef" :style="{ width: GUTTER_WIDTH + 'px', height: todayGridH + 'px' }" @contextmenu.prevent="onGutterRightClick" @mousemove="onGutterHover" @mouseleave="onGutterLeave">
       <div v-for="h in todayHourCount" :key="'h'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">{{ String(h-1).padStart(2,'0') }}:00</div>
     </div>
     <div class="day" ref="dayRef" :style="{ height: todayGridH + 'px' }"
@@ -58,13 +59,16 @@
         <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && !settingsStore.renderNoteMarkdown" class="bnote" style="white-space: pre-wrap">{{ ev.note }}</div>
         <div v-if="settingsStore.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
       </div>
+      <div v-if="hoverLine && hoverLine.area === 'today'" class="cut-hover" :style="{ top: hoverLine.y + 'px' }">
+        <span class="cut-hover-label">{{ hoverLine.label }}</span>
+      </div>
       <div v-if="isToday" class="nowline" :style="{ top: nowMin * PX_MIN + 'px' }" />
     </div>
   </div>
 
   <!-- Glue from next day -->
   <div v-if="glueBlocks.fromNext.length" class="glue-from-next">
-    <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('next') + 'px' }" @contextmenu.prevent="onGlueAreaRightClick($event, glueSourceNext)">
+    <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('next') + 'px' }" @contextmenu.prevent="onGlueAreaRightClick($event, glueSourceNext)" @mousemove="onGutterHover" @mouseleave="onGutterLeave">
       <div v-for="h in glueHours('next')" :key="'ghn'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">
         {{ String(h-1).padStart(2,'0') }}:00
       </div>
@@ -91,6 +95,7 @@
         <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && !settingsStore.renderNoteMarkdown" class="bnote" style="white-space: pre-wrap">{{ ev.note }}</div>
         <div v-if="settingsStore.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
       </div>
+      <div v-if="hoverLine && hoverLine.area === 'next'" class="cut-hover" :style="{ top: hoverLine.y + 'px' }"><span class="cut-hover-label">{{ hoverLine.label }}</span></div>
     </div>
   </div>
 
@@ -147,6 +152,24 @@ const suppressClick = ref(false)
 const selRect = ref(null) // { top, bottom, left, right } in container px
 let selPending = null // { clientX, clientY } — wait for drag threshold
 let selMoved = false // true once drag threshold passed — suppress block toggle
+
+// --- Gutter hover (cut preview) ---
+const hoverLine = ref(null) // { y: number, label: string, area: string } or null
+
+function onGutterHover(e) {
+  const dayEl = e.currentTarget.closest('.glue-from-prev, .glue-from-next, .grid')
+  const areaDay = dayEl ? dayEl.querySelector('.day') : dayRef.value
+  if (!areaDay) return
+  const r = areaDay.getBoundingClientRect()
+  const z = settingsStore.zoom / 100
+  const y = (e.clientY - r.top) / z
+  const min = Math.round(y / PX_MIN)
+  if (min < 0 || min > DAY_MIN) { hoverLine.value = null; return }
+  const area = dayEl.classList.contains('glue-from-prev') ? 'prev'
+    : dayEl.classList.contains('glue-from-next') ? 'next' : 'today'
+  hoverLine.value = { y, label: fmt(min), area }
+}
+function onGutterLeave() { hoverLine.value = null }
 
 // --- Hover tracking (for paste) ---
 const lastHoverMin = ref(0)
@@ -510,10 +533,8 @@ function onBlockContextMenu(ev) {
 
 // --- Scissors / Glue handlers ---
 function onGutterRightClick(e) {
-  console.log('[cut] gutter right-click, availableDirs:', availableDirs.value, 'canCutFwd:', canCutFwd.value, 'canCutBwd:', canCutBwd.value)
   if (!availableDirs.value.length) return
   const min = yToMin(e.clientY)
-  console.log('[cut] click min:', min, 'fmt:', fmt(min))
   if (!canCutFwd.value && min <= 0) return
   if (!canCutBwd.value && min >= DAY_MIN) return
   cutInitialMin.value = min
@@ -521,7 +542,6 @@ function onGutterRightClick(e) {
 }
 
 async function onCutConfirm(cutAt, direction) {
-  console.log('[cut] onCutConfirm called, cutAt:', cutAt, 'fmt:', fmt(cutAt), 'direction:', direction, 'dateKey:', store.dateKey)
   // 1. Check no-op extremes first
   if (direction === 'forward' && cutAt >= DAY_MIN) {
     toast(STR.cut.extremeNone)
@@ -568,12 +588,9 @@ async function onCutConfirm(cutAt, direction) {
     if (!ok) return
   }
 
-  console.log('[cut] calling cutDay, sourceDate:', store.dateKey, 'cutAt:', cutAt, 'direction:', direction, 'today blocks:', glueBlocks.value.today.length, 'prev:', glueBlocks.value.fromPrev.length, 'next:', glueBlocks.value.fromNext.length)
   const result = cutDay(store.dateKey, cutAt, direction)
-  console.log('[cut] cutDay result:', result)
   if (result) {
     store.loadBlocks()
-    console.log('[cut] loadBlocks done, blocks:', store.blocks.length, 'glueBlocks:', getGlueBlocks(store.blocks, store.dateKey))
     toast(`已剪切 ${result.moved} 个块到 ${direction === 'forward' ? '明天' : '昨天'}`)
   }
   showCutConfirm.value = false
