@@ -45,6 +45,281 @@ export function fromInput(str) {
   return h * 60 + (m || 0)
 }
 
+export function pushStoreUndo(entry) {
+  if (_undoing) return
+  storeUndo.push(entry)
+}
+
+export function dateStr(d) {
+  // Accept Date or 'YYYY-MM-DD' string
+  if (typeof d === 'string') return d
+  return dkey(d)
+}
+
+export function addDays(ds, n) {
+  const d = new Date(ds + 'T12:00:00')
+  d.setDate(d.getDate() + n)
+  return dkey(d)
+}
+
+export function isBefore(a, b) {
+  // true if date string a < b
+  return a < b
+}
+
+export function canCutForward(blocks, dateKey) {
+  // Can cut to tomorrow if no block came FROM tomorrow
+  return !blocks.some(b => b._cut && isBefore(dateKey, b._cut.sourceDate))
+}
+
+export function canCutBackward(blocks, dateKey) {
+  // Can cut to yesterday if no block came FROM yesterday
+  return !blocks.some(b => b._cut && isBefore(b._cut.sourceDate, dateKey))
+}
+
+/**
+ * Cut a day at cutAt (minutes), moving blocks to adjacent day.
+ * @param {string} sourceDate - 'YYYY-MM-DD' of the day being cut
+ * @param {number} cutAt - cut point in minutes (0-1440)
+ * @param {'forward'|'backward'} direction - forward=to tomorrow, backward=to yesterday
+ */
+export function cutDay(sourceDate, cutAt, direction) {
+  const targetDate = direction === 'forward'
+    ? addDays(sourceDate, 1)
+    : addDays(sourceDate, -1)
+
+  const srcKey = KEY_PREFIX + sourceDate
+  const tgtKey = KEY_PREFIX + targetDate
+
+  // Load both days
+  let srcBlocks = []
+  let tgtBlocks = []
+  try { srcBlocks = JSON.parse(localStorage.getItem(srcKey)) || [] } catch {}
+  try { tgtBlocks = JSON.parse(localStorage.getItem(tgtKey)) || [] } catch {}
+
+  // Snapshot for undo
+  const srcSnap = JSON.parse(JSON.stringify(srcBlocks))
+  const tgtSnap = JSON.parse(JSON.stringify(tgtBlocks))
+
+  // Validate constraint
+  if (direction === 'forward' && !canCutForward(tgtBlocks, targetDate)) return false
+  if (direction === 'backward' && !canCutBackward(tgtBlocks, targetDate)) return false
+
+  // Filter out existing _cut blocks from srcBlocks (they stay)
+  const normalBlocks = srcBlocks.filter(b => !b._cut)
+  const existingCutBlocks = srcBlocks.filter(b => b._cut)
+
+  // Find blocks to move
+  let toMove, toStay
+  if (direction === 'forward') {
+    // Move blocks at/after cutAt
+    toMove = []
+    toStay = []
+    normalBlocks.forEach(b => {
+      if (b.start >= cutAt) {
+        toMove.push({ ...b, tags: [...(b.tags || [])] })
+      } else if (b.end > cutAt) {
+        // Split — first half stays, second half moves
+        const first = { ...b, end: cutAt, tags: [...(b.tags || [])] }
+        const second = { ...b, start: cutAt, tags: [...(b.tags || [])] }
+        toStay.push(first)
+        toMove.push(second)
+      } else {
+        toStay.push(b)
+      }
+    })
+  } else {
+    // backward: Move blocks before cutAt
+    toMove = []
+    toStay = []
+    normalBlocks.forEach(b => {
+      if (b.end <= cutAt) {
+        toMove.push({ ...b, tags: [...(b.tags || [])] })
+      } else if (b.start < cutAt) {
+        // Split — first half moves, second half stays
+        const first = { ...b, start: b.start, end: cutAt, tags: [...(b.tags || [])] }
+        const second = { ...b, start: cutAt, tags: [...(b.tags || [])] }
+        toMove.push(first)
+        toStay.push(second)
+      } else {
+        toStay.push(b)
+      }
+    })
+  }
+
+  // Warn on split fragments < 10 min
+  // (handled in UI via confirm — see CutConfirm.vue)
+
+  // Mark moved blocks with _cut
+  toMove.forEach(b => {
+    b._cut = { sourceDate, cutAt }
+  })
+
+  // Merge into target day
+  // Remove existing _cut blocks from same sourceDate (re-merge)
+  tgtBlocks = tgtBlocks.filter(b => !(b._cut && b._cut.sourceDate === sourceDate))
+  tgtBlocks.push(...toMove)
+
+  // Recalculate cutAt for all blocks from this sourceDate
+  const allFromSource = tgtBlocks.filter(b => b._cut && b._cut.sourceDate === sourceDate)
+  if (allFromSource.length) {
+    const cutAts = allFromSource.map(b => b._cut.cutAt)
+    const mergedCutAt = direction === 'forward'
+      ? Math.min(...cutAts)
+      : Math.max(...cutAts)
+    allFromSource.forEach(b => { b._cut.cutAt = mergedCutAt })
+
+    // Merge same-ID blocks (split halves reunited)
+    const seen = new Map()
+    const merged = []
+    allFromSource.forEach(b => {
+      if (seen.has(b.id)) {
+        const prev = seen.get(b.id)
+        prev.start = Math.min(prev.start, b.start)
+        prev.end = Math.max(prev.end, b.end)
+      } else {
+        seen.set(b.id, b)
+        merged.push(b)
+      }
+    })
+    // Replace old from-source blocks with merged
+    tgtBlocks = tgtBlocks.filter(b => !(b._cut && b._cut.sourceDate === sourceDate))
+    tgtBlocks.push(...merged)
+  }
+
+  // Sort: _cut blocks first by start, then non-_cut by start
+  const cutBlocks = tgtBlocks.filter(b => b._cut)
+  const nonCutBlocks = tgtBlocks.filter(b => !b._cut)
+  cutBlocks.sort((a, b) => a.start - b.start)
+  nonCutBlocks.sort((a, b) => a.start - b.start)
+  tgtBlocks = [...cutBlocks, ...nonCutBlocks]
+
+  // Save src: remaining + existing cut blocks
+  srcBlocks = [...toStay, ...existingCutBlocks]
+  if (srcBlocks.length) {
+    localStorage.setItem(srcKey, JSON.stringify(srcBlocks))
+  } else {
+    localStorage.removeItem(srcKey)
+  }
+
+  // Save target
+  if (tgtBlocks.length) {
+    localStorage.setItem(tgtKey, JSON.stringify(tgtBlocks))
+  } else {
+    localStorage.removeItem(tgtKey)
+  }
+
+  // Push undo
+  pushStoreUndo({
+    undo: () => {
+      if (srcSnap.length) localStorage.setItem(srcKey, JSON.stringify(srcSnap))
+      else localStorage.removeItem(srcKey)
+      if (tgtSnap.length) localStorage.setItem(tgtKey, JSON.stringify(tgtSnap))
+      else localStorage.removeItem(tgtKey)
+      // Reload if on affected date
+      const store = useTimelogStore()
+      if (store.dateKey === sourceDate || store.dateKey === targetDate) store.loadBlocks()
+    },
+    redo: () => {
+      if (srcBlocks.length) localStorage.setItem(srcKey, JSON.stringify(srcBlocks))
+      else localStorage.removeItem(srcKey)
+      if (tgtBlocks.length) localStorage.setItem(tgtKey, JSON.stringify(tgtBlocks))
+      else localStorage.removeItem(tgtKey)
+      const store = useTimelogStore()
+      if (store.dateKey === sourceDate || store.dateKey === targetDate) store.loadBlocks()
+    }
+  })
+
+  return { sourceDate, targetDate, moved: toMove.length }
+}
+
+/**
+ * Glue blocks back to their source date.
+ * @param {string} hostDate - 'YYYY-MM-DD' where the glue blocks currently live
+ * @param {string} sourceDate - 'YYYY-MM-DD' where blocks originated
+ */
+export function glueBack(hostDate, sourceDate) {
+  const hostKey = KEY_PREFIX + hostDate
+  const srcKey = KEY_PREFIX + sourceDate
+
+  let hostBlocks = []
+  let srcBlocks = []
+  try { hostBlocks = JSON.parse(localStorage.getItem(hostKey)) || [] } catch {}
+  try { srcBlocks = JSON.parse(localStorage.getItem(srcKey)) || [] } catch {}
+
+  const hostSnap = JSON.parse(JSON.stringify(hostBlocks))
+  const srcSnap = JSON.parse(JSON.stringify(srcBlocks))
+
+  // Find glue blocks from sourceDate
+  const glueBlocks = hostBlocks.filter(b => b._cut && b._cut.sourceDate === sourceDate)
+  if (!glueBlocks.length) return false
+
+  // Remove from host
+  hostBlocks = hostBlocks.filter(b => !(b._cut && b._cut.sourceDate === sourceDate))
+
+  // Add to source (strip _cut, merge same-ID)
+  glueBlocks.forEach(b => {
+    const clean = { ...b }
+    delete clean._cut
+    const existing = srcBlocks.find(x => x.id === clean.id)
+    if (existing) {
+      existing.start = Math.min(existing.start, clean.start)
+      existing.end = Math.max(existing.end, clean.end)
+    } else {
+      srcBlocks.push(clean)
+    }
+  })
+
+  // Sort source
+  srcBlocks.sort((a, b) => a.start - b.start)
+
+  // Save
+  if (hostBlocks.length) localStorage.setItem(hostKey, JSON.stringify(hostBlocks))
+  else localStorage.removeItem(hostKey)
+  if (srcBlocks.length) localStorage.setItem(srcKey, JSON.stringify(srcBlocks))
+  else localStorage.removeItem(srcKey)
+
+  // Undo
+  pushStoreUndo({
+    undo: () => {
+      if (hostSnap.length) localStorage.setItem(hostKey, JSON.stringify(hostSnap))
+      else localStorage.removeItem(hostKey)
+      if (srcSnap.length) localStorage.setItem(srcKey, JSON.stringify(srcSnap))
+      else localStorage.removeItem(srcKey)
+      const store = useTimelogStore()
+      if (store.dateKey === hostDate || store.dateKey === sourceDate) store.loadBlocks()
+    },
+    redo: () => {
+      if (hostBlocks.length) localStorage.setItem(hostKey, JSON.stringify(hostBlocks))
+      else localStorage.removeItem(hostKey)
+      if (srcBlocks.length) localStorage.setItem(srcKey, JSON.stringify(srcBlocks))
+      else localStorage.removeItem(srcKey)
+      const store = useTimelogStore()
+      if (store.dateKey === hostDate || store.dateKey === sourceDate) store.loadBlocks()
+    }
+  })
+
+  return { hostDate, sourceDate, moved: glueBlocks.length }
+}
+
+/**
+ * Split blocks array into fromPrev / today / fromNext groups.
+ */
+export function getGlueBlocks(blocks, hostDate) {
+  const fromPrev = []
+  const fromNext = []
+  const today = []
+  blocks.forEach(b => {
+    if (b._cut) {
+      if (isBefore(b._cut.sourceDate, hostDate)) fromPrev.push(b)
+      else fromNext.push(b)
+    } else {
+      today.push(b)
+    }
+  })
+  return { fromPrev, fromNext, today }
+}
+
 export const useTimelogStore = defineStore('timelog', () => {
   const curDate = ref(new Date())
   const blocks = ref([])
