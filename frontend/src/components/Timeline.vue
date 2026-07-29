@@ -8,7 +8,8 @@
     </div>
     <div class="day" ref="gluePrevDayRef" :style="{ height: glueHeight('prev') + 'px' }"
       @mousedown="onDayMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseUp"
-      @click.self="onDayClick">
+      @click.self="onDayClick" @contextmenu.prevent>
+      <div v-if="selRect" class="selrect" :style="{ top: Math.min(selRect.top, selRect.bottom) + 'px', height: Math.abs(selRect.bottom - selRect.top) + 'px' }" />
       <div v-for="h in gluePrevHourCount" :key="'ghlp'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
       <div v-for="h in (gluePrevHourCount - 1)" :key="'ghflp'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
       <div
@@ -70,7 +71,8 @@
     </div>
     <div class="day" ref="glueNextDayRef" :style="{ height: glueHeight('next') + 'px' }"
       @mousedown="onDayMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseUp"
-      @click.self="onDayClick">
+      @click.self="onDayClick" @contextmenu.prevent>
+      <div v-if="selRect" class="selrect" :style="{ top: Math.min(selRect.top, selRect.bottom) + 'px', height: Math.abs(selRect.bottom - selRect.top) + 'px' }" />
       <div v-for="h in glueHours('next')" :key="'ghln'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
       <div v-for="h in (glueHours('next') - 1)" :key="'ghfln'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
       <div
@@ -308,7 +310,7 @@ function showDLabel(min, text) {
   if (!dlabel) {
     dlabel = document.createElement('div')
     dlabel.className = 'dlabel'
-    dayRef.value.appendChild(dlabel)
+    (adrag?.dayEl || dayRef.value).appendChild(dlabel)
   }
   dlabel.style.top = min * PX_MIN + 'px'
   dlabel.textContent = text
@@ -324,7 +326,7 @@ function applyDrag() {
     if (!ghost) {
       ghost = document.createElement('div')
       ghost.className = 'ghost'
-      dayRef.value.appendChild(ghost)
+      (adrag?.dayEl || dayRef.value).appendChild(ghost)
     }
     ghost.style.top = b.s * PX_MIN + 'px'
     ghost.style.height = Math.max((b.en - b.s) * PX_MIN, 2) + 'px'
@@ -424,7 +426,7 @@ function onMouseMove(e) {
     const dy = Math.abs(e.clientY - selPending.clientY)
     const dx = Math.abs(e.clientX - selPending.clientX)
     if (dy > 3 || dx > 3) {
-      const r = dayRef.value.getBoundingClientRect()
+      const r = e.currentTarget.getBoundingClientRect()
       const z = settingsStore.zoom / 100
       const top = (selPending.clientY - r.top) / z
       const bottom = (e.clientY - r.top) / z
@@ -437,7 +439,7 @@ function onMouseMove(e) {
     return
   }
   if (selRect.value) {
-    const r = dayRef.value.getBoundingClientRect()
+    const r = e.currentTarget.getBoundingClientRect()
     const z = settingsStore.zoom / 100
     selRect.value = { ...selRect.value, bottom: (e.clientY - r.top) / z, right: (e.clientX - r.left) / z }
   }
