@@ -489,8 +489,10 @@ function onBlockContextMenu(ev) {
 
 // --- Scissors / Glue handlers ---
 function onGutterRightClick(e) {
+  console.log('[cut] gutter right-click, availableDirs:', availableDirs.value, 'canCutFwd:', canCutFwd.value, 'canCutBwd:', canCutBwd.value)
   if (!availableDirs.value.length) return
   const min = yToMin(e.clientY)
+  console.log('[cut] click min:', min, 'fmt:', fmt(min))
   if (!canCutFwd.value && min <= 0) return
   if (!canCutBwd.value && min >= DAY_MIN) return
   cutInitialMin.value = min
@@ -498,6 +500,7 @@ function onGutterRightClick(e) {
 }
 
 async function onCutConfirm(cutAt, direction) {
+  console.log('[cut] onCutConfirm called, cutAt:', cutAt, 'fmt:', fmt(cutAt), 'direction:', direction, 'dateKey:', store.dateKey)
   // 1. Check no-op extremes first
   if (direction === 'forward' && cutAt >= DAY_MIN) {
     toast(STR.cut.extremeNone)
@@ -544,9 +547,12 @@ async function onCutConfirm(cutAt, direction) {
     if (!ok) return
   }
 
+  console.log('[cut] calling cutDay, sourceDate:', store.dateKey, 'cutAt:', cutAt, 'direction:', direction, 'today blocks:', glueBlocks.value.today.length, 'prev:', glueBlocks.value.fromPrev.length, 'next:', glueBlocks.value.fromNext.length)
   const result = cutDay(store.dateKey, cutAt, direction)
+  console.log('[cut] cutDay result:', result)
   if (result) {
     store.loadBlocks()
+    console.log('[cut] loadBlocks done, blocks:', store.blocks.length, 'glueBlocks:', getGlueBlocks(store.blocks, store.dateKey))
     toast(`已剪切 ${result.moved} 个块到 ${direction === 'forward' ? '明天' : '昨天'}`)
   }
   showCutConfirm.value = false
