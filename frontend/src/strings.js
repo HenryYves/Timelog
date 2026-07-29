@@ -219,6 +219,27 @@ export const STR = {
     exportImage: '导出图片',
   },
 
+  cut: {
+    forward: '便是明朝',
+    backward: '溯与昨宵',
+    confirmTitleFwd: (time) => `剪刀落处，${time}，[便是明朝▾]。`,
+    confirmTitleBwd: (time) => `剪刀落处，${time}，[溯与昨宵▾]。`,
+    shortBlock: (dur) => `切出片段不足10分钟（${dur}分），是否保留？`,
+    extremeAll: '将移走当天所有时间块，确定？',
+    extremeNone: '该时刻无内容可切。',
+  },
+  glue: {
+    confirm: (date) => `粘回 ${date}？`,
+  },
+  export: {
+    timeRange: '时间范围',
+    timeRangeAll: '全天',
+    timeRangeCustom: '自定义',
+    timeRangePrefixPrev: '- ',
+    timeRangePrefixNext: '+ ',
+    glueBlockPrefix: (date) => `[来自${date}] `,
+  },
+
   help: {
     title: '操作指南',
     sectionBlocks: '时间块操作',
