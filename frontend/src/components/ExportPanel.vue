@@ -155,7 +155,8 @@ const importPreview = ref(null)
 function buildExport() {
   return timelogStore.blocks.slice().sort((a, b) => a.start - b.start).map(ev => {
     const t = (ev.tags && ev.tags.length) ? ':' + ev.tags.join(',') : ''
-    return '- (' + fmt(ev.start) + '-' + fmt(ev.end) + t + ')' + (ev.title || '') + ';' +
+    const prefix = ev._cut ? `[来自${ev._cut.sourceDate}] ` : ''
+    return prefix + '- (' + fmt(ev.start) + '-' + fmt(ev.end) + t + ')' + (ev.title || '') + ';' +
       (ev.note || '').replace(/\n(.*)/g, (m, line) =>
         /^\s*(?:[-*]|\d+\.)\s/.test(line) ? '\n\t' + line : '\n ' + line)
   }).join('\n')
