@@ -28,7 +28,7 @@
 
   <!-- Main grid -->
   <div class="grid">
-    <div class="gutter" ref="gutterRef" :style="{ width: GUTTER_WIDTH + 'px', height: DAY_MIN * PX_MIN + 'px' }">
+    <div class="gutter" ref="gutterRef" :style="{ width: GUTTER_WIDTH + 'px', height: DAY_MIN * PX_MIN + 'px' }" @contextmenu.prevent="onGutterRightClick">
       <div v-for="h in 25" :key="'h'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">{{ String(h-1).padStart(2,'0') }}:00</div>
     </div>
     <div class="day" ref="dayRef" :style="{ height: DAY_MIN * PX_MIN + 'px' }"
@@ -135,7 +135,6 @@ const suppressClick = ref(false)
 const selRect = ref(null) // { top, bottom, left, right } in container px
 let selPending = null // { clientX, clientY } — wait for drag threshold
 let selMoved = false // true once drag threshold passed — suppress block toggle
-let _rightClickOnEmpty = false
 
 // --- Hover tracking (for paste) ---
 const lastHoverMin = ref(0)
@@ -341,10 +340,8 @@ function onDayClick() {
 }
 
 function onDayMouseDown(e) {
-  // Right-click: distinguish empty area (scissors) vs on block (existing toggle)
   if (e.button === 2) {
     e.preventDefault()
-    _rightClickOnEmpty = !e.target.closest('.block')
     selPending = { clientX: e.clientX, clientY: e.clientY }
     return
   }
@@ -421,15 +418,6 @@ function onMouseMove(e) {
 function onMouseUp(e) {
   if (adrag) { endDrag(true) }
 
-  // Right-click on empty area (no drag) → scissors
-  if (_rightClickOnEmpty && !selMoved && selPending) {
-    _rightClickOnEmpty = false
-    selPending = null
-    selMoved = false
-    onDayRightClick(e)
-    return
-  }
-  _rightClickOnEmpty = false
   selPending = null
   selMoved = false
   if (selRect.value) {
@@ -489,7 +477,7 @@ function onBlockContextMenu(ev) {
 }
 
 // --- Scissors / Glue handlers ---
-function onDayRightClick(e) {
+function onGutterRightClick(e) {
   if (!availableDirs.value.length) return
   const min = yToMin(e.clientY)
   if (!canCutFwd.value && min <= 0) return

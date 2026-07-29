@@ -375,15 +375,25 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
   position: relative;
 }
 
-/* Cursor: scissors on normal day area */
-.day {
+/* Cursor: scissors on gutter (time axis) */
+.gutter {
   cursor: url('./assets/scissors.svg') 16 16, auto;
 }
 
-/* Cursor: glue on glue area (but not on blocks) */
-.glue-from-prev .day,
-.glue-from-next .day {
+/* Cursor: glue on glue area gutter */
+.glue-from-prev .gutter,
+.glue-from-next .gutter {
   cursor: url('./assets/glue.svg') 16 16, auto;
+}
+
+/* Day area uses default cursor */
+.day {
+  cursor: default;
+}
+
+/* Blocks use normal cursors */
+.block {
+  cursor: pointer;
 }
 
 /* Blocks inside glue areas use normal cursors */
