@@ -189,7 +189,24 @@
             <!-- Date title -->
             <div v-if="displayTitle" class="exp-date-title">{{ displayTitle }}</div>
             <template v-if="props.mode === 'timeline'">
-              <!-- Blocks area (gutter + hour lines + time blocks, always aligned) -->
+              <!-- Glue-from-prev blocks area -->
+              <div v-if="gluePrevLayoutBlocks.length" class="exp-blocks exp-glue-prev" :style="{
+                marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px',
+                height: gluePrevHeight.value + 'px',
+              }">
+                <div v-if="settings.showGutter" class="exp-gutter" :style="{ width: GUTTER_WIDTH + 'px', left: -GUTTER_WIDTH + 'px', background: '#89c3eb' }">
+                  <div v-for="h in gluePrevHours" :key="'gph'+h" class="exp-hlabel" :style="{ top: h * 60 + 'px' }">{{ String(h).padStart(2, '0') }}:00</div>
+                </div>
+                <div v-for="b in gluePrevLayoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
+                  <div v-if="settings.showBlockColorBar" class="cbar">
+                    <i v-for="(t, ti) in (b.tags || [])" :key="ti" :style="{ background: tagColor(t) }" />
+                    <i v-if="!b.tags || !b.tags.length" style="background:#C4C3C0" />
+                  </div>
+                  <div v-if="settings.showBlockTitle" class="bt">{{ b.title || '(未命名)' }}</div>
+                  <div v-if="settings.showBlockTime && (b.end - b.start) >= 32" class="bs">{{ fmt(b.start) }}–{{ fmt(b.end) }}</div>
+                </div>
+              </div>
+              <!-- Today blocks area -->
               <div class="exp-blocks" :style="{
                 marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px',
                 height: DAY_MIN + 'px',
@@ -204,7 +221,7 @@
                 <div v-for="h in hours" :key="'hl'+h" class="exp-hourline" :style="{ top: h * 60 + 'px' }" />
                 <div v-for="h in 24" :key="'hfl'+h" class="exp-halfline" :style="{ top: (h - 1) * 60 + 30 + 'px' }" />
                 <!-- Time blocks -->
-                <div v-for="b in layoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
+                <div v-for="b in todayLayoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
                   <div v-if="settings.showBlockColorBar" class="cbar">
                     <i v-for="(t, ti) in (b.tags || [])" :key="ti" :style="{ background: tagColor(t) }" />
                     <i v-if="!b.tags || !b.tags.length" style="background:#C4C3C0" />
@@ -216,6 +233,23 @@
                   </div>
                   <div v-if="settings.showBlockNote && b.note && (b.end - b.start) >= 16" class="bnote" v-html="mdToHtml(b.note)" />
                   <div v-if="settings.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
+                </div>
+              </div>
+              <!-- Glue-from-next blocks area -->
+              <div v-if="glueNextLayoutBlocks.length" class="exp-blocks exp-glue-next" :style="{
+                marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px',
+                height: glueNextHeight.value + 'px',
+              }">
+                <div v-if="settings.showGutter" class="exp-gutter" :style="{ width: GUTTER_WIDTH + 'px', left: -GUTTER_WIDTH + 'px', background: '#89c3eb' }">
+                  <div v-for="h in glueNextHours" :key="'gnh'+h" class="exp-hlabel" :style="{ top: h * 60 + 'px' }">{{ String(h).padStart(2, '0') }}:00</div>
+                </div>
+                <div v-for="b in glueNextLayoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
+                  <div v-if="settings.showBlockColorBar" class="cbar">
+                    <i v-for="(t, ti) in (b.tags || [])" :key="ti" :style="{ background: tagColor(t) }" />
+                    <i v-if="!b.tags || !b.tags.length" style="background:#C4C3C0" />
+                  </div>
+                  <div v-if="settings.showBlockTitle" class="bt">{{ b.title || '(未命名)' }}</div>
+                  <div v-if="settings.showBlockTime && (b.end - b.start) >= 32" class="bs">{{ fmt(b.start) }}–{{ fmt(b.end) }}</div>
                 </div>
               </div>
             </template>
@@ -501,6 +535,9 @@ const exportHeight = computed(() => {
   if (props.mode === 'stats') return 0  // auto from scrollHeight
   let h = DAY_MIN + EXPORT_DATE_TITLE_H
   if (showAuthorBlock.value) h += EXPORT_AUTHOR_BLOCK_H
+  // Add glue area heights (in px, same scale as DAY_MIN)
+  if (gluePrevHeight.value > 0) h += gluePrevHeight.value
+  if (glueNextHeight.value > 0) h += glueNextHeight.value
   return h
 })
 
@@ -558,10 +595,32 @@ watch(
   { immediate: true }
 )
 
-// ----- Block overlap layout -----
-const layoutBlocks = computed(() => {
-  const blocks = timelogStore.blocks.map(b => ({ ...b }))
-  return layoutOverlap(blocks)
+// ----- Block overlap layout (three-section) -----
+const glueData = computed(() => getGlueBlocks(timelogStore.blocks, timelogStore.dateKey))
+const gluePrevLayoutBlocks = computed(() => layoutOverlap(glueData.value.fromPrev.map(b => ({ ...b }))))
+const todayLayoutBlocks = computed(() => layoutOverlap(glueData.value.today.map(b => ({ ...b }))))
+const glueNextLayoutBlocks = computed(() => layoutOverlap(glueData.value.fromNext.map(b => ({ ...b }))))
+const layoutBlocks = todayLayoutBlocks  // keep for backward compat
+
+const gluePrevHeight = computed(() => {
+  const blocks = glueData.value.fromPrev
+  if (!blocks.length) return 0
+  return Math.max(Math.max(...blocks.map(b => b.end)), 60) // at least 1hr
+})
+const glueNextHeight = computed(() => {
+  const blocks = glueData.value.fromNext
+  if (!blocks.length) return 0
+  return Math.max(Math.max(...blocks.map(b => b.end)), 60)
+})
+const gluePrevHours = computed(() => {
+  const h = gluePrevHeight.value
+  if (!h) return []
+  return Array.from({ length: Math.ceil(h / 60) + 1 }, (_, i) => i)
+})
+const glueNextHours = computed(() => {
+  const h = glueNextHeight.value
+  if (!h) return []
+  return Array.from({ length: Math.ceil(h / 60) + 1 }, (_, i) => i)
 })
 
 function layoutOverlap(blocks) {
@@ -714,10 +773,6 @@ async function captureCanvas() {
 function cropToTimeRange(canvas) {
   if (props.mode !== 'timeline' || settings.exportTimeRange !== 'custom') return canvas
 
-  const startMin = fromInput(settings.customRangeTodayStart)
-  const endMin = fromInput(settings.customRangeTodayEnd)
-  if (isNaN(startMin) || isNaN(endMin) || endMin <= startMin || startMin < 0 || endMin > DAY_MIN) return canvas
-
   const titleH = settings.showTitle ? EXPORT_DATE_TITLE_H : 0
   const authorTopH = showAuthorBlock.value && settings.authorPosition === 'top' ? EXPORT_AUTHOR_BLOCK_H : 0
   const authorBottomH = showAuthorBlock.value && settings.authorPosition === 'bottom' ? EXPORT_AUTHOR_BLOCK_H : 0
@@ -725,12 +780,52 @@ function cropToTimeRange(canvas) {
   const padB = 24  // .exp-blocks padding-bottom
 
   const headerH = authorTopH + titleH
-  const blocksContentStart = headerH + padT
-  const blocksEnd = blocksContentStart + DAY_MIN
-  const croppedContentH = (endMin - startMin) * PX_MIN
+  const prevH = gluePrevHeight.value
+  const todayH = DAY_MIN
+  const nextH = glueNextHeight.value
 
-  // New canvas: header + padding-top + cropped content + padding-bottom + author bottom
-  const newH = headerH + padT + croppedContentH + padB + authorBottomH
+  // Parse time ranges for each visible section
+  const prevStartMin = prevH ? fromInput(settings.customRangePrevStart) : NaN
+  const prevEndMin = prevH ? fromInput(settings.customRangePrevEnd) : NaN
+  const todayStartMin = fromInput(settings.customRangeTodayStart)
+  const todayEndMin = fromInput(settings.customRangeTodayEnd)
+  const nextStartMin = nextH ? fromInput(settings.customRangeNextStart) : NaN
+  const nextEndMin = nextH ? fromInput(settings.customRangeNextEnd) : NaN
+
+  // Fall back to full section if inputs are invalid
+  const hasPrevRange = prevH && !isNaN(prevStartMin) && !isNaN(prevEndMin) && prevEndMin > prevStartMin && prevStartMin >= 0
+  const hasTodayRange = !isNaN(todayStartMin) && !isNaN(todayEndMin) && todayEndMin > todayStartMin && todayStartMin >= 0 && todayEndMin <= todayH
+  const hasNextRange = nextH && !isNaN(nextStartMin) && !isNaN(nextEndMin) && nextEndMin > nextStartMin && nextStartMin >= 0
+
+  // If no valid range at all, return original
+  if (!hasPrevRange && !hasTodayRange && !hasNextRange) return canvas
+
+  const contentStartY = headerH + padT
+
+  // Build list of strips to draw
+  const strips = []
+  let srcY = contentStartY
+
+  if (prevH) {
+    if (hasPrevRange) {
+      strips.push({ srcY, srcH: (prevEndMin - prevStartMin) * PX_MIN, shiftSrc: prevStartMin * PX_MIN })
+    }
+    srcY += prevH
+  }
+
+  if (hasTodayRange) {
+    strips.push({ srcY, srcH: (todayEndMin - todayStartMin) * PX_MIN, shiftSrc: todayStartMin * PX_MIN })
+  }
+  srcY += todayH
+
+  if (nextH) {
+    if (hasNextRange) {
+      strips.push({ srcY, srcH: (nextEndMin - nextStartMin) * PX_MIN, shiftSrc: nextStartMin * PX_MIN })
+    }
+  }
+
+  const totalContentH = strips.reduce((s, st) => s + st.srcH, 0)
+  const newH = headerH + padT + totalContentH + padB + authorBottomH
   const cropped = document.createElement('canvas')
   cropped.width = canvas.width
   cropped.height = newH
@@ -738,17 +833,19 @@ function cropToTimeRange(canvas) {
 
   let dstY = 0
 
-  // 1. Header + blocks padding-top (row stays as-is)
-  ctx.drawImage(canvas, 0, 0, canvas.width, blocksContentStart, 0, 0, canvas.width, blocksContentStart)
-  dstY += blocksContentStart
+  // 1. Header
+  ctx.drawImage(canvas, 0, 0, canvas.width, contentStartY, 0, 0, canvas.width, contentStartY)
+  dstY += contentStartY
 
-  // 2. Cropped blocks content [startMin, endMin]
-  const srcY = blocksContentStart + startMin * PX_MIN
-  ctx.drawImage(canvas, 0, srcY, canvas.width, croppedContentH, 0, dstY, canvas.width, croppedContentH)
-  dstY += croppedContentH
+  // 2. Cropped sections
+  for (const st of strips) {
+    ctx.drawImage(canvas, 0, st.srcY + st.shiftSrc, canvas.width, st.srcH, 0, dstY, canvas.width, st.srcH)
+    dstY += st.srcH
+  }
 
-  // 3. Padding-bottom + author bottom
-  ctx.drawImage(canvas, 0, blocksEnd, canvas.width, padB + authorBottomH, 0, dstY, canvas.width, padB + authorBottomH)
+  // 3. Footer (padding-bottom + author bottom)
+  const footerSrcY = contentStartY + prevH + todayH + nextH
+  ctx.drawImage(canvas, 0, footerSrcY, canvas.width, padB + authorBottomH, 0, dstY, canvas.width, padB + authorBottomH)
 
   return cropped
 }
