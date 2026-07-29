@@ -1,12 +1,12 @@
 <template>
   <!-- Glue from previous day -->
   <div v-if="glueBlocks.fromPrev.length" class="glue-from-prev">
-    <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('prev') + 'px' }">
+    <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('prev') + 'px' }" @contextmenu.prevent="onGlueAreaRightClick($event, glueSourcePrev)">
       <div v-for="h in glueHours('prev')" :key="'ghp'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">
         {{ String(h-1).padStart(2,'0') }}:00
       </div>
     </div>
-    <div class="day" :style="{ height: glueHeight('prev') + 'px' }" @contextmenu.prevent="onGlueAreaRightClick($event, glueSourcePrev)">
+    <div class="day" :style="{ height: glueHeight('prev') + 'px' }">
       <div v-for="h in glueHours('prev')" :key="'ghlp'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
       <div v-for="h in (glueHours('prev') - 1)" :key="'ghflp'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
       <div
@@ -59,12 +59,12 @@
 
   <!-- Glue from next day -->
   <div v-if="glueBlocks.fromNext.length" class="glue-from-next">
-    <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('next') + 'px' }">
+    <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('next') + 'px' }" @contextmenu.prevent="onGlueAreaRightClick($event, glueSourceNext)">
       <div v-for="h in glueHours('next')" :key="'ghn'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">
         {{ String(h-1).padStart(2,'0') }}:00
       </div>
     </div>
-    <div class="day" :style="{ height: glueHeight('next') + 'px' }" @contextmenu.prevent="onGlueAreaRightClick($event, glueSourceNext)">
+    <div class="day" :style="{ height: glueHeight('next') + 'px' }">
       <div v-for="h in glueHours('next')" :key="'ghln'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
       <div v-for="h in (glueHours('next') - 1)" :key="'ghfln'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
       <div
