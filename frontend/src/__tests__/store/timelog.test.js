@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { useTimelogStore, dkey, fmt, toInput, fromInput } from '../../store/timelog.js'
+import {
+  useTimelogStore, dkey, fmt, toInput, fromInput,
+  dateStr, addDays, isBefore,
+  canCutForward, canCutBackward,
+  cutDay, glueBack, getGlueBlocks,
+} from '../../store/timelog.js'
 
 // Mock localStorage
 const store = {}
@@ -107,5 +112,130 @@ describe('useTimelogStore', () => {
     s.deleteSelectedBlocks()
     expect(s.blocks).toHaveLength(1)
     expect(s.blocks[0].id).toBe('b2')
+  })
+})
+
+describe('date helpers', () => {
+  it('dateStr works with Date and string', () => {
+    expect(dateStr(new Date(2026, 6, 24))).toBe('2026-07-24')
+    expect(dateStr('2026-07-24')).toBe('2026-07-24')
+  })
+
+  it('addDays adds and subtracts', () => {
+    expect(addDays('2026-07-24', 1)).toBe('2026-07-25')
+    expect(addDays('2026-07-24', -1)).toBe('2026-07-23')
+    expect(addDays('2026-01-01', -1)).toBe('2025-12-31')
+  })
+
+  it('isBefore compares date strings', () => {
+    expect(isBefore('2026-07-23', '2026-07-24')).toBe(true)
+    expect(isBefore('2026-07-25', '2026-07-24')).toBe(false)
+  })
+})
+
+describe('cut constraints', () => {
+  it('canCutForward rejects if blocks from tomorrow exist', () => {
+    const blocks = [{ id: 'b1', start: 0, end: 60, _cut: { sourceDate: '2026-07-25', cutAt: 0 } }]
+    expect(canCutForward(blocks, '2026-07-24')).toBe(false)
+  })
+
+  it('canCutForward allows if no blocks from tomorrow', () => {
+    const blocks = [{ id: 'b1', start: 0, end: 60, _cut: { sourceDate: '2026-07-23', cutAt: 0 } }]
+    expect(canCutForward(blocks, '2026-07-24')).toBe(true)
+  })
+
+  it('canCutBackward rejects if blocks from yesterday exist', () => {
+    const blocks = [{ id: 'b1', start: 0, end: 60, _cut: { sourceDate: '2026-07-23', cutAt: 0 } }]
+    expect(canCutBackward(blocks, '2026-07-24')).toBe(false)
+  })
+})
+
+describe('cutDay', () => {
+  beforeEach(() => {
+    // Seed localStorage with test data
+    localStorage.setItem('timelog:2026-07-24', JSON.stringify([
+      { id: 'a', start: 480, end: 600, title: 'Morning', note: '', tags: [] },   // 08:00-10:00
+      { id: 'b', start: 720, end: 840, title: 'Afternoon', note: '', tags: [] }, // 12:00-14:00
+      { id: 'c', start: 1200, end: 1380, title: 'Evening', note: '', tags: [] }, // 20:00-23:00
+    ]))
+    localStorage.removeItem('timelog:2026-07-25')
+    localStorage.removeItem('timelog:2026-07-23')
+  })
+
+  it('cutDay forward moves blocks after cutAt to next day', () => {
+    const result = cutDay('2026-07-24', 780, 'forward') // cut at 13:00
+    expect(result).toBeTruthy()
+    expect(result.moved).toBeGreaterThan(0)
+
+    const src = JSON.parse(localStorage.getItem('timelog:2026-07-24'))
+    const tgt = JSON.parse(localStorage.getItem('timelog:2026-07-25'))
+
+    // Block 'b' (12:00-14:00) should be split: 12:00-13:00 stays, 13:00-14:00 moves
+    const splitB = src.find(x => x.id === 'b')
+    expect(splitB).toBeTruthy()
+    expect(splitB.end).toBe(780) // 13:00
+
+    const movedB = tgt.find(x => x.id === 'b')
+    expect(movedB).toBeTruthy()
+    expect(movedB.start).toBe(780)
+    expect(movedB._cut).toBeTruthy()
+    expect(movedB._cut.sourceDate).toBe('2026-07-24')
+  })
+
+  it('cutDay backward moves blocks before cutAt to prev day', () => {
+    const result = cutDay('2026-07-24', 660, 'backward') // cut at 11:00
+    expect(result).toBeTruthy()
+
+    const src = JSON.parse(localStorage.getItem('timelog:2026-07-24'))
+    const tgt = JSON.parse(localStorage.getItem('timelog:2026-07-23'))
+
+    // Block 'a' (08:00-10:00) should be moved entirely (before 11:00)
+    const movedA = tgt.find(x => x.id === 'a')
+    expect(movedA).toBeTruthy()
+    expect(movedA._cut).toBeTruthy()
+  })
+})
+
+describe('glueBack', () => {
+  beforeEach(() => {
+    localStorage.setItem('timelog:2026-07-24', JSON.stringify([
+      { id: 'a', start: 0, end: 60, title: 'Normal', note: '', tags: [] },
+    ]))
+    localStorage.setItem('timelog:2026-07-25', JSON.stringify([
+      { id: 'b', start: 480, end: 600, _cut: { sourceDate: '2026-07-24', cutAt: 480 }, title: 'Cut', note: '', tags: [] },
+    ]))
+  })
+
+  it('glueBack moves blocks back to source date', () => {
+    const result = glueBack('2026-07-25', '2026-07-24')
+    expect(result).toBeTruthy()
+
+    const tgt = JSON.parse(localStorage.getItem('timelog:2026-07-25')) || []
+    const src = JSON.parse(localStorage.getItem('timelog:2026-07-24')) || []
+
+    // Target should have no glue blocks
+    expect(tgt.find(x => x._cut)).toBeFalsy()
+
+    // Source should have the returned block
+    const returned = src.find(x => x.id === 'b')
+    expect(returned).toBeTruthy()
+    expect(returned._cut).toBeFalsy()
+  })
+})
+
+describe('getGlueBlocks', () => {
+  it('separates fromPrev, fromNext, today', () => {
+    const blocks = [
+      { id: 'a', start: 0, end: 60 },
+      { id: 'b', start: 60, end: 120, _cut: { sourceDate: '2026-07-23', cutAt: 0 } },
+      { id: 'c', start: 120, end: 180, _cut: { sourceDate: '2026-07-25', cutAt: 0 } },
+    ]
+    const { fromPrev, fromNext, today } = getGlueBlocks(blocks, '2026-07-24')
+    expect(fromPrev).toHaveLength(1)
+    expect(fromPrev[0].id).toBe('b')
+    expect(fromNext).toHaveLength(1)
+    expect(fromNext[0].id).toBe('c')
+    expect(today).toHaveLength(1)
+    expect(today[0].id).toBe('a')
   })
 })
