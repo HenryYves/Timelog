@@ -1,6 +1,6 @@
 <template>
   <!-- Glue from previous day -->
-  <div v-if="glueBlocks.fromPrev.length" class="glue-section">
+  <div v-if="glueBlocks.fromPrev.length" class="glue-from-prev">
     <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('prev') + 'px' }">
       <div v-for="h in glueHours('prev')" :key="'ghp'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">
         {{ String(h-1).padStart(2,'0') }}:00
@@ -58,7 +58,7 @@
   </div>
 
   <!-- Glue from next day -->
-  <div v-if="glueBlocks.fromNext.length" class="glue-section">
+  <div v-if="glueBlocks.fromNext.length" class="glue-from-next">
     <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('next') + 'px' }">
       <div v-for="h in glueHours('next')" :key="'ghn'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">
         {{ String(h-1).padStart(2,'0') }}:00
@@ -721,13 +721,6 @@ watch(() => store.dateKey, () => {
 .grid {
   position: relative;
   display: flex;
-}
-.glue-section {
-  position: relative;
-  display: flex;
-}
-.glue-section .day {
-  cursor: default;
 }
 .gutter {
   flex: none;
