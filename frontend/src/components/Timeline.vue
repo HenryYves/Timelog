@@ -498,16 +498,7 @@ function onGutterRightClick(e) {
 }
 
 async function onCutConfirm(cutAt, direction) {
-  // Check extreme cases — moving ALL blocks
-  if (direction === 'forward' && cutAt <= 0) {
-    const ok = await showConfirm(STR.cut.extremeAll)
-    if (!ok) return
-  }
-  if (direction === 'backward' && cutAt >= DAY_MIN) {
-    const ok = await showConfirm(STR.cut.extremeAll)
-    if (!ok) return
-  }
-  // Check no-op extremes
+  // 1. Check no-op extremes first
   if (direction === 'forward' && cutAt >= DAY_MIN) {
     toast(STR.cut.extremeNone)
     return
@@ -517,7 +508,7 @@ async function onCutConfirm(cutAt, direction) {
     return
   }
 
-  // Check for short fragments (< 10 min)
+  // 2. Check for short fragments (< 10 min) — before cut
   const todayBlocksList = glueBlocks.value.today
   let hasShort = false
   let shortDur = 0
@@ -540,6 +531,16 @@ async function onCutConfirm(cutAt, direction) {
   }
   if (hasShort) {
     const ok = await showConfirm(STR.cut.shortBlock(shortDur))
+    if (!ok) return
+  }
+
+  // 3. Check extreme cases — moving ALL blocks
+  if (direction === 'forward' && cutAt <= 0) {
+    const ok = await showConfirm(STR.cut.extremeAll)
+    if (!ok) return
+  }
+  if (direction === 'backward' && cutAt >= DAY_MIN) {
+    const ok = await showConfirm(STR.cut.extremeAll)
     if (!ok) return
   }
 
