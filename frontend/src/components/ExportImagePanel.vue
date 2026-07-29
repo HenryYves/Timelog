@@ -19,6 +19,35 @@
             <label><input type="checkbox" v-model="settings.showGutter" /> {{ STR.exportImage.showGutter }}</label>
           </div>
 
+          <!-- Phase 0.5: Time range selector (timeline mode only) -->
+          <div v-if="props.mode === 'timeline'" class="setting-group">
+            <label>{{ STR.export.timeRange }}</label>
+            <select v-model="settings.exportTimeRange">
+              <option value="all">{{ STR.export.timeRangeAll }}</option>
+              <option value="custom">{{ STR.export.timeRangeCustom }}</option>
+            </select>
+          </div>
+          <template v-if="props.mode === 'timeline' && settings.exportTimeRange === 'custom'">
+            <div v-if="hasPrevGlue" class="setting-group">
+              <label>{{ STR.export.timeRangePrefixPrev }}</label>
+              <input type="text" v-model="settings.customRangePrevStart" placeholder="HH:MM" maxlength="5" />
+              <span>→</span>
+              <input type="text" v-model="settings.customRangePrevEnd" placeholder="HH:MM" maxlength="5" />
+            </div>
+            <div class="setting-group">
+              <label>今天</label>
+              <input type="text" v-model="settings.customRangeTodayStart" placeholder="HH:MM" maxlength="5" />
+              <span>→</span>
+              <input type="text" v-model="settings.customRangeTodayEnd" placeholder="HH:MM" maxlength="5" />
+            </div>
+            <div v-if="hasNextGlue" class="setting-group">
+              <label>{{ STR.export.timeRangePrefixNext }}</label>
+              <input type="text" v-model="settings.customRangeNextStart" placeholder="HH:MM" maxlength="5" />
+              <span>→</span>
+              <input type="text" v-model="settings.customRangeNextEnd" placeholder="HH:MM" maxlength="5" />
+            </div>
+          </template>
+
             <div class="setting-group">
               <label>{{ STR.exportImage.exportWidth }}</label>
               <input type="number" v-model.number="settings.exportWidth" min="200" max="4000" step="10" />
@@ -256,8 +285,18 @@ import { usePanZoom } from '../composables/usePanZoom.js'
 const showBlockOpts = ref(false)
 const showAuthorOpts = ref(false)
 const showWatermarkOpts = ref(false)
+
+const hasPrevGlue = computed(() => {
+  const gb = getGlueBlocks(timelogStore.blocks, timelogStore.dateKey)
+  return gb.fromPrev.length > 0
+})
+const hasNextGlue = computed(() => {
+  const gb = getGlueBlocks(timelogStore.blocks, timelogStore.dateKey)
+  return gb.fromNext.length > 0
+})
+
 import { STR } from '../strings.js'
-import { useTimelogStore, fmt, dkey } from '../store/timelog.js'
+import { useTimelogStore, fmt, dkey, fromInput, getGlueBlocks } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { PX_MIN, DAY_MIN, GUTTER_WIDTH, DATA_DIR, EXPORT_DATE_TITLE_H, EXPORT_AUTHOR_BLOCK_H } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
@@ -275,6 +314,14 @@ const defaults = {
   showBlockNote: true,
   showBlockColorBar: true,
   maskBlockOverflow: false,
+  // Phase 0.5 — 时间范围
+  exportTimeRange: 'all',
+  customRangePrevStart: '',
+  customRangePrevEnd: '',
+  customRangeTodayStart: '',
+  customRangeTodayEnd: '',
+  customRangeNextStart: '',
+  customRangeNextEnd: '',
   // Phase 1 — 核心
   bgMode: 'theme',       // 'theme' | 'custom'
   bgColor: '#FFFFFF',
@@ -648,13 +695,62 @@ async function captureCanvas() {
   const el = timelineDom.value
   if (!el) return null
   const h = props.mode === 'stats' ? el.scrollHeight : exportHeight.value
-  return await captureElement(el, {
+  const canvas = await captureElement(el, {
     width: settings.exportWidth,
     height: h,
     backgroundColor: settings.bgMode === 'custom'
       ? settings.bgColor
       : getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim(),
   })
+  if (!canvas) return null
+  return cropToTimeRange(canvas)
+}
+
+/**
+ * Crop canvas to the custom time range.
+ * Keeps header (author + title) and footer (padding-bottom + author bottom)
+ * intact, but only shows the timeline portion between startMin and endMin.
+ */
+function cropToTimeRange(canvas) {
+  if (props.mode !== 'timeline' || settings.exportTimeRange !== 'custom') return canvas
+
+  const startMin = fromInput(settings.customRangeTodayStart)
+  const endMin = fromInput(settings.customRangeTodayEnd)
+  if (isNaN(startMin) || isNaN(endMin) || endMin <= startMin || startMin < 0 || endMin > DAY_MIN) return canvas
+
+  const titleH = settings.showTitle ? EXPORT_DATE_TITLE_H : 0
+  const authorTopH = showAuthorBlock.value && settings.authorPosition === 'top' ? EXPORT_AUTHOR_BLOCK_H : 0
+  const authorBottomH = showAuthorBlock.value && settings.authorPosition === 'bottom' ? EXPORT_AUTHOR_BLOCK_H : 0
+  const padT = 8   // .exp-blocks padding-top
+  const padB = 24  // .exp-blocks padding-bottom
+
+  const headerH = authorTopH + titleH
+  const blocksContentStart = headerH + padT
+  const blocksEnd = blocksContentStart + DAY_MIN
+  const croppedContentH = (endMin - startMin) * PX_MIN
+
+  // New canvas: header + padding-top + cropped content + padding-bottom + author bottom
+  const newH = headerH + padT + croppedContentH + padB + authorBottomH
+  const cropped = document.createElement('canvas')
+  cropped.width = canvas.width
+  cropped.height = newH
+  const ctx = cropped.getContext('2d')
+
+  let dstY = 0
+
+  // 1. Header + blocks padding-top (row stays as-is)
+  ctx.drawImage(canvas, 0, 0, canvas.width, blocksContentStart, 0, 0, canvas.width, blocksContentStart)
+  dstY += blocksContentStart
+
+  // 2. Cropped blocks content [startMin, endMin]
+  const srcY = blocksContentStart + startMin * PX_MIN
+  ctx.drawImage(canvas, 0, srcY, canvas.width, croppedContentH, 0, dstY, canvas.width, croppedContentH)
+  dstY += croppedContentH
+
+  // 3. Padding-bottom + author bottom
+  ctx.drawImage(canvas, 0, blocksEnd, canvas.width, padB + authorBottomH, 0, dstY, canvas.width, padB + authorBottomH)
+
+  return cropped
 }
 
 async function doCopy() {
