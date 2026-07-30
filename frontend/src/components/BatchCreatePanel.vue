@@ -24,7 +24,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { useTimelogStore, dkey, toInput } from '../store/timelog.js'
+import { useTimelogStore, dkey, toInput, todayLocalToStorage } from '../store/timelog.js'
 import { useSettingsStore } from '../store/settings.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
@@ -161,10 +161,11 @@ async function onCreate() {
   }
 
   for (const b of blocks) {
+    const st = todayLocalToStorage(b.start, b.end, store._cutMeta)
     store.addBlock({
       id: 'b' + Date.now() + Math.random().toString(36).slice(2, 6),
-      start: b.start,
-      end: b.end,
+      start: st.start,
+      end: st.end,
       title: b.title,
       note: b.note,
       tags: b.tags,

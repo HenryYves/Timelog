@@ -103,7 +103,7 @@
           <i v-if="!ev.tags || !ev.tags.length" style="background:#C4C3C0" />
         </div>
         <div v-if="settingsStore.showBlockTitle" class="bt">{{ ev.title || '(未命名)' }}</div>
-        <div v-if="settingsStore.showBlockTime && (ev.end - ev.start) * PX_MIN >= 32" class="bs">{{ fmt(ev.start) }}–{{ fmt(ev.end) }}</div>
+        <div v-if="settingsStore.showBlockTime && (ev.end - ev.start) * PX_MIN >= 32" class="bs">{{ fmtSigned(ev.start) }}–{{ fmtSigned(ev.end) }}</div>
         <div v-if="settingsStore.showBlockTags && (ev.end - ev.start) * PX_MIN >= 18 && ev.tags && ev.tags.length" class="btags">
           <span v-for="t in ev.tags" :key="t"><span class="tdot" :style="{ background: colorOf(t).hex }" />{{ t }}</span>
         </div>
@@ -115,7 +115,7 @@
       <div v-if="hoverLine" class="cut-hover" :style="{ top: hoverLine.y + 'px' }">
         <span class="cut-hover-label">{{ hoverLine.label }}</span>
       </div>
-      <div v-if="isToday && nowInToday" class="nowline" :style="{ top: minuteToY(DAY_MIN + nowMin) + 'px' }" />
+      <div v-if="isToday && nowInToday" class="nowline" :style="{ top: minuteToY(DAY_MIN + nowMin - todayRange.value.start) + 'px' }" />
     </div>
   </div>
 
@@ -136,9 +136,10 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useTimelogStore, fmt, dkey, cutDay, glueBack, canCutForward, canCutBackward } from '../store/timelog.js'
+import { useTimelogStore, fmt, fmtSigned, dkey, cutDay, glueBack, canCutForward, canCutBackward } from '../store/timelog.js'
 import { useSettingsStore } from '../store/settings.js'
 import { mdToHtml } from '../utils/markdown.js'
+import { toDisplayBlock } from '../utils/displayBlocks.js'
 import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
 import { useConfirm } from '../composables/useConfirm.js'
@@ -187,7 +188,6 @@ const hoverLine = ref(null)
 // --- Hover tracking (for paste) ---
 const lastHoverMin = ref(0)
 const overGrid = ref(false)
-const localClipboard = ref([])
 
 // --- Now line ---
 const isToday = computed(() => dkey(new Date()) === store.dateKey)
@@ -210,23 +210,6 @@ function updateNowMin() {
 // --- Coordinate conversion between storage and unified display ---
 function todayStorageOffsetForOrig(storageStart) {
   return store._cutMeta?.toNext && storageStart < DAY_MIN ? DAY_MIN : 0
-}
-
-function toDisplayBlock(b) {
-  if (b._cut) {
-    return { ...b, _storageStart: b.start, _storageEnd: b.end }
-  }
-  const off = todayStorageOffsetForOrig(b.start)
-  if (!off) {
-    return { ...b, _storageStart: b.start, _storageEnd: b.end }
-  }
-  return {
-    ...b,
-    start: b.start + off,
-    end: b.end + off,
-    _storageStart: b.start,
-    _storageEnd: b.end,
-  }
 }
 
 function toStorageFromDisplay(b) {
@@ -277,7 +260,7 @@ function layout(list) {
   return evs
 }
 
-const displayBlocks = computed(() => store.blocks.map(toDisplayBlock))
+const displayBlocks = computed(() => store.blocks.map(b => toDisplayBlock(b, store._cutMeta)))
 const layoutBlocks = computed(() => layout(displayBlocks.value.slice()))
 
 // --- Labels ---
@@ -364,7 +347,7 @@ function computeBlockStyle(ev) {
 }
 
 function blockTitle(ev) {
-  let t = fmt(ev.start) + '–' + fmt(ev.end) + '  ' + (ev.title || '')
+  let t = fmtSigned(ev.start) + '–' + fmtSigned(ev.end) + '  ' + (ev.title || '')
   if (ev.tags?.length) t += '  [' + ev.tags.join(',') + ']'
   if (ev.note) t += '\n' + ev.note
   return t
@@ -423,13 +406,13 @@ function applyDrag() {
     ghost.style.height = Math.max((b.en - b.s) * PX_MIN, 2) + 'px'
     ghost.style.left = '2px'
     ghost.style.right = '2px'
-    ghost.textContent = fmt(b.s) + ' – ' + fmt(b.en)
+    ghost.textContent = fmtSigned(b.s) + ' – ' + fmtSigned(b.en)
   } else if (adrag.el) {
     adrag.el.style.top = minuteToY(b.s) + 'px'
     adrag.el.style.height = Math.max((b.en - b.s) * PX_MIN, 2) + 'px'
     adrag.el.classList.add('resizing')
   }
-  showDLabel(activeMin(), fmt(b.s) + ' – ' + fmt(b.en) + '（' + (b.en - b.s) + 'm，↑↓微调）')
+  showDLabel(activeMin(), fmtSigned(b.s) + ' – ' + fmtSigned(b.en) + '（' + (b.en - b.s) + 'm，↑↓微调）')
 }
 
 function endDrag(commit) {
@@ -450,7 +433,7 @@ function endDrag(commit) {
   } else {
     const rec = store.blocks.find(x => x.id === id)
     if (rec) {
-      const off = todayStorageOffsetForOrig(rec.start)
+      const off = rec._cut ? 0 : todayStorageOffsetForOrig(rec.start)
       store.updateBlock({
         ...rec,
         start: b.s - off,
@@ -559,9 +542,9 @@ function onMouseUp(e) {
     const z = settingsStore.zoom / 100
     const dayW = dayRef.value.offsetWidth
     layoutBlocks.value.forEach(ev => {
-      const blockTop = blockTopForBlock(ev)
-      const blockBottom = ev.end * PX_MIN
-      if (selBottom <= blockTop || selTop >= blockBottom) return
+      const bTop = blockTop(ev)
+      const bBottom = bTop + (ev.end - ev.start) * PX_MIN
+      if (selBottom <= bTop || selTop >= bBottom) return
       const cols = ev._cols || 1
       const colW = dayW / cols
       const blockLeft = (ev._col || 0) * colW + 2
@@ -575,11 +558,6 @@ function onMouseUp(e) {
     }
   }
   overGrid.value = false
-}
-
-// Use the same top calculation as computeBlockStyle for selection matching
-function blockTopForBlock(ev) {
-  return blockTop(ev)
 }
 
 function onBlockClick(e, ev) {
@@ -613,7 +591,7 @@ function onGutterHover(e) {
   if (min < DAY_MIN) {
     label = `-${fmt(min)}`
   } else if (min < 2 * DAY_MIN) {
-    label = fmt(min - DAY_MIN)
+    label = fmt(min - DAY_MIN + todayRange.value.start)
   } else {
     label = `+${fmt(min - 2 * DAY_MIN)}`
   }
@@ -627,7 +605,7 @@ function onGutterLeave() {
 function onTodayRightClick(e) {
   if (!availableDirs.value.length) return
   const min = yToMinute(e.clientY, dayRef.value)
-  const localMin = Math.max(0, Math.min(DAY_MIN, min - DAY_MIN))
+  const localMin = Math.max(0, Math.min(DAY_MIN, min - DAY_MIN + todayRange.value.start))
   cutInitialMin.value = localMin
   showCutConfirm.value = true
 }
@@ -656,9 +634,10 @@ async function onCutConfirm(cutAt, direction) {
     return
   }
 
+  const tr = todayRange.value
   const localTodayBlocks = displayBlocks.value
     .filter(b => !b._cut && b.start >= DAY_MIN && b.end <= 2 * DAY_MIN)
-    .map(b => ({ ...b, start: b.start - DAY_MIN, end: b.end - DAY_MIN }))
+    .map(b => ({ ...b, start: b.start - DAY_MIN + tr.start, end: b.end - DAY_MIN + tr.start }))
 
   let hasShort = false
   let shortDur = 0
@@ -736,12 +715,12 @@ function onKeyDown(e) {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
     if (copySelectedLocal()) {
       e.preventDefault()
-      toast(STR.toast.copied(localClipboard.value.length))
+      toast(STR.toast.copied(store.clipboard.length))
     }
     return
   }
   if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
-    if (localClipboard.value.length) {
+    if (store.clipboard.length) {
       e.preventDefault()
       doPaste()
     }
@@ -764,17 +743,19 @@ function onKeyDown(e) {
   }
 }
 
+// 剪贴板统一存存储坐标（保留 _cut 以便跨帧块正确换算显示坐标）
 function copySelectedLocal() {
   if (!selectedBlocks.value.size) return false
-  localClipboard.value = layoutBlocks.value
+  store.clipboard = layoutBlocks.value
     .filter(b => selectedBlocks.value.has(b.id))
     .sort((a, b) => a.start - b.start)
     .map(b => ({
-      start: b.start,
-      end: b.end,
+      start: b._storageStart,
+      end: b._storageEnd,
       title: b.title,
       note: b.note,
       tags: [...(b.tags || [])],
+      ...(b._cut ? { _cut: b._cut } : {}),
     }))
   return true
 }
@@ -788,8 +769,9 @@ async function onDeleteSelected() {
 }
 
 function doPaste() {
-  if (!localClipboard.value.length) return
-  const minStart = Math.min(...localClipboard.value.map(c => c.start))
+  if (!store.clipboard.length) return
+  const disp = store.clipboard.map(c => toDisplayBlock(c, store._cutMeta))
+  const minStart = Math.min(...disp.map(c => c.start))
   let offset = 0
   const anchored = overGrid.value
   if (anchored) {
@@ -797,7 +779,7 @@ function doPaste() {
     offset = anchor - minStart
   }
   const newBlocks = []
-  localClipboard.value.forEach(c => {
+  disp.forEach(c => {
     const dur = c.end - c.start
     let s = c.start + offset
     let en = c.end + offset
@@ -825,9 +807,9 @@ function scrollToNow() {
   const main = document.querySelector('main')
   if (!main) return
   if (isToday.value && nowInToday.value) {
-    main.scrollTop = Math.max(0, minuteToY(DAY_MIN + nowMin.value) - 160)
+    main.scrollTop = Math.max(0, minuteToY(DAY_MIN + nowMin.value - todayRange.value.start) - 160)
   } else {
-    main.scrollTop = Math.max(0, minuteToY(DAY_MIN + todayRange.value.start) - 160)
+    main.scrollTop = Math.max(0, minuteToY(DAY_MIN) - 160)
   }
 }
 

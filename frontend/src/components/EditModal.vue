@@ -116,21 +116,26 @@ function isDirty() {
 }
 
 // Populate form when modal opens
+// frameBase：块的存储帧基准（昨天 0 / 今天 1440 / 明天 2880），
+// 输入框始终显示本地时间，保存时加回 frameBase
+const frameBase = ref(0)
 watch(
   () => [props.show, props.editingBlock, props.createTimes],
   ([show, block, cTimes]) => {
     if (!show) return
     if (block) {
+      frameBase.value = block.start < 1440 ? 0 : block.start < 2880 ? 1440 : 2880
       mTitle.value = block.title || ''
       mNote.value = block.note || ''
-      mStart.value = toInput(block.start)
-      mEnd.value = toInput(block.end)
+      mStart.value = toInput(block.start - frameBase.value)
+      mEnd.value = toInput(block.end - frameBase.value)
       selectedTags.value = [...(block.tags || [])]
     } else if (cTimes) {
+      frameBase.value = cTimes.start < 1440 ? 0 : cTimes.start < 2880 ? 1440 : 2880
       mTitle.value = ''
       mNote.value = ''
-      mStart.value = toInput(cTimes.start)
-      mEnd.value = toInput(cTimes.end)
+      mStart.value = toInput(cTimes.start - frameBase.value)
+      mEnd.value = toInput(cTimes.end - frameBase.value)
       selectedTags.value = []
     }
     original.value = {
@@ -202,8 +207,8 @@ function focusFirstChip() {
 
 // Save
 async function save() {
-  const s = fromInput(mStart.value)
-  let en = fromInput(mEnd.value)
+  const s = fromInput(mStart.value) + frameBase.value
+  let en = fromInput(mEnd.value) + frameBase.value
   if (en <= s) en = s + 1
   const dur = en - s
   // Confirm short blocks (new blocks only, not edits)
@@ -218,6 +223,8 @@ async function save() {
     title: mTitle.value.trim(),
     note: mNote.value.trim(),
     tags: selectedTags.value.slice(),
+    // 保留胶水标记，避免编辑胶水块后丢失来源信息
+    ...(props.editingBlock?._cut ? { _cut: props.editingBlock._cut } : {}),
   }
   if (props.editingBlock) timelogStore.updateBlock(rec)
   else timelogStore.addBlock(rec)
@@ -251,10 +258,11 @@ async function deleteBlock() {
 }
 
 // Copy to clipboard + toast — reads live form values, not props.editingBlock
+// 剪贴板统一存存储坐标
 function copyBlock() {
   timelogStore.clipboard = [{
-    start: fromInput(mStart.value),
-    end: fromInput(mEnd.value),
+    start: fromInput(mStart.value) + frameBase.value,
+    end: fromInput(mEnd.value) + frameBase.value,
     title: mTitle.value.trim(),
     note: mNote.value.trim(),
     tags: selectedTags.value.slice(),

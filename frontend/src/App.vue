@@ -148,7 +148,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { tExport } from './utils/tauri.js'
 import { save } from '@tauri-apps/plugin-dialog'
-import { useTimelogStore, dkey, storeUndo } from './store/timelog.js'
+import { useTimelogStore, dkey, storeUndo, todayStorageBase, todayLocalToStorage } from './store/timelog.js'
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
 import { APP_VERSION, compareSemver } from './constants.js'
@@ -666,10 +666,14 @@ function onWindowKeyDown(e) {
     const now = new Date()
     const isToday = dkey(now) === store.dateKey
     const nowMin = now.getHours() * 60 + now.getMinutes()
-    const blocks = store.blocks
+    // 只看今天帧的块（本地时间），忽略胶水块
+    const base = todayStorageBase(store._cutMeta)
+    const todayEnds = store.blocks
+      .filter(b => !b._cut && b.start >= base && b.start < base + 1440)
+      .map(b => b.end - base)
     let s
-    if (blocks.length > 0) {
-      const lastEnd = Math.max(...blocks.map(b => b.end))
+    if (todayEnds.length > 0) {
+      const lastEnd = Math.max(...todayEnds)
       s = (isToday && lastEnd > nowMin) ? nowMin : lastEnd
     } else {
       s = 0  // 00:00 — empty page defaults to start of day
@@ -677,7 +681,7 @@ function onWindowKeyDown(e) {
     if (s > 1380) s = 1380
     const end = settings.endTimeAtNow ? nowMin : Math.min(s + settings.defaultDuration, 1440)
     editingBlock.value = null
-    createTimes.value = { start: s, end }
+    createTimes.value = todayLocalToStorage(s, end, store._cutMeta)
     showModal.value = true
   }
   if (e.key === 'n' || e.key === 'N') {

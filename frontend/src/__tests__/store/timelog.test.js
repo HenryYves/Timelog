@@ -285,6 +285,79 @@ describe('cutDay v2', () => {
 
     expect(cutDay('2026-07-24', 780, 'forward')).toBe(false)
   })
+
+  it('cutDay forward twice merges with min cutAt', () => {
+    cutDay('2026-07-24', 780, 'forward')   // 13:00 → toNext.cutAt=780
+    // 第一次剪切后：a 留存 [480,600]，b 前半 [720,780]
+    cutDay('2026-07-24', 600, 'forward')   // 10:00 → 合并后 cutAt=600
+
+    const src = JSON.parse(localStorage.getItem('timelog:2026-07-24'))
+    const tgt = JSON.parse(localStorage.getItem('timelog:2026-07-25'))
+
+    // meta 取 min
+    expect(src._cutMeta.toNext.cutAt).toBe(600)
+    expect(tgt._cutMeta.fromPrev.cutAt).toBe(600)
+
+    // a (08:00-10:00) 留在源日局部帧 [480,600]
+    const a = src.blocks.find(b => b.id === 'a')
+    expect(a.start).toBe(480)
+    expect(a.end).toBe(600)
+
+    // b 的两个半块在明天合并回 [720,840]
+    const bs = tgt.blocks.filter(b => b.id === 'b')
+    expect(bs.length).toBe(1)
+    expect(bs[0].start).toBe(720)
+    expect(bs[0].end).toBe(840)
+    expect(bs[0]._cut.cutAt).toBe(600)
+  })
+
+  it('cutDay forward then backward: both metas, correct positions', () => {
+    cutDay('2026-07-24', 780, 'forward')   // 13:00 剪到明天
+    localStorage.removeItem('timelog:2026-07-23')
+    cutDay('2026-07-24', 540, 'backward')  // 09:00 剪到昨天
+
+    const src = JSON.parse(localStorage.getItem('timelog:2026-07-24'))
+    const yst = JSON.parse(localStorage.getItem('timelog:2026-07-23'))
+
+    // 两个 meta 都存在
+    expect(src._cutMeta.toNext.cutAt).toBe(780)
+    expect(src._cutMeta.toPrev.cutAt).toBe(540)
+    expect(yst._cutMeta.fromNext).toEqual({ sourceDate: '2026-07-24', cutAt: 540 })
+
+    // a (08:00-10:00) 在 09:00 断开：前半 [480,540]→昨天 [2880+480, 2880+540]，后半留存
+    const movedA = yst.blocks.find(b => b.id === 'a')
+    expect(movedA.start).toBe(2880 + 480)
+    expect(movedA.end).toBe(2880 + 540)
+
+    // 留存块基准 = -540（both 规范基准）：a 后半 local [540,600] → storage [0,60]
+    const stayA = src.blocks.find(b => b.id === 'a')
+    expect(stayA.start).toBe(0)
+    expect(stayA.end).toBe(60)
+
+    // b 前半 local [720,780] → storage [180,240]
+    const stayB = src.blocks.find(b => b.id === 'b')
+    expect(stayB.start).toBe(180)
+    expect(stayB.end).toBe(240)
+  })
+
+  it('v1 array data migrates to today frame with synthesized meta', () => {
+    localStorage.setItem('timelog:2026-07-24', JSON.stringify([
+      { id: 'a', start: 480, end: 600 },   // v1 今天块 08:00-10:00
+      { id: 'g', start: 1320, end: 1380, _cut: { sourceDate: '2026-07-23', cutAt: 997 } },  // v1 胶水块
+    ]))
+
+    const s = useTimelogStore()
+    s.setDate(new Date(2026, 6, 24))
+
+    // 普通块 +1440 移入今天帧；胶水块坐标不变
+    const a = s.blocks.find(b => b.id === 'a')
+    expect(a.start).toBe(1920)
+    const g = s.blocks.find(b => b.id === 'g')
+    expect(g.start).toBe(1320)
+
+    // 从 _cut 标签合成 meta
+    expect(s._cutMeta.fromPrev).toEqual({ sourceDate: '2026-07-23', cutAt: 997 })
+  })
 })
 
 describe('glueBack v2', () => {

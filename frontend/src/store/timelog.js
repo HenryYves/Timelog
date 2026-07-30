@@ -44,6 +44,13 @@ export function fmt(min) {
     String(min % 60).padStart(2, '0')
 }
 
+/** 统一坐标 → 带符号时间：昨天帧 -hh:mm，今天帧 hh:mm，明天帧 +hh:mm */
+export function fmtSigned(min) {
+  if (min < DAY_MIN) return '-' + fmt(min)
+  if (min < 2 * DAY_MIN) return fmt(min - DAY_MIN)
+  return '+' + fmt(min - 2 * DAY_MIN)
+}
+
 export function toInput(min) {
   return String(Math.floor(min / 60)).padStart(2, '0') + ':' +
     String(min % 60).padStart(2, '0')
@@ -82,15 +89,47 @@ export function canCutBackward(blocks, dateKey) {
 }
 
 /**
+ * 今天块在存储坐标中的基准：local = storage - base。
+ * - 无剪切：1440（今天帧）
+ * - 仅 toNext：0（局部帧 [0, cutAt)）
+ * - 仅 toPrev：1440 - cutAt
+ * - toPrev + toNext：-cutAt(toPrev)（规范基准，见 cutDay）
+ */
+export function todayStorageBase(cutMeta) {
+  if (cutMeta?.toNext) return cutMeta.toPrev ? -cutMeta.toPrev.cutAt : 0
+  if (cutMeta?.toPrev) return DAY_MIN - cutMeta.toPrev.cutAt
+  return DAY_MIN
+}
+
+/** 今天的本地时间 → 存储坐标（用于 T 键/批量创建等以本地时间构造块的入口） */
+export function todayLocalToStorage(s, en, cutMeta) {
+  const base = todayStorageBase(cutMeta)
+  return { start: s + base, end: en + base }
+}
+
+/**
  * Load a day's storage in v2 object format { blocks, _cutMeta }.
- * Tolerates legacy v1 array format (treated as blocks with empty meta).
+ * v1 数组格式自动迁移：无 _cut 的块 +1440 移入今天帧；
+ * 带 _cut 的块坐标不变（v1 与 v2 胶水帧约定一致），并从 _cut 标签合成 meta。
  */
 function _loadDay(key) {
   try {
     const raw = localStorage.getItem(key)
     if (!raw) return { blocks: [], _cutMeta: {} }
     const data = JSON.parse(raw)
-    if (Array.isArray(data)) return { blocks: data, _cutMeta: {} }
+    if (Array.isArray(data)) {
+      const blocks = data.map(b => b._cut
+        ? b
+        : { ...b, start: b.start + DAY_MIN, end: b.end + DAY_MIN })
+      const meta = {}
+      const cut = data.find(b => b._cut)
+      if (cut) {
+        const dateKey = key.slice(KEY_PREFIX.length)
+        const dir = isBefore(cut._cut.sourceDate, dateKey) ? 'fromPrev' : 'fromNext'
+        meta[dir] = { sourceDate: cut._cut.sourceDate, cutAt: cut._cut.cutAt }
+      }
+      return { blocks, _cutMeta: meta }
+    }
     return { blocks: data.blocks || [], _cutMeta: data._cutMeta || {} }
   } catch (e) {
     logger.error('timelog', '_loadDay failed', e)
@@ -143,24 +182,23 @@ function _mergeById(blocks) {
  * Cut a day at cutAt (minutes), moving blocks to the adjacent day.
  * v2 统一坐标系：昨天 [0,1440)，今天 [1440,2880)，明天 [2880,4320)。
  *
- * forward（剪到明天）：
- *   - 今天 [1440+cutAt, 2880) 的块（含跨切点的后半）移入明天，坐标 -1440
- *     → 落在明天存储的 [cutAt, 1440)（prev gutter 区）
- *   - 源日保留的今天块同步 -1440 → [0, cutAt)
- *   - 源日 meta.toNext / 目标 meta.fromPrev
+ * cutAt 为今天的本地时间（0-1440）。今天块的存储基准 base = todayStorageBase(srcMeta)，
+ * cutLine = base + cutAt。胶水块（_cut 标记）不参与剪切。
+ * 无 _cut 且不在今天帧的块（跨帧碎片/遗留）：backward 时昨天帧部分回家（坐标不变），
+ * 其余情况原样保留。
  *
- * backward（剪到昨天）：
- *   - 昨天帧 [0,1440) 的胶水块回家（坐标不变）
- *   - 今天 [1440, 1440+cutAt) 的块（含跨切点的前半）移入昨天，坐标 +1440
- *     → 落在昨天存储的 [2880, 2880+cutAt)（next gutter 区）
- *   - 源日保留的今天块 -cutAt（对齐 toPrev 截断后的显示区与标签）
- *   - 源日 meta.toPrev / 目标 meta.fromNext
+ * 坐标变换（local = x - base）：
+ *   moved = x - base + (forward ? 0 : 2880)   → 目标日胶水帧
+ *   stay  = x - base + baseNew                → 源日新基准
+ *   forward:  baseNew = toPrev ? -toPrev.cutAt : 0
+ *   backward: baseNew = toNext ? -newCut : 1440 - newCut
  *
+ * 多次剪切合并：forward 取 min(cutAt)，backward 取 max(cutAt)。
  * 00:00 边界处同 ID 的块在目标日合并（跨帧碎片先归一化再 min/max）。
  * 剪切后清空 undo/redo 栈（不支持撤销）。
  *
  * @param {string} sourceDate - 'YYYY-MM-DD' of the day being cut
- * @param {number} cutAt - cut point in minutes within the source day (0-1440)
+ * @param {number} cutAt - cut point in LOCAL minutes of the source day (0-1440)
  * @param {'forward'|'backward'} direction - forward=to tomorrow, backward=to yesterday
  * @param {boolean} dropShort - drop split fragments < 10 min
  */
@@ -181,7 +219,18 @@ export function cutDay(sourceDate, cutAt, direction, dropShort = false) {
   if (direction === 'forward' && !canCutForward(tgtData.blocks, targetDate)) return false
   if (direction === 'backward' && !canCutBackward(tgtData.blocks, targetDate)) return false
 
-  const cutLine = 1440 + cutAt
+  const base = todayStorageBase(srcMeta)
+  const cutLine = base + cutAt
+  const newCut = direction === 'forward'
+    ? Math.min(srcMeta.toNext?.cutAt ?? Infinity, cutAt)
+    : Math.max(srcMeta.toPrev?.cutAt ?? 0, cutAt)
+  const baseNew = direction === 'forward'
+    ? (srcMeta.toPrev ? -srcMeta.toPrev.cutAt : 0)
+    : (srcMeta.toNext ? -newCut : DAY_MIN - newCut)
+
+  const moveX = (x) => x - base + (direction === 'forward' ? 0 : 2 * DAY_MIN)
+  const stayX = (x) => x - base + baseNew
+
   const toMove = []
   const toStay = []
 
@@ -191,51 +240,52 @@ export function cutDay(sourceDate, cutAt, direction, dropShort = false) {
   }
 
   srcData.blocks.forEach(b => {
-    if (direction === 'forward') {
-      if (b.start >= 1440 && b.start < 2880) {
-        if (b.start >= cutLine) {
-          toMove.push({ ...b, start: b.start - 1440, end: b.end - 1440 })
-        } else if (b.end > cutLine) {
-          // Split at the cut line: first half stays, second half moves
-          pushPiece(toStay, { ...b, start: b.start - 1440, end: cutLine - 1440 }, true)
-          pushPiece(toMove, { ...b, start: cutLine - 1440, end: b.end - 1440 }, true)
-        } else {
-          toStay.push({ ...b, start: b.start - 1440, end: b.end - 1440 })
-        }
+    if (b._cut) { toStay.push(b); return }  // 胶水块不参与剪切
+    const isTodayFrame = b.start >= base && b.start < base + DAY_MIN
+    if (!isTodayFrame) {
+      // 跨帧碎片/遗留：backward 时昨天帧部分回家（坐标不变）
+      if (direction === 'backward' && b.start >= 0 && b.end <= DAY_MIN) {
+        toMove.push(b)
       } else {
-        toStay.push(b)  // 已有胶水块不参与剪切
+        toStay.push(b)
+      }
+      return
+    }
+    if (direction === 'forward') {
+      if (b.start >= cutLine) {
+        toMove.push({ ...b, start: moveX(b.start), end: moveX(b.end) })
+      } else if (b.end > cutLine) {
+        pushPiece(toStay, { ...b, start: stayX(b.start), end: stayX(cutLine) }, true)
+        pushPiece(toMove, { ...b, start: moveX(cutLine), end: moveX(b.end) }, true)
+      } else {
+        toStay.push({ ...b, start: stayX(b.start), end: stayX(b.end) })
       }
     } else {
-      if (b.start < 1440) {
-        toMove.push(b)  // 昨天帧的胶水块回家（坐标不变）
+      if (b.end <= cutLine) {
+        toMove.push({ ...b, start: moveX(b.start), end: moveX(b.end) })
       } else if (b.start < cutLine) {
-        if (b.end <= cutLine) {
-          toMove.push({ ...b, start: b.start + 1440, end: b.end + 1440 })
-        } else {
-          // Split at the cut line: first half moves, second half stays
-          pushPiece(toMove, { ...b, start: b.start + 1440, end: cutLine + 1440 }, true)
-          pushPiece(toStay, { ...b, start: cutLine - cutAt, end: b.end - cutAt }, true)
-        }
-      } else if (b.start < 2880) {
-        toStay.push({ ...b, start: b.start - cutAt, end: b.end - cutAt })
+        pushPiece(toMove, { ...b, start: moveX(b.start), end: moveX(cutLine) }, true)
+        pushPiece(toStay, { ...b, start: stayX(cutLine), end: stayX(b.end) }, true)
       } else {
-        toStay.push(b)  // 明天帧的胶水块不参与剪切
+        toStay.push({ ...b, start: stayX(b.start), end: stayX(b.end) })
       }
     }
   })
 
   // Tag moved blocks (getGlueBlocks / 旧 UI 仍按 _cut 识别)
-  toMove.forEach(b => { b._cut = { sourceDate, cutAt } })
+  toMove.forEach(b => { b._cut = { sourceDate, cutAt: newCut } })
 
   // Merge same-ID blocks at the 00:00 boundary into the target day
   const newTgtBlocks = _mergeById([...tgtData.blocks, ...toMove])
+  // 统一同来源胶水块的 cutAt（多次剪切合并后的新切口）
+  newTgtBlocks.forEach(b => { if (b._cut?.sourceDate === sourceDate) b._cut.cutAt = newCut })
 
   if (direction === 'forward') {
-    srcMeta.toNext = { targetDate, cutAt }
-    tgtMeta.fromPrev = { sourceDate, cutAt }
+    srcMeta.toNext = { targetDate, cutAt: newCut }
+    tgtMeta.fromPrev = { sourceDate, cutAt: newCut }
   } else {
-    srcMeta.toPrev = { targetDate, cutAt }
-    tgtMeta.fromNext = { sourceDate, cutAt }
+    srcMeta.toPrev = { targetDate, cutAt: newCut }
+    tgtMeta.fromNext = { sourceDate, cutAt: newCut }
   }
 
   _saveDay(srcKey, toStay, srcMeta)
