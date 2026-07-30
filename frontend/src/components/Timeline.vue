@@ -226,14 +226,8 @@ function layout(list) {
 const glueBlocks = computed(() => getGlueBlocks(store.blocks, store.dateKey))
 const layoutBlocks = computed(() => layout(glueBlocks.value.today))
 
-// Dynamic grid height — shrinks when blocks are cut away
-const todayMaxEnd = computed(() => {
-  const blocks = glueBlocks.value.today
-  if (!blocks.length) return 0
-  return Math.max(...blocks.map(b => b.end))
-})
-const todayGridH = computed(() => Math.max(todayMaxEnd.value, 60) * PX_MIN)  // min 1hr
-const todayHourCount = computed(() => todayMaxEnd.value ? Math.ceil(todayMaxEnd.value / 60) + 1 : 25)
+const todayGridH = computed(() => DAY_MIN * PX_MIN)
+const todayHourCount = 25
 
 const gluePrevLayout = computed(() => {
   return glueBlocks.value.fromPrev.map(b => ({ ...b, _col: 0, _cols: 1 }))
