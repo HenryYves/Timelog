@@ -1,184 +1,202 @@
 <template>
-  <!-- Glue from previous day -->
-  <div v-if="glueBlocks.fromPrev.length" class="glue-from-prev">
-    <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('prev') + 'px' }" @contextmenu.prevent="onGlueAreaRightClick($event, glueSourcePrev)" @mousemove="onGutterHover" @mouseleave="onGutterLeave">
-      <div v-for="h in gluePrevHourCount" :key="'ghp'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">
-        {{ fmt(gluePrevCutAt + (h-1) * 60) }}
+  <div class="grid">
+    <div class="gutter-container">
+      <!-- Glue-prev gutter -->
+      <div v-if="gutterHeights.value.prev" class="glue-from-prev">
+        <div
+          class="gutter glue-prev"
+          :style="{ width: GUTTER_WIDTH + 'px', height: gutterHeights.value.prev * PX_MIN + 'px' }"
+          @contextmenu.prevent="onGluePrevRightClick"
+          @mousemove="onGutterHover"
+          @mouseleave="onGutterLeave"
+        >
+          <div
+            v-for="label in gluePrevLabels"
+            :key="label.min"
+            class="hlabel"
+            :style="{ top: label.top + 'px' }"
+          >{{ label.text }}</div>
+        </div>
+      </div>
+
+      <!-- Today gutter -->
+      <div
+        class="gutter today"
+        :style="{ width: GUTTER_WIDTH + 'px', height: gutterHeights.value.today * PX_MIN + 'px' }"
+        @contextmenu.prevent="onTodayRightClick"
+        @mousemove="onGutterHover"
+        @mouseleave="onGutterLeave"
+      >
+        <div
+          v-for="label in todayLabels"
+          :key="label.min"
+          class="hlabel"
+          :style="{ top: label.top + 'px' }"
+        >{{ label.text }}</div>
+      </div>
+
+      <!-- Glue-next gutter -->
+      <div v-if="gutterHeights.value.next" class="glue-from-next">
+        <div
+          class="gutter glue-next"
+          :style="{ width: GUTTER_WIDTH + 'px', height: gutterHeights.value.next * PX_MIN + 'px' }"
+          @contextmenu.prevent="onGlueNextRightClick"
+          @mousemove="onGutterHover"
+          @mouseleave="onGutterLeave"
+        >
+          <div
+            v-for="label in glueNextLabels"
+            :key="label.min"
+            class="hlabel"
+            :style="{ top: label.top + 'px' }"
+          >{{ label.text }}</div>
+        </div>
       </div>
     </div>
-    <div class="day" ref="gluePrevDayRef" :style="{ height: glueHeight('prev') + 'px' }"
-      @mousedown="onDayMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseUp"
-      @click.self="onDayClick" @contextmenu.prevent>
-      <div v-if="selRect" class="selrect" :style="{ top: Math.min(selRect.top, selRect.bottom) + 'px', height: Math.abs(selRect.bottom - selRect.top) + 'px' }" />
-      <div v-for="h in gluePrevHourCount" :key="'ghlp'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
-      <div v-for="h in (gluePrevHourCount - 1)" :key="'ghflp'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
+
+    <!-- Single day area -->
+    <div
+      class="day"
+      ref="dayRef"
+      :style="{ height: totalHeight.value * PX_MIN + 'px' }"
+      @mousedown="onDayMouseDown"
+      @mousemove="onMouseMove"
+      @mouseup="onMouseUp"
+      @mouseleave="onMouseUp"
+      @click.self="onDayClick"
+      @contextmenu.prevent
+    >
       <div
-        v-for="ev in gluePrevLayout" :key="ev.id"
-        class="block" :class="{ bsel: selectedBlocks.has(ev.id) }"
-        :style="computeBlockStyle(ev)" :title="blockTitle(ev)"
+        v-if="selRect"
+        class="selrect"
+        :style="{
+          top: Math.min(selRect.top, selRect.bottom) + 'px',
+          height: Math.abs(selRect.bottom - selRect.top) + 'px'
+        }"
+      />
+      <div
+        v-for="label in allLabels"
+        :key="'hl' + label.min"
+        class="hourline"
+        :style="{ top: label.top + 'px' }"
+      />
+      <div
+        v-for="label in allLabels"
+        :key="'hfl' + label.min"
+        class="halfline"
+        :style="{ top: label.top + 30 * PX_MIN + 'px' }"
+      />
+      <div
+        v-for="ev in layoutBlocks"
+        :key="ev.id"
+        class="block"
+        :class="{ bsel: selectedBlocks.has(ev.id) }"
+        :style="computeBlockStyle(ev)"
+        :title="blockTitle(ev)"
         @mousemove="onBlockMouseMove($event, ev)"
         @mousedown.left="onBlockMouseDown($event, ev)"
-        @click="onBlockClick($event, ev)" @contextmenu.prevent="onBlockContextMenu(ev)"
+        @click="onBlockClick($event, ev)"
+        @contextmenu.prevent="onBlockContextMenu(ev)"
       >
-        <div v-if="settingsStore.showBlockColorBar" class="cbar"><i v-for="(t, ti) in (ev.tags || [])" :key="ti" :style="{ background: colorOf(t).hex }" /><i v-if="!ev.tags || !ev.tags.length" style="background:#C4C3C0" /></div>
+        <div v-if="settingsStore.showBlockColorBar" class="cbar">
+          <i v-for="(t, ti) in (ev.tags || [])" :key="ti" :style="{ background: colorOf(t).hex }" />
+          <i v-if="!ev.tags || !ev.tags.length" style="background:#C4C3C0" />
+        </div>
         <div v-if="settingsStore.showBlockTitle" class="bt">{{ ev.title || '(未命名)' }}</div>
         <div v-if="settingsStore.showBlockTime && (ev.end - ev.start) * PX_MIN >= 32" class="bs">{{ fmt(ev.start) }}–{{ fmt(ev.end) }}</div>
-        <div v-if="settingsStore.showBlockTags && (ev.end - ev.start) * PX_MIN >= 18 && ev.tags && ev.tags.length" class="btags"><span v-for="t in ev.tags" :key="t"><span class="tdot" :style="{ background: colorOf(t).hex }" />{{ t }}</span></div>
+        <div v-if="settingsStore.showBlockTags && (ev.end - ev.start) * PX_MIN >= 18 && ev.tags && ev.tags.length" class="btags">
+          <span v-for="t in ev.tags" :key="t"><span class="tdot" :style="{ background: colorOf(t).hex }" />{{ t }}</span>
+        </div>
         <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= 16 && settingsStore.renderNoteMarkdown" class="bnote" v-html="mdToHtml(ev.note)" />
         <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && !settingsStore.renderNoteMarkdown" class="bnote" style="white-space: pre-wrap">{{ ev.note }}</div>
         <div v-if="settingsStore.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
       </div>
-      <div v-if="hoverLine && hoverLine.area === 'prev'" class="cut-hover" :style="{ top: hoverLine.y + 'px' }"><span class="cut-hover-label">{{ hoverLine.label }}</span></div>
-    </div>
-  </div>
 
-  <!-- Main grid -->
-  <div class="grid">
-    <div class="gutter" ref="gutterRef" :style="{ width: GUTTER_WIDTH + 'px', height: todayGridH + 'px' }" @contextmenu.prevent="onGutterRightClick" @mousemove="onGutterHover" @mouseleave="onGutterLeave">
-      <div v-for="h in todayHourCount" :key="'h'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">{{ String(h-1).padStart(2,'0') }}:00</div>
-    </div>
-    <div class="day" ref="dayRef" :style="{ height: todayGridH + 'px' }"
-      @mousedown="onDayMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseUp"
-      @click.self="onDayClick" @contextmenu.prevent
-    >
-      <div v-if="selRect" class="selrect" :style="{ top: Math.min(selRect.top, selRect.bottom) + 'px', height: Math.abs(selRect.bottom - selRect.top) + 'px' }" />
-      <div v-for="h in todayHourCount" :key="'hl'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
-      <div v-for="h in (todayHourCount - 1)" :key="'hfl'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
-      <div
-        v-for="ev in layoutBlocks" :key="ev.id"
-        class="block" :class="{ bsel: selectedBlocks.has(ev.id) }"
-        :style="computeBlockStyle(ev)" :title="blockTitle(ev)"
-        @mousemove="onBlockMouseMove($event, ev)" @mousedown.left="onBlockMouseDown($event, ev)"
-        @click="onBlockClick($event, ev)" @contextmenu.prevent="onBlockContextMenu(ev)"
-      >
-        <div v-if="settingsStore.showBlockColorBar" class="cbar"><i v-for="(t, ti) in (ev.tags || [])" :key="ti" :style="{ background: colorOf(t).hex }" /><i v-if="!ev.tags || !ev.tags.length" style="background:#C4C3C0" /></div>
-        <div v-if="settingsStore.showBlockTitle" class="bt">{{ ev.title || '(未命名)' }}</div>
-        <div v-if="settingsStore.showBlockTime && (ev.end - ev.start) * PX_MIN >= 32" class="bs">{{ fmt(ev.start) }}–{{ fmt(ev.end) }}</div>
-        <div v-if="settingsStore.showBlockTags && (ev.end - ev.start) * PX_MIN >= 18 && ev.tags && ev.tags.length" class="btags"><span v-for="t in ev.tags" :key="t"><span class="tdot" :style="{ background: colorOf(t).hex }" />{{ t }}</span></div>
-        <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= 16 && settingsStore.renderNoteMarkdown" class="bnote" v-html="mdToHtml(ev.note)" />
-        <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && !settingsStore.renderNoteMarkdown" class="bnote" style="white-space: pre-wrap">{{ ev.note }}</div>
-        <div v-if="settingsStore.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
-      </div>
-      <div v-if="hoverLine && hoverLine.area === 'today'" class="cut-hover" :style="{ top: hoverLine.y + 'px' }">
+      <div v-if="hoverLine" class="cut-hover" :style="{ top: hoverLine.y + 'px' }">
         <span class="cut-hover-label">{{ hoverLine.label }}</span>
       </div>
-      <div v-if="isToday" class="nowline" :style="{ top: nowMin * PX_MIN + 'px' }" />
+      <div v-if="isToday && nowInToday" class="nowline" :style="{ top: minuteToY(DAY_MIN + nowMin) + 'px' }" />
     </div>
   </div>
 
-  <!-- Glue from next day -->
-  <div v-if="glueBlocks.fromNext.length" class="glue-from-next">
-    <div class="gutter" :style="{ width: GUTTER_WIDTH + 'px', height: glueHeight('next') + 'px' }" @contextmenu.prevent="onGlueAreaRightClick($event, glueSourceNext)" @mousemove="onGutterHover" @mouseleave="onGutterLeave">
-      <div v-for="h in glueHours('next')" :key="'ghn'+h" class="hlabel" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }">
-        {{ String(h-1).padStart(2,'0') }}:00
-      </div>
-    </div>
-    <div class="day" ref="glueNextDayRef" :style="{ height: glueHeight('next') + 'px' }"
-      @mousedown="onDayMouseDown" @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseUp"
-      @click.self="onDayClick" @contextmenu.prevent>
-      <div v-if="selRect" class="selrect" :style="{ top: Math.min(selRect.top, selRect.bottom) + 'px', height: Math.abs(selRect.bottom - selRect.top) + 'px' }" />
-      <div v-for="h in glueHours('next')" :key="'ghln'+h" class="hourline" :style="{ top: ((h-1) * 60 * PX_MIN) + 'px' }" />
-      <div v-for="h in (glueHours('next') - 1)" :key="'ghfln'+h" class="halfline" :style="{ top: ((h-1) * 60 + 30) * PX_MIN + 'px' }" />
-      <div
-        v-for="ev in glueNextLayout" :key="ev.id"
-        class="block" :class="{ bsel: selectedBlocks.has(ev.id) }"
-        :style="computeBlockStyle(ev)" :title="blockTitle(ev)"
-        @mousemove="onBlockMouseMove($event, ev)"
-        @mousedown.left="onBlockMouseDown($event, ev)"
-        @click="onBlockClick($event, ev)" @contextmenu.prevent="onBlockContextMenu(ev)"
-      >
-        <div v-if="settingsStore.showBlockColorBar" class="cbar"><i v-for="(t, ti) in (ev.tags || [])" :key="ti" :style="{ background: colorOf(t).hex }" /><i v-if="!ev.tags || !ev.tags.length" style="background:#C4C3C0" /></div>
-        <div v-if="settingsStore.showBlockTitle" class="bt">{{ ev.title || '(未命名)' }}</div>
-        <div v-if="settingsStore.showBlockTime && (ev.end - ev.start) * PX_MIN >= 32" class="bs">{{ fmt(ev.start) }}–{{ fmt(ev.end) }}</div>
-        <div v-if="settingsStore.showBlockTags && (ev.end - ev.start) * PX_MIN >= 18 && ev.tags && ev.tags.length" class="btags"><span v-for="t in ev.tags" :key="t"><span class="tdot" :style="{ background: colorOf(t).hex }" />{{ t }}</span></div>
-        <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= 16 && settingsStore.renderNoteMarkdown" class="bnote" v-html="mdToHtml(ev.note)" />
-        <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && !settingsStore.renderNoteMarkdown" class="bnote" style="white-space: pre-wrap">{{ ev.note }}</div>
-        <div v-if="settingsStore.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
-      </div>
-      <div v-if="hoverLine && hoverLine.area === 'next'" class="cut-hover" :style="{ top: hoverLine.y + 'px' }"><span class="cut-hover-label">{{ hoverLine.label }}</span></div>
-    </div>
-  </div>
-
-  <!-- Cut/Glue modals -->
-  <CutConfirm :show="showCutConfirm" :initialMin="cutInitialMin" :availableDirs="availableDirs" @confirm="onCutConfirm" @close="showCutConfirm = false" />
-  <GlueConfirm :show="showGlueConfirm" :sourceDate="glueTarget" @confirm="onGlueBackConfirm" @close="showGlueConfirm = false; glueTarget = null" />
+  <CutConfirm
+    :show="showCutConfirm"
+    :initialMin="cutInitialMin"
+    :availableDirs="availableDirs"
+    @confirm="onCutConfirm"
+    @close="showCutConfirm = false"
+  />
+  <GlueConfirm
+    :show="showGlueConfirm"
+    :sourceDate="glueTarget"
+    @confirm="onGlueBackConfirm"
+    @close="showGlueConfirm = false; glueTarget = null"
+  />
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useTimelogStore, fmt, dkey, toInput, fromInput, getGlueBlocks, cutDay, glueBack, canCutForward, canCutBackward, addDays, isBefore } from '../store/timelog.js'
+import { useTimelogStore, fmt, dkey, cutDay, glueBack, canCutForward, canCutBackward } from '../store/timelog.js'
 import { useSettingsStore } from '../store/settings.js'
 import { mdToHtml } from '../utils/markdown.js'
 import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { STR } from '../strings.js'
+import { useCoordConverter } from '../composables/useCoordConverter.js'
 import CutConfirm from './CutConfirm.vue'
 import GlueConfirm from './GlueConfirm.vue'
 
 const props = defineProps({
   modalOpen: { type: Boolean, default: false },
 })
+const emit = defineEmits(['edit-block', 'create-block'])
+
 const store = useTimelogStore()
 const { selectedBlocks, colorOf } = store
 const settingsStore = useSettingsStore()
-
-const maskGradientStyle = computed(() => {
-  const c = getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() || '#ffffff'
-  return { background: `linear-gradient(to bottom, ${c}00, ${c} 90%)` }
-})
-const emit = defineEmits(['edit-block', 'create-block'])
 const { toast } = useToast()
 const { showConfirm } = useConfirm()
+
+const { gutterHeights, totalHeight, todayRange, blockTop, yToMinute, minuteToY } = useCoordConverter()
+
+const TOTAL_MIN = DAY_MIN * 3
+
+const dayRef = ref(null)
+
+// --- Modals ---
 const showCutConfirm = ref(false)
 const cutInitialMin = ref(0)
 const showGlueConfirm = ref(false)
 const glueTarget = ref(null)
 
-const dayRef = ref(null)
-const gutterRef = ref(null)
-const gluePrevDayRef = ref(null)
-const glueNextDayRef = ref(null)
-
-// --- Drag state (pure DOM — matches old code for per-frame drag precision) ---
+// --- Drag state ---
 let adrag = null
 let ghost = null
 let dlabel = null
-// { type: 'create', anchor, cur }
-// { type: 'resize', id, edge, other, cur, el }
 const suppressClick = ref(false)
 
 // --- Right-drag selection ---
-const selRect = ref(null) // { top, bottom, left, right } in container px
-let selPending = null // { clientX, clientY } — wait for drag threshold
-let selMoved = false // true once drag threshold passed — suppress block toggle
+const selRect = ref(null)
+let selPending = null
+let selMoved = false
 
-// --- Gutter hover (cut preview) ---
-const hoverLine = ref(null) // { y: number, label: string, area: string } or null
-
-function onGutterHover(e) {
-  const dayEl = e.currentTarget.closest('.glue-from-prev, .glue-from-next, .grid')
-  const areaDay = dayEl ? dayEl.querySelector('.day') : dayRef.value
-  if (!areaDay) return
-  const r = areaDay.getBoundingClientRect()
-  const z = settingsStore.zoom / 100
-  const y = (e.clientY - r.top) / z
-  const min = Math.round(y / PX_MIN)
-  if (min < 0 || min > DAY_MIN) { hoverLine.value = null; return }
-  const area = dayEl.classList.contains('glue-from-prev') ? 'prev'
-    : dayEl.classList.contains('glue-from-next') ? 'next' : 'today'
-  hoverLine.value = { y, label: fmt(min), area }
-}
-function onGutterLeave() { hoverLine.value = null }
+// --- Gutter hover (cut/glue preview) ---
+const hoverLine = ref(null)
 
 // --- Hover tracking (for paste) ---
 const lastHoverMin = ref(0)
 const overGrid = ref(false)
+const localClipboard = ref([])
 
 // --- Now line ---
 const isToday = computed(() => dkey(new Date()) === store.dateKey)
 const nowMin = ref(0)
 let nowTimer = null
+const nowInToday = computed(() => {
+  const { start, end } = todayRange.value
+  return nowMin.value >= start && nowMin.value <= end
+})
 
 function updateNowMin() {
   if (dkey(new Date()) === store.dateKey) {
@@ -189,7 +207,43 @@ function updateNowMin() {
   }
 }
 
-// --- Layout algorithm (copied from old code) ---
+// --- Coordinate conversion between storage and unified display ---
+function todayStorageOffsetForOrig(storageStart) {
+  return store._cutMeta?.toNext && storageStart < DAY_MIN ? DAY_MIN : 0
+}
+
+function toDisplayBlock(b) {
+  if (b._cut) {
+    return { ...b, _storageStart: b.start, _storageEnd: b.end }
+  }
+  const off = todayStorageOffsetForOrig(b.start)
+  if (!off) {
+    return { ...b, _storageStart: b.start, _storageEnd: b.end }
+  }
+  return {
+    ...b,
+    start: b.start + off,
+    end: b.end + off,
+    _storageStart: b.start,
+    _storageEnd: b.end,
+  }
+}
+
+function toStorageFromDisplay(b) {
+  if (b._cut) return { ...b }
+  const off = todayStorageOffsetForOrig(b._storageStart)
+  if (!off) return { ...b }
+  return { ...b, start: b.start - off, end: b.end - off }
+}
+
+function storageTimesForNewDisplayBlock(start, end) {
+  if (store._cutMeta?.toNext && start >= DAY_MIN && end <= 2 * DAY_MIN) {
+    return { start: start - DAY_MIN, end: end - DAY_MIN }
+  }
+  return { start, end }
+}
+
+// --- Layout algorithm ---
 function layout(list) {
   const evs = list.slice().sort((a, b) => a.start - b.start || a.end - b.end)
   let i = 0
@@ -223,19 +277,59 @@ function layout(list) {
   return evs
 }
 
-const glueBlocks = computed(() => getGlueBlocks(store.blocks, store.dateKey))
-const layoutBlocks = computed(() => layout(glueBlocks.value.today))
+const displayBlocks = computed(() => store.blocks.map(toDisplayBlock))
+const layoutBlocks = computed(() => layout(displayBlocks.value.slice()))
 
-const todayGridH = computed(() => DAY_MIN * PX_MIN)
-const todayHourCount = 25
-
-const gluePrevLayout = computed(() => {
-  return glueBlocks.value.fromPrev.map(b => ({ ...b, _col: 0, _cols: 1 }))
+// --- Labels ---
+const gluePrevLabels = computed(() => {
+  const cutAt = store._cutMeta?.fromPrev?.cutAt
+  if (cutAt == null) return []
+  const labels = []
+  const firstHour = Math.ceil(cutAt / 60) * 60
+  for (let min = firstHour; min < DAY_MIN; min += 60) {
+    labels.push({
+      min,
+      text: `-${fmt(min)}`,
+      top: (min - cutAt) * PX_MIN,
+    })
+  }
+  return labels
 })
-const glueNextLayout = computed(() => {
-  return glueBlocks.value.fromNext.map(b => ({ ...b, _col: 0, _cols: 1 }))
+
+const todayLabels = computed(() => {
+  const { start, end } = todayRange.value
+  const labels = []
+  for (let min = start; min <= end; min += 60) {
+    labels.push({
+      min,
+      text: fmt(min),
+      top: (min - start) * PX_MIN,
+    })
+  }
+  return labels
 })
 
+const glueNextLabels = computed(() => {
+  const cutAt = store._cutMeta?.fromNext?.cutAt
+  if (!cutAt) return []
+  const labels = []
+  for (let min = 60; min <= cutAt; min += 60) {
+    labels.push({
+      min,
+      text: `+${fmt(min)}`,
+      top: min * PX_MIN,
+    })
+  }
+  return labels
+})
+
+const allLabels = computed(() => [
+  ...gluePrevLabels.value,
+  ...todayLabels.value,
+  ...glueNextLabels.value,
+])
+
+// --- Cut availability ---
 const canCutFwd = computed(() => canCutForward(store.blocks, store.dateKey))
 const canCutBwd = computed(() => canCutBackward(store.blocks, store.dateKey))
 const availableDirs = computed(() => {
@@ -245,31 +339,16 @@ const availableDirs = computed(() => {
   return dirs
 })
 
-const glueSourcePrev = computed(() => {
-  const prev = glueBlocks.value.fromPrev
-  if (!prev.length) return null
-  return prev[0]._cut.sourceDate
-})
-const glueSourceNext = computed(() => {
-  const next = glueBlocks.value.fromNext
-  if (!next.length) return null
-  return next[0]._cut.sourceDate
-})
-// CutAt offset for glue hour labels (from-prev shows source day times)
-const gluePrevCutAt = computed(() => {
-  const prev = glueBlocks.value.fromPrev
-  return prev.length ? prev[0]._cut.cutAt : 0
-})
-// Glue-prev hour count: from cutAt to 24:00
-const gluePrevHourCount = computed(() => {
-  if (!glueBlocks.value.fromPrev.length) return 0
-  return Math.ceil((DAY_MIN - gluePrevCutAt.value) / 60) + 1
+// --- Visual helpers ---
+const maskGradientStyle = computed(() => {
+  const c = getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() || '#ffffff'
+  return { background: `linear-gradient(to bottom, ${c}00, ${c} 90%)` }
 })
 
 function computeBlockStyle(ev) {
   const has = ev.tags && ev.tags.length
   const c0 = colorOf(has ? ev.tags[0] : null)
-  const top = ev.start * PX_MIN
+  const top = blockTop(ev)
   const height = (ev.end - ev.start) * PX_MIN
   const w = 100 / (ev._cols || 1)
   const left = (ev._col || 0) * w
@@ -291,13 +370,7 @@ function blockTitle(ev) {
   return t
 }
 
-
 // --- Mouse helpers ---
-function yToMin(y, el) {
-  const r = (el || dayRef.value).getBoundingClientRect()
-  return Math.max(0, Math.min(DAY_MIN, Math.round((y - r.top) / (settingsStore.zoom / 100) / PX_MIN)))
-}
-
 function dragBounds() {
   if (!adrag) return null
   if (adrag.type === 'create') {
@@ -312,7 +385,7 @@ function dragBounds() {
     return { s, en: adrag.other }
   }
   let en = Math.max(adrag.cur, adrag.other + 1)
-  if (en > DAY_MIN) en = DAY_MIN
+  if (en > TOTAL_MIN) en = TOTAL_MIN
   return { s: adrag.other, en }
 }
 
@@ -327,11 +400,12 @@ function showDLabel(min, text) {
   if (!dlabel) {
     dlabel = document.createElement('div')
     dlabel.className = 'dlabel'
-    (adrag?.dayEl || dayRef.value).appendChild(dlabel)
+    ;(adrag?.dayEl || dayRef.value).appendChild(dlabel)
   }
-  dlabel.style.top = min * PX_MIN + 'px'
+  dlabel.style.top = minuteToY(min) + 'px'
   dlabel.textContent = text
 }
+
 function hideDLabel() {
   if (dlabel) { dlabel.remove(); dlabel = null }
 }
@@ -343,15 +417,15 @@ function applyDrag() {
     if (!ghost) {
       ghost = document.createElement('div')
       ghost.className = 'ghost'
-      (adrag?.dayEl || dayRef.value).appendChild(ghost)
+      ;(adrag?.dayEl || dayRef.value).appendChild(ghost)
     }
-    ghost.style.top = b.s * PX_MIN + 'px'
+    ghost.style.top = minuteToY(b.s) + 'px'
     ghost.style.height = Math.max((b.en - b.s) * PX_MIN, 2) + 'px'
     ghost.style.left = '2px'
     ghost.style.right = '2px'
     ghost.textContent = fmt(b.s) + ' – ' + fmt(b.en)
   } else if (adrag.el) {
-    adrag.el.style.top = b.s * PX_MIN + 'px'
+    adrag.el.style.top = minuteToY(b.s) + 'px'
     adrag.el.style.height = Math.max((b.en - b.s) * PX_MIN, 2) + 'px'
     adrag.el.classList.add('resizing')
   }
@@ -371,11 +445,17 @@ function endDrag(commit) {
   if (!commit) return
   if (type === 'create') {
     if (b.en - b.s < 3) return
-    emit('create-block', b.s, b.en)
+    const st = storageTimesForNewDisplayBlock(b.s, b.en)
+    emit('create-block', st.start, st.end)
   } else {
     const rec = store.blocks.find(x => x.id === id)
     if (rec) {
-      store.updateBlock({ ...rec, start: b.s, end: b.en })
+      const off = todayStorageOffsetForOrig(rec.start)
+      store.updateBlock({
+        ...rec,
+        start: b.s - off,
+        end: b.en - off,
+      })
     }
     setTimeout(() => { suppressClick.value = false }, 60)
   }
@@ -384,7 +464,7 @@ function endDrag(commit) {
 // --- Event handlers ---
 function onDayClick() {
   if (suppressClick.value) return
-  if (store.selectedBlocks.size > 0) store.selectedBlocks.clear()
+  if (selectedBlocks.value.size > 0) selectedBlocks.value.clear()
 }
 
 function onDayMouseDown(e) {
@@ -395,7 +475,7 @@ function onDayMouseDown(e) {
   }
   if (e.button !== 0 || adrag) return
   const dayEl = e.currentTarget
-  const s = yToMin(e.clientY, dayEl)
+  const s = yToMinute(e.clientY, dayEl)
   adrag = { type: 'create', anchor: s, cur: s, dayEl }
   applyDrag()
 }
@@ -428,7 +508,7 @@ function onBlockMouseDown(e, ev) {
       edge,
       other: edge === 'start' ? ev.end : ev.start,
       cur: edge === 'start' ? ev.start : ev.end,
-      el: e.currentTarget,
+      el,
     }
     applyDrag()
   }
@@ -436,7 +516,7 @@ function onBlockMouseDown(e, ev) {
 
 function onMouseMove(e) {
   if (adrag) {
-    adrag.cur = yToMin(e.clientY, adrag.dayEl)
+    adrag.cur = yToMinute(e.clientY, adrag.dayEl)
     applyDrag()
   }
   if (selPending) {
@@ -460,7 +540,7 @@ function onMouseMove(e) {
     const z = settingsStore.zoom / 100
     selRect.value = { ...selRect.value, bottom: (e.clientY - r.top) / z, right: (e.clientX - r.left) / z }
   }
-  lastHoverMin.value = yToMin(e.clientY)
+  lastHoverMin.value = yToMinute(e.clientY, e.currentTarget)
   overGrid.value = true
 }
 
@@ -477,29 +557,29 @@ function onMouseUp(e) {
     const selLeft = Math.min(sr.left, sr.right)
     const selRight = Math.max(sr.left, sr.right)
     const z = settingsStore.zoom / 100
-    // offsetWidth is layout (pre-transform) width — CSS percentages compute against it directly.
-    // selRect coords are also pre-transform px, so no /z needed here.
     const dayW = dayRef.value.offsetWidth
-    // AABB overlap: selection rect vs each block's bounding box
-    store.blocks.forEach(bl => {
-      // Y axis
-      const blockTop = bl.start * PX_MIN
-      const blockBottom = bl.end * PX_MIN
+    layoutBlocks.value.forEach(ev => {
+      const blockTop = blockTopForBlock(ev)
+      const blockBottom = ev.end * PX_MIN
       if (selBottom <= blockTop || selTop >= blockBottom) return
-      // X axis — percentage layout → container px (accounts for 2px CSS margins)
-      const cols = bl._cols || 1
+      const cols = ev._cols || 1
       const colW = dayW / cols
-      const blockLeft = (bl._col || 0) * colW + 2   // calc(col% + 2px)
-      const blockRight = blockLeft + colW - 4        // calc(colW - 4px)
+      const blockLeft = (ev._col || 0) * colW + 2
+      const blockRight = blockLeft + colW - 4
       if (selRight > blockLeft && selLeft < blockRight) {
-        store.selectedBlocks.add(bl.id)
+        selectedBlocks.value.add(ev.id)
       }
     })
-    if (store.selectedBlocks.size > 0) {
-      toast(STR.toast.contextSelected(store.selectedBlocks.size))
+    if (selectedBlocks.value.size > 0) {
+      toast(STR.toast.contextSelected(selectedBlocks.value.size))
     }
   }
   overGrid.value = false
+}
+
+// Use the same top calculation as computeBlockStyle for selection matching
+function blockTopForBlock(ev) {
+  return blockTop(ev)
 }
 
 function onBlockClick(e, ev) {
@@ -509,34 +589,64 @@ function onBlockClick(e, ev) {
     suppressClick.value = false
     return
   }
-  emit('edit-block', ev)
+  emit('edit-block', toStorageFromDisplay(ev))
 }
 
 function onBlockContextMenu(ev) {
-  if (selMoved) return // area selection drag — don't toggle
-  if (store.selectedBlocks.has(ev.id)) {
-    store.selectedBlocks.delete(ev.id)
-    if (store.selectedBlocks.size === 0) {
+  if (selMoved) return
+  if (selectedBlocks.value.has(ev.id)) {
+    selectedBlocks.value.delete(ev.id)
+    if (selectedBlocks.value.size === 0) {
       toast(STR.toast.unselected)
     }
   } else {
-    store.selectedBlocks.add(ev.id)
-    toast(STR.toast.contextSelected(store.selectedBlocks.size))
+    selectedBlocks.value.add(ev.id)
+    toast(STR.toast.contextSelected(selectedBlocks.value.size))
   }
 }
 
 // --- Scissors / Glue handlers ---
-function onGutterRightClick(e) {
+function onGutterHover(e) {
+  if (!dayRef.value) return
+  const min = yToMinute(e.clientY, dayRef.value)
+  let label
+  if (min < DAY_MIN) {
+    label = `-${fmt(min)}`
+  } else if (min < 2 * DAY_MIN) {
+    label = fmt(min - DAY_MIN)
+  } else {
+    label = `+${fmt(min - 2 * DAY_MIN)}`
+  }
+  hoverLine.value = { y: minuteToY(min), label }
+}
+
+function onGutterLeave() {
+  hoverLine.value = null
+}
+
+function onTodayRightClick(e) {
   if (!availableDirs.value.length) return
-  const min = yToMin(e.clientY)
-  if (!canCutFwd.value && min <= 0) return
-  if (!canCutBwd.value && min >= DAY_MIN) return
-  cutInitialMin.value = min
+  const min = yToMinute(e.clientY, dayRef.value)
+  const localMin = Math.max(0, Math.min(DAY_MIN, min - DAY_MIN))
+  cutInitialMin.value = localMin
   showCutConfirm.value = true
 }
 
+function onGluePrevRightClick() {
+  const sourceDate = store._cutMeta?.fromPrev?.sourceDate
+  if (!sourceDate) return
+  glueTarget.value = sourceDate
+  showGlueConfirm.value = true
+}
+
+function onGlueNextRightClick() {
+  const sourceDate = store._cutMeta?.fromNext?.sourceDate
+  if (!sourceDate) return
+  glueTarget.value = sourceDate
+  showGlueConfirm.value = true
+}
+
 async function onCutConfirm(cutAt, direction) {
-  // 1. Check no-op extremes first
   if (direction === 'forward' && cutAt >= DAY_MIN) {
     toast(STR.cut.extremeNone)
     return
@@ -546,11 +656,13 @@ async function onCutConfirm(cutAt, direction) {
     return
   }
 
-  // 2. Check for short fragments (< 10 min) — before cut
-  const todayBlocksList = glueBlocks.value.today
+  const localTodayBlocks = displayBlocks.value
+    .filter(b => !b._cut && b.start >= DAY_MIN && b.end <= 2 * DAY_MIN)
+    .map(b => ({ ...b, start: b.start - DAY_MIN, end: b.end - DAY_MIN }))
+
   let hasShort = false
   let shortDur = 0
-  for (const b of todayBlocksList) {
+  for (const b of localTodayBlocks) {
     if (direction === 'forward') {
       if (b.start >= cutAt && b.end - b.start < 10) { hasShort = true; shortDur = b.end - b.start; break }
       if (b.start < cutAt && b.end > cutAt) {
@@ -572,7 +684,6 @@ async function onCutConfirm(cutAt, direction) {
     if (!ok) return
   }
 
-  // 3. Check extreme cases — moving ALL blocks
   if (direction === 'forward' && cutAt <= 0) {
     const ok = await showConfirm(STR.cut.extremeAll)
     if (!ok) return
@@ -590,14 +701,6 @@ async function onCutConfirm(cutAt, direction) {
   showCutConfirm.value = false
 }
 
-function onGlueAreaRightClick(e, sourceDate) {
-  e.preventDefault()
-  if (e.target.closest('.block')) return
-  if (!sourceDate) return
-  glueTarget.value = sourceDate
-  showGlueConfirm.value = true
-}
-
 function onGlueBackConfirm() {
   const sourceDate = glueTarget.value
   if (!sourceDate) return
@@ -610,31 +713,14 @@ function onGlueBackConfirm() {
   glueTarget.value = null
 }
 
-// --- Glue area helpers ---
-function glueHeight(area) {
-  const blocks = area === 'prev' ? glueBlocks.value.fromPrev : glueBlocks.value.fromNext
-  if (!blocks.length) return 0
-  const maxEnd = Math.max(...blocks.map(b => b.end))
-  return Math.max(maxEnd, 60) * PX_MIN
-}
-
-function glueHours(area) {
-  const blocks = area === 'prev' ? glueBlocks.value.fromPrev : glueBlocks.value.fromNext
-  if (!blocks.length) return 0
-  const maxEnd = Math.max(...blocks.map(b => b.end))
-  return Math.ceil(maxEnd / 60) + 1
-}
-
 // --- Keyboard ---
 function onKeyDown(e) {
-  // Don't handle keyboard when modal is open
   if (props.modalOpen) return
 
-  // During drag: arrow keys fine-tune, Escape cancels
   if (adrag) {
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault()
-      adrag.cur = Math.max(0, Math.min(DAY_MIN,
+      adrag.cur = Math.max(0, Math.min(TOTAL_MIN,
         adrag.cur + (e.key === 'ArrowUp' ? -1 : 1)))
       applyDrag()
       return
@@ -647,42 +733,54 @@ function onKeyDown(e) {
     return
   }
 
-  // Ctrl+C / Ctrl+V
   if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
-    if (store.copySelected()) {
+    if (copySelectedLocal()) {
       e.preventDefault()
-      toast(STR.toast.copied(store.clipboard.length))
+      toast(STR.toast.copied(localClipboard.value.length))
     }
     return
   }
   if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
-    if (store.clipboard.length) {
+    if (localClipboard.value.length) {
       e.preventDefault()
       doPaste()
     }
     return
   }
 
-  // Delete / Backspace — only when no overlay is visible
   if (e.key === 'Delete' || e.key === 'Backspace') {
     if (document.querySelector('.overlay')) return
-    if (store.selectedBlocks.size) {
+    if (selectedBlocks.value.size) {
       e.preventDefault()
       onDeleteSelected()
     }
     return
   }
 
-  // Escape clears selection
-  if (e.key === 'Escape' && store.selectedBlocks.size) {
-    store.selectedBlocks.clear()
+  if (e.key === 'Escape' && selectedBlocks.value.size) {
+    selectedBlocks.value.clear()
     toast(STR.toast.unselected)
     return
   }
 }
 
+function copySelectedLocal() {
+  if (!selectedBlocks.value.size) return false
+  localClipboard.value = layoutBlocks.value
+    .filter(b => selectedBlocks.value.has(b.id))
+    .sort((a, b) => a.start - b.start)
+    .map(b => ({
+      start: b.start,
+      end: b.end,
+      title: b.title,
+      note: b.note,
+      tags: [...(b.tags || [])],
+    }))
+  return true
+}
+
 async function onDeleteSelected() {
-  const n = store.selectedBlocks.size
+  const n = selectedBlocks.value.size
   const ok = await showConfirm(STR.confirm.deleteSelected(n))
   if (!ok) return
   store.deleteSelectedBlocks()
@@ -690,8 +788,8 @@ async function onDeleteSelected() {
 }
 
 function doPaste() {
-  if (!store.clipboard.length) return
-  const minStart = Math.min(...store.clipboard.map(c => c.start))
+  if (!localClipboard.value.length) return
+  const minStart = Math.min(...localClipboard.value.map(c => c.start))
   let offset = 0
   const anchored = overGrid.value
   if (anchored) {
@@ -699,16 +797,17 @@ function doPaste() {
     offset = anchor - minStart
   }
   const newBlocks = []
-  store.clipboard.forEach(c => {
+  localClipboard.value.forEach(c => {
     const dur = c.end - c.start
     let s = c.start + offset
     let en = c.end + offset
     if (s < 0) { s = 0; en = dur }
-    if (en > DAY_MIN) { en = DAY_MIN; s = Math.max(0, en - dur) }
+    if (en > TOTAL_MIN) { en = TOTAL_MIN; s = Math.max(0, en - dur) }
+    const st = storageTimesForNewDisplayBlock(s, en)
     const nb = {
       id: 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      start: s,
-      end: en,
+      start: st.start,
+      end: st.end,
       title: c.title,
       note: c.note,
       tags: (c.tags || []).slice(),
@@ -716,19 +815,20 @@ function doPaste() {
     newBlocks.push(nb)
   })
   newBlocks.forEach(nb => store.addBlock(nb))
-  store.selectedBlocks = new Set(newBlocks.map(n => n.id))
+  selectedBlocks.value = new Set(newBlocks.map(n => n.id))
   toast(STR.toast.pasteResult(newBlocks.length, anchored))
 }
 
 // --- Scroll to now ---
 function scrollToNow() {
   if (!settingsStore.autoScroll) return
-  const now = new Date()
-  const min = dkey(now) === store.dateKey
-    ? (now.getHours() * 60 + now.getMinutes())
-    : 8 * 60
   const main = document.querySelector('main')
-  if (main) main.scrollTop = Math.max(0, min * PX_MIN - 160)
+  if (!main) return
+  if (isToday.value && nowInToday.value) {
+    main.scrollTop = Math.max(0, minuteToY(DAY_MIN + nowMin.value) - 160)
+  } else {
+    main.scrollTop = Math.max(0, minuteToY(DAY_MIN + todayRange.value.start) - 160)
+  }
 }
 
 // --- Lifecycle ---
@@ -748,10 +848,9 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown)
 })
 
-// Window-level mouse events for drag (robust when mouse leaves .day)
 function onWindowMouseMove(e) {
   if (!adrag) return
-  adrag.cur = yToMin(e.clientY, adrag.dayEl)
+  adrag.cur = yToMinute(e.clientY, adrag.dayEl)
   applyDrag()
 }
 
@@ -760,7 +859,6 @@ function onWindowMouseUp() {
   endDrag(true)
 }
 
-// Watch date changes — scroll if navigating to today
 watch(() => store.dateKey, () => {
   updateNowMin()
   if (store.dateKey === dkey(new Date())) {
@@ -773,6 +871,11 @@ watch(() => store.dateKey, () => {
 .grid {
   position: relative;
   display: flex;
+}
+.gutter-container {
+  display: flex;
+  flex-direction: column;
+  flex: none;
 }
 .gutter {
   flex: none;
@@ -790,7 +893,7 @@ watch(() => store.dateKey, () => {
   flex: 1;
   border-left: 1px solid var(--border);
   user-select: none;
-  cursor: crosshair;
+  cursor: default;
 }
 .hourline {
   position: absolute;
