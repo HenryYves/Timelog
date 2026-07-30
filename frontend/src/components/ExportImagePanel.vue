@@ -28,24 +28,13 @@
             </select>
           </div>
           <template v-if="props.mode === 'timeline' && settings.exportTimeRange === 'custom'">
-            <div v-if="hasPrevGlue" class="setting-group">
-              <label>{{ STR.export.timeRangePrefixPrev }}</label>
-              <input type="text" v-model="settings.customRangePrevStart" placeholder="HH:MM" maxlength="5" />
-              <span>→</span>
-              <input type="text" v-model="settings.customRangePrevEnd" placeholder="HH:MM" maxlength="5" />
-            </div>
             <div class="setting-group">
-              <label>今天</label>
-              <input type="text" v-model="settings.customRangeTodayStart" placeholder="HH:MM" maxlength="5" />
+              <label>{{ STR.export.timeRangeCustom }}</label>
+              <input type="text" v-model="settings.customRangeStart" placeholder="-08:00" maxlength="6" />
               <span>→</span>
-              <input type="text" v-model="settings.customRangeTodayEnd" placeholder="HH:MM" maxlength="5" />
+              <input type="text" v-model="settings.customRangeEnd" placeholder="+08:00" maxlength="6" />
             </div>
-            <div v-if="hasNextGlue" class="setting-group">
-              <label>{{ STR.export.timeRangePrefixNext }}</label>
-              <input type="text" v-model="settings.customRangeNextStart" placeholder="HH:MM" maxlength="5" />
-              <span>→</span>
-              <input type="text" v-model="settings.customRangeNextEnd" placeholder="HH:MM" maxlength="5" />
-            </div>
+            <div class="small" style="margin-top:-8px;margin-bottom:12px">{{ STR.export.timeRangeHint }}</div>
           </template>
 
             <div class="setting-group">
@@ -298,11 +287,8 @@ const showBlockOpts = ref(false)
 const showAuthorOpts = ref(false)
 const showWatermarkOpts = ref(false)
 
-const hasPrevGlue = computed(() => timelogStore._cutMeta?.fromPrev != null)
-const hasNextGlue = computed(() => timelogStore._cutMeta?.fromNext != null)
-
 import { STR } from '../strings.js'
-import { useTimelogStore, fmt, fmtSigned, dkey, fromInput } from '../store/timelog.js'
+import { useTimelogStore, fmt, fmtSigned, dkey } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { toDisplayBlock } from '../utils/displayBlocks.js'
 import { useCoordConverter } from '../composables/useCoordConverter.js'
@@ -324,12 +310,8 @@ const defaults = {
   maskBlockOverflow: false,
   // Phase 0.5 — 时间范围
   exportTimeRange: 'all',
-  customRangePrevStart: '',
-  customRangePrevEnd: '',
-  customRangeTodayStart: '',
-  customRangeTodayEnd: '',
-  customRangeNextStart: '',
-  customRangeNextEnd: '',
+  customRangeStart: '',
+  customRangeEnd: '',
   // Phase 1 — 核心
   bgMode: 'theme',       // 'theme' | 'custom'
   bgColor: '#FFFFFF',
@@ -466,7 +448,7 @@ onMounted(() => {
 })
 
 // ----- Timeline data (v2 unified coordinates via useCoordConverter) -----
-const { gutterHeights, totalHeight, todayRange, blockTop } = useCoordConverter()
+const { gutterHeights, totalHeight, todayRange, blockTop, minuteToY } = useCoordConverter()
 
 const displayBlocks = computed(() => timelogStore.blocks.map(b => toDisplayBlock(b, timelogStore._cutMeta)))
 const layoutBlocks = computed(() => layoutOverlap(displayBlocks.value.map(b => ({ ...b }))))
@@ -625,9 +607,7 @@ function scheduleCropPreview() {
 }
 
 watch(
-  () => [settings.exportTimeRange, settings.customRangeTodayStart, settings.customRangeTodayEnd,
-    settings.customRangePrevStart, settings.customRangePrevEnd,
-    settings.customRangeNextStart, settings.customRangeNextEnd,
+  () => [settings.exportTimeRange, settings.customRangeStart, settings.customRangeEnd,
     settings.showTitle, settings.showAuthor, settings.authorPosition,
     settings.exportWidth, settings.showGutter],
   scheduleCropPreview,
@@ -778,14 +758,42 @@ async function captureCanvas() {
 }
 
 /**
- * Crop canvas to the custom time range.
- * Keeps header (author + title) and footer (padding-bottom + author bottom)
- * intact, but only shows the timeline portion between the per-section ranges.
- * v2: 三段坐标由 useCoordConverter/_cutMeta 驱动（prev 段为昨天本地时间、
- * today 段为今天本地时间、next 段为明天本地时间）。
+ * 解析带符号时间为显示帧坐标，并校验是否落在可截取区段内：
+ *   -HH:MM → 昨天帧（须存在 fromPrev 且 cutAt <= min <= 1440）
+ *    HH:MM → 今天本地（须 todayStart <= min <= todayEnd）
+ *   +HH:MM → 明天帧（须存在 fromNext 且 0 <= min <= cutAt）
+ * 不合法返回 null。
+ */
+function resolveRangeEndpoint(str) {
+  const m = (str || '').trim().match(/^([+-]?)(\d{1,2}):(\d{2})$/)
+  if (!m) return null
+  const min = parseInt(m[2]) * 60 + parseInt(m[3])
+  if (min > DAY_MIN) return null
+  if (m[1] === '-') {
+    const cutAt = timelogStore._cutMeta?.fromPrev?.cutAt
+    if (cutAt == null || min < cutAt) return null
+    return min
+  }
+  if (m[1] === '+') {
+    const cutAt = timelogStore._cutMeta?.fromNext?.cutAt
+    if (cutAt == null || min > cutAt) return null
+    return 2 * DAY_MIN + min
+  }
+  const { start, end } = todayRange.value
+  if (min < start || min > end) return null
+  return DAY_MIN + min - start  // 今天本地 → 显示帧
+}
+
+/**
+ * Crop canvas to the custom time range (single continuous strip).
+ * Keeps header (author + title) and footer (padding-bottom + author bottom) intact.
  */
 function cropToTimeRange(canvas) {
   if (props.mode !== 'timeline' || settings.exportTimeRange !== 'custom') return canvas
+
+  const startMin = resolveRangeEndpoint(settings.customRangeStart)
+  const endMin = resolveRangeEndpoint(settings.customRangeEnd)
+  if (startMin == null || endMin == null || endMin <= startMin) return canvas
 
   const titleH = settings.showTitle ? EXPORT_DATE_TITLE_H : 0
   const authorTopH = showAuthorBlock.value && settings.authorPosition === 'top' ? EXPORT_AUTHOR_BLOCK_H : 0
@@ -794,56 +802,14 @@ function cropToTimeRange(canvas) {
   const padB = 24  // .exp-blocks padding-bottom
 
   const headerH = authorTopH + titleH
-  const gh = gutterHeights.value
-  const prevH = gh.prev * PX_MIN
-  const todayH = gh.today * PX_MIN
-  const nextH = gh.next * PX_MIN
-  const prevCutAt = timelogStore._cutMeta?.fromPrev?.cutAt ?? null
-  const nextCutAt = timelogStore._cutMeta?.fromNext?.cutAt ?? null
-  const { start: todayStart, end: todayEnd } = todayRange.value
-
-  // Parse time ranges for each visible section (本地时间)
-  const prevStartMin = prevCutAt != null ? fromInput(settings.customRangePrevStart) : NaN
-  const prevEndMin = prevCutAt != null ? fromInput(settings.customRangePrevEnd) : NaN
-  const todayStartMin = fromInput(settings.customRangeTodayStart)
-  const todayEndMin = fromInput(settings.customRangeTodayEnd)
-  const nextStartMin = nextCutAt != null ? fromInput(settings.customRangeNextStart) : NaN
-  const nextEndMin = nextCutAt != null ? fromInput(settings.customRangeNextEnd) : NaN
-
-  const hasPrevRange = prevCutAt != null && !isNaN(prevStartMin) && !isNaN(prevEndMin)
-    && prevEndMin > prevStartMin && prevStartMin >= prevCutAt && prevEndMin <= DAY_MIN
-  const hasTodayRange = !isNaN(todayStartMin) && !isNaN(todayEndMin)
-    && todayEndMin > todayStartMin && todayStartMin >= todayStart && todayEndMin <= todayEnd
-  const hasNextRange = nextCutAt != null && !isNaN(nextStartMin) && !isNaN(nextEndMin)
-    && nextEndMin > nextStartMin && nextStartMin >= 0 && nextEndMin <= nextCutAt
-
-  // If no valid range at all, return original
-  if (!hasPrevRange && !hasTodayRange && !hasNextRange) return canvas
-
   const contentStartY = headerH + padT
-  const strips = []
+  const totalH = totalHeight.value * PX_MIN
 
-  if (hasPrevRange) {
-    strips.push({
-      srcY: contentStartY + (prevStartMin - prevCutAt) * PX_MIN,
-      srcH: (prevEndMin - prevStartMin) * PX_MIN,
-    })
-  }
-  if (hasTodayRange) {
-    strips.push({
-      srcY: contentStartY + prevH + (todayStartMin - todayStart) * PX_MIN,
-      srcH: (todayEndMin - todayStartMin) * PX_MIN,
-    })
-  }
-  if (hasNextRange) {
-    strips.push({
-      srcY: contentStartY + prevH + todayH + nextStartMin * PX_MIN,
-      srcH: (nextEndMin - nextStartMin) * PX_MIN,
-    })
-  }
+  const yStart = minuteToY(startMin)
+  const yEnd = minuteToY(endMin)
+  const stripH = yEnd - yStart
 
-  const totalContentH = strips.reduce((s, st) => s + st.srcH, 0)
-  const newH = headerH + padT + totalContentH + padB + authorBottomH
+  const newH = headerH + padT + stripH + padB + authorBottomH
   const cropped = document.createElement('canvas')
   cropped.width = canvas.width
   cropped.height = newH
@@ -855,14 +821,12 @@ function cropToTimeRange(canvas) {
   ctx.drawImage(canvas, 0, 0, canvas.width, contentStartY, 0, 0, canvas.width, contentStartY)
   dstY += contentStartY
 
-  // 2. Cropped sections
-  for (const st of strips) {
-    ctx.drawImage(canvas, 0, st.srcY, canvas.width, st.srcH, 0, dstY, canvas.width, st.srcH)
-    dstY += st.srcH
-  }
+  // 2. Cropped strip
+  ctx.drawImage(canvas, 0, contentStartY + yStart, canvas.width, stripH, 0, dstY, canvas.width, stripH)
+  dstY += stripH
 
   // 3. Footer (padding-bottom + author bottom)
-  const footerSrcY = contentStartY + prevH + todayH + nextH
+  const footerSrcY = contentStartY + totalH
   ctx.drawImage(canvas, 0, footerSrcY, canvas.width, padB + authorBottomH, 0, dstY, canvas.width, padB + authorBottomH)
 
   return cropped

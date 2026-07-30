@@ -242,6 +242,7 @@ export const STR = {
     timeRangeCustom: '自定义',
     timeRangePrefixPrev: '- ',
     timeRangePrefixNext: '+ ',
+    timeRangeHint: '格式：[+-]HH:MM（- 昨天 / 无前缀 今天 / + 明天）',
     glueBlockPrefix: (date) => `[来自${date}] `,
   },
 
