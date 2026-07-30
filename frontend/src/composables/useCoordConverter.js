@@ -45,13 +45,14 @@ export function useCoordConverter() {
   /** 块（绝对分钟坐标）→ 渲染 top 像素 */
   function blockTop(block) {
     if (block.start < 1440) {
-      // 昨天的块
-      return block.start * PX_MIN
+      // 昨天的块：区域起始 = cutAt
+      const cutAt = cutMeta.value.fromPrev?.cutAt || 0
+      return (block.start - cutAt) * PX_MIN
     } else if (block.start < 2880) {
-      // 今天的块
+      // 今天的块：区域起始 = 1440
       return gutterHeights.value.prev + (block.start - 1440) * PX_MIN
     } else {
-      // 明天的块
+      // 明天的块：区域起始 = 2880
       return gutterHeights.value.prev + gutterHeights.value.today + (block.start - 2880) * PX_MIN
     }
   }
@@ -64,7 +65,8 @@ export function useCoordConverter() {
     const localMin = Math.round(localY / PX_MIN)
 
     if (localMin < gutterHeights.value.prev) {
-      return localMin // 昨天坐标
+      const cutAt = cutMeta.value.fromPrev?.cutAt || 0
+      return cutAt + localMin // 昨天坐标
     } else if (localMin < gutterHeights.value.prev + gutterHeights.value.today) {
       return 1440 + (localMin - gutterHeights.value.prev) // 今天坐标
     } else {
@@ -75,7 +77,8 @@ export function useCoordConverter() {
   /** 绝对分钟数 → 渲染 y 像素（与 blockTop 对 block.start 一致） */
   function minuteToY(minute) {
     if (minute < 1440) {
-      return minute * PX_MIN
+      const cutAt = cutMeta.value.fromPrev?.cutAt || 0
+      return (minute - cutAt) * PX_MIN
     } else if (minute < 2880) {
       return gutterHeights.value.prev + (minute - 1440) * PX_MIN
     } else {
