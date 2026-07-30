@@ -676,6 +676,8 @@ async function onCutConfirm(cutAt, direction) {
   if (result) {
     store.loadBlocks()
     toast(`已剪切 ${result.moved} 个块到 ${direction === 'forward' ? '明天' : '昨天'}`)
+  } else {
+    toast(STR.cut.constraintFail)
   }
   showCutConfirm.value = false
 }

@@ -231,6 +231,7 @@ export const STR = {
     shortBlock: (dur) => `切出片段不足10分钟（${dur}分），是否保留？`,
     extremeAll: '将移走当天所有时间块，确定？',
     extremeNone: '该时刻无内容可切。',
+    constraintFail: '目标日期已有来自更远日期的胶水块，无法向该方向剪切。',
   },
   glue: {
     confirm: (date) => `粘回 ${date}？`,

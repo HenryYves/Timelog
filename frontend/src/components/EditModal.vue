@@ -18,8 +18,10 @@
 
       <label>时间</label>
       <div class="timerow">
+        <span v-if="startPrefix" class="frame-prefix">{{ startPrefix }}</span>
         <input type="time" id="mStart" v-model="mStart" step="60" @keydown.enter.prevent="focusFirstChip">
         <span>—</span>
+        <span v-if="endPrefix" class="frame-prefix">{{ endPrefix }}</span>
         <input type="time" id="mEnd" v-model="mEnd" step="60" @keydown.enter.prevent="focusFirstChip">
       </div>
 
@@ -116,26 +118,45 @@ function isDirty() {
 }
 
 // Populate form when modal opens
-// frameBase：块的存储帧基准（昨天 0 / 今天 1440 / 明天 2880），
-// 输入框始终显示本地时间，保存时加回 frameBase
-const frameBase = ref(0)
+// 每个时间输入各自的帧基准（昨天 0 / 今天 1440 / 明天 2880），
+// 输入框显示帧内本地时间，保存时加回各自 base；跨帧块因此不会溢出（--:--）
+const startBase = ref(0)
+const endBase = ref(0)
+
+function baseOf(min, isEnd) {
+  if (isEnd ? min <= 1440 : min < 1440) return 0
+  if (isEnd ? min <= 2880 : min < 2880) return 1440
+  return 2880
+}
+
+// 帧前缀：明天 +，昨天帧（fromPrev 存在时的 0 基准）-
+function framePrefix(base) {
+  if (base === 2880) return '+'
+  if (base === 0 && timelogStore._cutMeta?.fromPrev) return '-'
+  return ''
+}
+const startPrefix = computed(() => framePrefix(startBase.value))
+const endPrefix = computed(() => framePrefix(endBase.value))
+
 watch(
   () => [props.show, props.editingBlock, props.createTimes],
   ([show, block, cTimes]) => {
     if (!show) return
     if (block) {
-      frameBase.value = block.start < 1440 ? 0 : block.start < 2880 ? 1440 : 2880
+      startBase.value = baseOf(block.start)
+      endBase.value = baseOf(block.end, true)
       mTitle.value = block.title || ''
       mNote.value = block.note || ''
-      mStart.value = toInput(block.start - frameBase.value)
-      mEnd.value = toInput(block.end - frameBase.value)
+      mStart.value = toInput(block.start - startBase.value)
+      mEnd.value = toInput(block.end - endBase.value)
       selectedTags.value = [...(block.tags || [])]
     } else if (cTimes) {
-      frameBase.value = cTimes.start < 1440 ? 0 : cTimes.start < 2880 ? 1440 : 2880
+      startBase.value = baseOf(cTimes.start)
+      endBase.value = baseOf(cTimes.end, true)
       mTitle.value = ''
       mNote.value = ''
-      mStart.value = toInput(cTimes.start - frameBase.value)
-      mEnd.value = toInput(cTimes.end - frameBase.value)
+      mStart.value = toInput(cTimes.start - startBase.value)
+      mEnd.value = toInput(cTimes.end - endBase.value)
       selectedTags.value = []
     }
     original.value = {
@@ -207,8 +228,8 @@ function focusFirstChip() {
 
 // Save
 async function save() {
-  const s = fromInput(mStart.value) + frameBase.value
-  let en = fromInput(mEnd.value) + frameBase.value
+  const s = fromInput(mStart.value) + startBase.value
+  let en = fromInput(mEnd.value) + endBase.value
   if (en <= s) en = s + 1
   const dur = en - s
   // Confirm short blocks (new blocks only, not edits)
@@ -261,8 +282,8 @@ async function deleteBlock() {
 // 剪贴板统一存存储坐标
 function copyBlock() {
   timelogStore.clipboard = [{
-    start: fromInput(mStart.value) + frameBase.value,
-    end: fromInput(mEnd.value) + frameBase.value,
+    start: fromInput(mStart.value) + startBase.value,
+    end: fromInput(mEnd.value) + endBase.value,
     title: mTitle.value.trim(),
     note: mNote.value.trim(),
     tags: selectedTags.value.slice(),
@@ -299,6 +320,11 @@ function trapFocus(e) {
 }
 .modal-head h2 { margin: 0; }
 .modal { max-height: calc(82vh / var(--zoom, 1)); overflow: auto; }
+.frame-prefix {
+  font-weight: 700;
+  color: var(--text2);
+  user-select: none;
+}
 .duration {
   font-size: 13px;
   color: var(--text2);
