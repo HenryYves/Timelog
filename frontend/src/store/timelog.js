@@ -107,6 +107,12 @@ export function todayLocalToStorage(s, en, cutMeta) {
   return { start: s + base, end: en + base }
 }
 
+/** 统一坐标（带帧）→ 存储坐标：今天帧按基准换算，胶水帧原样 */
+export function unifiedToStorage(x, cutMeta) {
+  if (x >= DAY_MIN && x < 2 * DAY_MIN) return x - DAY_MIN + todayStorageBase(cutMeta)
+  return x
+}
+
 /**
  * Load a day's storage in v2 object format { blocks, _cutMeta }.
  * v1 数组格式自动迁移：无 _cut 的块 +1440 移入今天帧；
@@ -334,9 +340,7 @@ export function glueBack(hostDate, sourceDate) {
     if (!tagged.length) return false
     lo = Math.min(...tagged.map(b => b.start))
     hi = Math.max(...tagged.map(b => b.end))
-  }
-
-  const retShift = forwardInv ? 1440 : -1440
+  }  const retShift = forwardInv ? 1440 : -1440
   const toReturn = []
   const newHostBlocks = []
   const pushReturn = (b, shift) => {
@@ -374,7 +378,8 @@ export function glueBack(hostDate, sourceDate) {
     }
   })
 
-  if (!toReturn.length) return false
+  if (!toReturn.length && !meta) return false
+  // meta 存在但胶水区无块：依然清理 meta（空胶水区粘回=归还时间，无块可移）
 
   // Restore source-day blocks to their original frame
   const srcShift = forwardInv

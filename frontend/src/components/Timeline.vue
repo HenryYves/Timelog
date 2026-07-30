@@ -78,13 +78,13 @@
         v-for="(label, i) in allLabels"
         :key="'hl' + i"
         class="hourline"
-        :style="{ top: label.top + 'px' }"
+        :style="{ top: label.y + 'px' }"
       />
       <div
         v-for="(label, i) in allLabels"
         :key="'hfl' + i"
         class="halfline"
-        :style="{ top: label.top + 30 * PX_MIN + 'px' }"
+        :style="{ top: label.y + 30 * PX_MIN + 'px' }"
       />
       <div
         v-for="ev in layoutBlocks"
@@ -306,11 +306,14 @@ const glueNextLabels = computed(() => {
   return labels
 })
 
-const allLabels = computed(() => [
-  ...gluePrevLabels.value,
-  ...todayLabels.value,
-  ...glueNextLabels.value,
-])
+const allLabels = computed(() => {
+  const gh = gutterHeights.value
+  return [
+    ...gluePrevLabels.value.map(l => ({ ...l, y: l.top })),
+    ...todayLabels.value.map(l => ({ ...l, y: gh.prev * PX_MIN + l.top })),
+    ...glueNextLabels.value.map(l => ({ ...l, y: (gh.prev + gh.today) * PX_MIN + l.top })),
+  ]
+})
 
 // --- Cut availability ---
 const canCutFwd = computed(() => canCutForward(store.blocks, store.dateKey))

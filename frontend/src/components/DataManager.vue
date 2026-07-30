@@ -65,10 +65,10 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { KEY_PREFIX } from '../constants.js'
-import { pushStoreUndo } from '../store/timelog.js'
+import { pushStoreUndo, addDays } from '../store/timelog.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { STR } from '../strings.js'
-import { extractBlocks } from '../utils/dayStorage.js'
+import { extractBlocks, normalizeDayData } from '../utils/dayStorage.js'
 
 const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close', 'changed'])
@@ -132,9 +132,9 @@ function loadDays() {
     if (isDayKey(k)) {
       const date = k.slice(KEY_PREFIX.length)
       try {
-        const data = JSON.parse(localStorage.getItem(k))
-        const blocks = extractBlocks(data)
-        if (blocks.length) {
+        const { blocks, _cutMeta } = normalizeDayData(JSON.parse(localStorage.getItem(k)))
+        // 有时间块，或发生过剪贴（_cutMeta 非空）都算有数据
+        if (blocks.length || Object.keys(_cutMeta).length) {
           let mins = 0
           blocks.forEach(b => mins += (b.end - b.start))
           map[date] = { count: blocks.length, hours: Math.round((mins / 60) * 10) / 10 }
@@ -158,9 +158,60 @@ watch(() => props.show, (val) => {
 
 function refocusModal() { modalEl.value?.querySelector('button')?.focus() }
 
+/**
+ * 删除某天数据前的邻居清理（防止时间凭空增加）：
+ * 1. D 从昨天借的 → 清理昨天的 toNext（块随 D 删除）
+ * 2. D 从明天借的 → 清理明天的 toPrev（块随 D 删除）
+ * 3. D 借给明天的 → 删除明天的 fromPrev meta + 该来源胶水块
+ * 4. D 借给昨天的 → 删除昨天的 fromNext meta + 该来源胶水块
+ */
+function returnBorrowedTime(date) {
+  const prevKey = KEY_PREFIX + addDays(date, -1)
+  const nextKey = KEY_PREFIX + addDays(date, 1)
+
+  const saveOrRemove = (key, blocks, meta) => {
+    if (!blocks.length && !Object.keys(meta).length) localStorage.removeItem(key)
+    else localStorage.setItem(key, JSON.stringify({ blocks, _cutMeta: meta }))
+  }
+
+  // D 借来的：清理邻居的 toNext/toPrev（块不迁移，随 D 删除）
+  ;[
+    { key: prevKey, field: 'toNext' },
+    { key: nextKey, field: 'toPrev' },
+  ].forEach(({ key, field }) => {
+    try {
+      const raw = localStorage.getItem(key)
+      if (!raw) return
+      const data = normalizeDayData(JSON.parse(raw))
+      if (data._cutMeta[field]?.targetDate === date) {
+        delete data._cutMeta[field]
+        saveOrRemove(key, data.blocks, data._cutMeta)
+      }
+    } catch { /* skip corrupt neighbors */ }
+  })
+
+  // D 借出的：删除邻居的 from* meta + 该来源的胶水块
+  ;[
+    { key: nextKey, field: 'fromPrev' },
+    { key: prevKey, field: 'fromNext' },
+  ].forEach(({ key, field }) => {
+    try {
+      const raw = localStorage.getItem(key)
+      if (!raw) return
+      const data = normalizeDayData(JSON.parse(raw))
+      if (data._cutMeta[field]?.sourceDate === date) {
+        delete data._cutMeta[field]
+        const blocks = data.blocks.filter(b => b._cut?.sourceDate !== date)
+        saveOrRemove(key, blocks, data._cutMeta)
+      }
+    } catch { /* skip corrupt neighbors */ }
+  })
+}
+
 async function deleteDate(date) {
   const ok = await showConfirm(STR.confirm.deleteDay(date))
   if (!ok) { refocusModal(); return }
+  returnBorrowedTime(date)
   localStorage.removeItem(KEY_PREFIX + date)
   loadDays()
   emit('changed')
@@ -181,7 +232,10 @@ async function deleteDateRange() {
   const total = toDel.reduce((s, d) => s + d.count, 0)
   const ok = await showConfirm(STR.confirm.deleteRangeConfirm(toDel.length, total))
   if (!ok) { refocusModal(); return }
-  toDel.forEach(d => localStorage.removeItem(KEY_PREFIX + d.date))
+  toDel.forEach(d => {
+    returnBorrowedTime(d.date)
+    localStorage.removeItem(KEY_PREFIX + d.date)
+  })
   loadDays()
   emit('changed')
 }
@@ -194,7 +248,10 @@ async function deleteSelected() {
   }, 0)
   const ok = await showConfirm(STR.confirm.deleteRangeConfirm(selectedDays.value.size, total))
   if (!ok) { refocusModal(); return }
-  selectedDays.value.forEach(d => localStorage.removeItem(KEY_PREFIX + d))
+  selectedDays.value.forEach(d => {
+    returnBorrowedTime(d)
+    localStorage.removeItem(KEY_PREFIX + d)
+  })
   selectedDays.value = new Set()
   loadDays()
   emit('changed')
