@@ -82,12 +82,89 @@ export function canCutBackward(blocks, dateKey) {
 }
 
 /**
- * Cut a day at cutAt (minutes), moving blocks to adjacent day.
- * @param {string} sourceDate - 'YYYY-MM-DD' of the day being cut
- * @param {number} cutAt - cut point in minutes (0-1440)
- * @param {'forward'|'backward'} direction - forward=to tomorrow, backward=to yesterday
+ * Load a day's storage in v2 object format { blocks, _cutMeta }.
+ * Tolerates legacy v1 array format (treated as blocks with empty meta).
  */
-export function cutDay(sourceDate, cutAt, direction) {
+function _loadDay(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return { blocks: [], _cutMeta: {} }
+    const data = JSON.parse(raw)
+    if (Array.isArray(data)) return { blocks: data, _cutMeta: {} }
+    return { blocks: data.blocks || [], _cutMeta: data._cutMeta || {} }
+  } catch (e) {
+    logger.error('timelog', '_loadDay failed', e)
+    return { blocks: [], _cutMeta: {} }
+  }
+}
+
+/** Save a day; remove the key entirely when no blocks and no meta remain. */
+function _saveDay(key, blocks, meta) {
+  if (!blocks.length && !Object.keys(meta).length) {
+    localStorage.removeItem(key)
+  } else {
+    localStorage.setItem(key, JSON.stringify({ blocks, _cutMeta: meta }))
+  }
+}
+
+/**
+ * Merge same-ID blocks into one (min start / max end).
+ * Pieces split across a 1440 frame boundary are shifted back by multiples
+ * of 1440 first, so cross-midnight pieces reunite as continuous coordinates
+ * (e.g. [1380,1440) + [2880,2940) → [1380,1500)).
+ */
+function _mergeById(blocks) {
+  const groups = new Map()
+  blocks.forEach(b => {
+    if (!groups.has(b.id)) groups.set(b.id, [])
+    groups.get(b.id).push(b)
+  })
+  const out = []
+  groups.forEach(list => {
+    if (list.length === 1) { out.push(list[0]); return }
+    list.sort((x, y) => x.start - y.start)
+    const merged = { ...list[0] }
+    for (let i = 1; i < list.length; i++) {
+      let p = list[i]
+      if (p.start - merged.end >= 1440) {
+        const k = Math.round((p.start - merged.end) / 1440)
+        p = { ...p, start: p.start - 1440 * k, end: p.end - 1440 * k }
+      }
+      merged.start = Math.min(merged.start, p.start)
+      merged.end = Math.max(merged.end, p.end)
+      if (p._cut) merged._cut = p._cut
+    }
+    out.push(merged)
+  })
+  return out
+}
+
+/**
+ * Cut a day at cutAt (minutes), moving blocks to the adjacent day.
+ * v2 统一坐标系：昨天 [0,1440)，今天 [1440,2880)，明天 [2880,4320)。
+ *
+ * forward（剪到明天）：
+ *   - 今天 [1440+cutAt, 2880) 的块（含跨切点的后半）移入明天，坐标 -1440
+ *     → 落在明天存储的 [cutAt, 1440)（prev gutter 区）
+ *   - 源日保留的今天块同步 -1440 → [0, cutAt)
+ *   - 源日 meta.toNext / 目标 meta.fromPrev
+ *
+ * backward（剪到昨天）：
+ *   - 昨天帧 [0,1440) 的胶水块回家（坐标不变）
+ *   - 今天 [1440, 1440+cutAt) 的块（含跨切点的前半）移入昨天，坐标 +1440
+ *     → 落在昨天存储的 [2880, 2880+cutAt)（next gutter 区）
+ *   - 源日保留的今天块 -cutAt（对齐 toPrev 截断后的显示区与标签）
+ *   - 源日 meta.toPrev / 目标 meta.fromNext
+ *
+ * 00:00 边界处同 ID 的块在目标日合并（跨帧碎片先归一化再 min/max）。
+ * 剪切后清空 undo/redo 栈（不支持撤销）。
+ *
+ * @param {string} sourceDate - 'YYYY-MM-DD' of the day being cut
+ * @param {number} cutAt - cut point in minutes within the source day (0-1440)
+ * @param {'forward'|'backward'} direction - forward=to tomorrow, backward=to yesterday
+ * @param {boolean} dropShort - drop split fragments < 10 min
+ */
+export function cutDay(sourceDate, cutAt, direction, dropShort = false) {
   const targetDate = direction === 'forward'
     ? addDays(sourceDate, 1)
     : addDays(sourceDate, -1)
@@ -95,150 +172,92 @@ export function cutDay(sourceDate, cutAt, direction) {
   const srcKey = KEY_PREFIX + sourceDate
   const tgtKey = KEY_PREFIX + targetDate
 
-  // Load both days
-  let srcBlocks = []
-  let tgtBlocks = []
-  try { srcBlocks = JSON.parse(localStorage.getItem(srcKey)) || [] } catch {}
-  try { tgtBlocks = JSON.parse(localStorage.getItem(tgtKey)) || [] } catch {}
+  const srcData = _loadDay(srcKey)
+  const tgtData = _loadDay(tgtKey)
+  const srcMeta = srcData._cutMeta
+  const tgtMeta = tgtData._cutMeta
 
-  // Snapshot for undo
-  const srcSnap = JSON.parse(JSON.stringify(srcBlocks))
-  const tgtSnap = JSON.parse(JSON.stringify(tgtBlocks))
+  // Constraint: target must not contain glue from beyond itself
+  if (direction === 'forward' && !canCutForward(tgtData.blocks, targetDate)) return false
+  if (direction === 'backward' && !canCutBackward(tgtData.blocks, targetDate)) return false
 
-  // Validate constraint
-  if (direction === 'forward' && !canCutForward(tgtBlocks, targetDate)) return false
-  if (direction === 'backward' && !canCutBackward(tgtBlocks, targetDate)) return false
+  const cutLine = 1440 + cutAt
+  const toMove = []
+  const toStay = []
 
-  // Filter out existing _cut blocks from srcBlocks (they stay)
-  const normalBlocks = srcBlocks.filter(b => !b._cut)
-  const existingCutBlocks = srcBlocks.filter(b => b._cut)
+  const pushPiece = (list, b, isFrag) => {
+    if (isFrag && dropShort && b.end - b.start < 10) return
+    list.push(b)
+  }
 
-  // Find blocks to move
-  let toMove, toStay
-  if (direction === 'forward') {
-    // Move blocks at/after cutAt
-    toMove = []
-    toStay = []
-    normalBlocks.forEach(b => {
-      if (b.start >= cutAt) {
-        toMove.push({ ...b, tags: [...(b.tags || [])] })
-      } else if (b.end > cutAt) {
-        // Split — first half stays, second half moves
-        const first = { ...b, end: cutAt, tags: [...(b.tags || [])] }
-        const second = { ...b, start: cutAt, tags: [...(b.tags || [])] }
-        toStay.push(first)
-        toMove.push(second)
+  srcData.blocks.forEach(b => {
+    if (direction === 'forward') {
+      if (b.start >= 1440 && b.start < 2880) {
+        if (b.start >= cutLine) {
+          toMove.push({ ...b, start: b.start - 1440, end: b.end - 1440 })
+        } else if (b.end > cutLine) {
+          // Split at the cut line: first half stays, second half moves
+          pushPiece(toStay, { ...b, start: b.start - 1440, end: cutLine - 1440 }, true)
+          pushPiece(toMove, { ...b, start: cutLine - 1440, end: b.end - 1440 }, true)
+        } else {
+          toStay.push({ ...b, start: b.start - 1440, end: b.end - 1440 })
+        }
       } else {
-        toStay.push(b)
+        toStay.push(b)  // 已有胶水块不参与剪切
       }
-    })
-  } else {
-    // backward: Move blocks before cutAt
-    toMove = []
-    toStay = []
-    normalBlocks.forEach(b => {
-      if (b.end <= cutAt) {
-        toMove.push({ ...b, tags: [...(b.tags || [])] })
-      } else if (b.start < cutAt) {
-        // Split — first half moves, second half stays
-        const first = { ...b, start: b.start, end: cutAt, tags: [...(b.tags || [])] }
-        const second = { ...b, start: cutAt, tags: [...(b.tags || [])] }
-        toMove.push(first)
-        toStay.push(second)
+    } else {
+      if (b.start < 1440) {
+        toMove.push(b)  // 昨天帧的胶水块回家（坐标不变）
+      } else if (b.start < cutLine) {
+        if (b.end <= cutLine) {
+          toMove.push({ ...b, start: b.start + 1440, end: b.end + 1440 })
+        } else {
+          // Split at the cut line: first half moves, second half stays
+          pushPiece(toMove, { ...b, start: b.start + 1440, end: cutLine + 1440 }, true)
+          pushPiece(toStay, { ...b, start: cutLine - cutAt, end: b.end - cutAt }, true)
+        }
+      } else if (b.start < 2880) {
+        toStay.push({ ...b, start: b.start - cutAt, end: b.end - cutAt })
       } else {
-        toStay.push(b)
+        toStay.push(b)  // 明天帧的胶水块不参与剪切
       }
-    })
-  }
-
-  // Warn on split fragments < 10 min
-  // (handled in UI via confirm — see CutConfirm.vue)
-
-  // Mark moved blocks with _cut
-  toMove.forEach(b => {
-    b._cut = { sourceDate, cutAt }
-  })
-
-  // Merge into target day
-  // Remove existing _cut blocks from same sourceDate (re-merge)
-  tgtBlocks = tgtBlocks.filter(b => !(b._cut && b._cut.sourceDate === sourceDate))
-  tgtBlocks.push(...toMove)
-
-  // Recalculate cutAt for all blocks from this sourceDate
-  const allFromSource = tgtBlocks.filter(b => b._cut && b._cut.sourceDate === sourceDate)
-  if (allFromSource.length) {
-    const cutAts = allFromSource.map(b => b._cut.cutAt)
-    const mergedCutAt = direction === 'forward'
-      ? Math.min(...cutAts)
-      : Math.max(...cutAts)
-    allFromSource.forEach(b => { b._cut.cutAt = mergedCutAt })
-
-    // Merge same-ID blocks (split halves reunited)
-    const seen = new Map()
-    const merged = []
-    allFromSource.forEach(b => {
-      if (seen.has(b.id)) {
-        const prev = seen.get(b.id)
-        prev.start = Math.min(prev.start, b.start)
-        prev.end = Math.max(prev.end, b.end)
-      } else {
-        seen.set(b.id, b)
-        merged.push(b)
-      }
-    })
-    // Replace old from-source blocks with merged
-    tgtBlocks = tgtBlocks.filter(b => !(b._cut && b._cut.sourceDate === sourceDate))
-    tgtBlocks.push(...merged)
-  }
-
-  // Sort: _cut blocks first by start, then non-_cut by start
-  const cutBlocks = tgtBlocks.filter(b => b._cut)
-  const nonCutBlocks = tgtBlocks.filter(b => !b._cut)
-  cutBlocks.sort((a, b) => a.start - b.start)
-  nonCutBlocks.sort((a, b) => a.start - b.start)
-  tgtBlocks = [...cutBlocks, ...nonCutBlocks]
-
-  // Save src: remaining + existing cut blocks
-  srcBlocks = [...toStay, ...existingCutBlocks]
-  if (srcBlocks.length) {
-    localStorage.setItem(srcKey, JSON.stringify(srcBlocks))
-  } else {
-    localStorage.removeItem(srcKey)
-  }
-
-  // Save target
-  if (tgtBlocks.length) {
-    localStorage.setItem(tgtKey, JSON.stringify(tgtBlocks))
-  } else {
-    localStorage.removeItem(tgtKey)
-  }
-
-  // Push undo
-  pushStoreUndo({
-    undo: () => {
-      if (srcSnap.length) localStorage.setItem(srcKey, JSON.stringify(srcSnap))
-      else localStorage.removeItem(srcKey)
-      if (tgtSnap.length) localStorage.setItem(tgtKey, JSON.stringify(tgtSnap))
-      else localStorage.removeItem(tgtKey)
-      // Reload if on affected date
-      const store = useTimelogStore()
-      if (store.dateKey === sourceDate || store.dateKey === targetDate) store.loadBlocks()
-    },
-    redo: () => {
-      if (srcBlocks.length) localStorage.setItem(srcKey, JSON.stringify(srcBlocks))
-      else localStorage.removeItem(srcKey)
-      if (tgtBlocks.length) localStorage.setItem(tgtKey, JSON.stringify(tgtBlocks))
-      else localStorage.removeItem(tgtKey)
-      const store = useTimelogStore()
-      if (store.dateKey === sourceDate || store.dateKey === targetDate) store.loadBlocks()
     }
   })
+
+  // Tag moved blocks (getGlueBlocks / 旧 UI 仍按 _cut 识别)
+  toMove.forEach(b => { b._cut = { sourceDate, cutAt } })
+
+  // Merge same-ID blocks at the 00:00 boundary into the target day
+  const newTgtBlocks = _mergeById([...tgtData.blocks, ...toMove])
+
+  if (direction === 'forward') {
+    srcMeta.toNext = { targetDate, cutAt }
+    tgtMeta.fromPrev = { sourceDate, cutAt }
+  } else {
+    srcMeta.toPrev = { targetDate, cutAt }
+    tgtMeta.fromNext = { sourceDate, cutAt }
+  }
+
+  _saveDay(srcKey, toStay, srcMeta)
+  _saveDay(tgtKey, newTgtBlocks, tgtMeta)
+
+  // 剪切不支持撤销：清空 undo/redo 栈
+  storeUndo.clear()
 
   return { sourceDate, targetDate, moved: toMove.length }
 }
 
 /**
- * Glue blocks back to their source date.
+ * Glue blocks back to their source date (inverse of cutDay).
+ *
+ * 胶水区由 host 的 _cutMeta 决定：
+ *   - fromPrev（host = source + 1）：[cutAt, 1440)，粘回时 +1440，
+ *     源日保留块同步 +1440 还原今天帧
+ *   - fromNext（host = source - 1）：[2880, 2880+cutAt)，粘回时 -1440，
+ *     源日保留块 +cutAt 还原
+ * 跨 00:00 边界的块在边界处 split（同 ID），属于 source 的一侧粘回。
+ * 粘回后清空 undo/redo 栈。
+ *
  * @param {string} hostDate - 'YYYY-MM-DD' where the glue blocks currently live
  * @param {string} sourceDate - 'YYYY-MM-DD' where blocks originated
  */
@@ -246,64 +265,92 @@ export function glueBack(hostDate, sourceDate) {
   const hostKey = KEY_PREFIX + hostDate
   const srcKey = KEY_PREFIX + sourceDate
 
-  let hostBlocks = []
-  let srcBlocks = []
-  try { hostBlocks = JSON.parse(localStorage.getItem(hostKey)) || [] } catch {}
-  try { srcBlocks = JSON.parse(localStorage.getItem(srcKey)) || [] } catch {}
+  const hostData = _loadDay(hostKey)
+  const srcData = _loadDay(srcKey)
+  const hostMeta = hostData._cutMeta
+  const srcMeta = srcData._cutMeta
 
-  const hostSnap = JSON.parse(JSON.stringify(hostBlocks))
-  const srcSnap = JSON.parse(JSON.stringify(srcBlocks))
+  const forwardInv = isBefore(sourceDate, hostDate)  // host = source + 1
+  const meta = forwardInv ? hostMeta.fromPrev : hostMeta.fromNext
 
-  // Find glue blocks from sourceDate
-  const glueBlocks = hostBlocks.filter(b => b._cut && b._cut.sourceDate === sourceDate)
-  if (!glueBlocks.length) return false
+  // Glue region in host coordinates
+  let lo, hi
+  if (meta) {
+    lo = forwardInv ? meta.cutAt : 2880
+    hi = forwardInv ? 1440 : 2880 + meta.cutAt
+  } else {
+    // Fallback: no meta — identify glue by _cut tags
+    const tagged = hostData.blocks.filter(b => b._cut && b._cut.sourceDate === sourceDate)
+    if (!tagged.length) return false
+    lo = Math.min(...tagged.map(b => b.start))
+    hi = Math.max(...tagged.map(b => b.end))
+  }
 
-  // Remove from host
-  hostBlocks = hostBlocks.filter(b => !(b._cut && b._cut.sourceDate === sourceDate))
+  const retShift = forwardInv ? 1440 : -1440
+  const toReturn = []
+  const newHostBlocks = []
+  const pushReturn = (b, shift) => {
+    const r = { ...b, start: b.start + shift, end: b.end + shift }
+    delete r._cut
+    toReturn.push(r)
+  }
 
-  // Add to source (strip _cut, merge same-ID)
-  glueBlocks.forEach(b => {
-    const clean = { ...b }
-    delete clean._cut
-    const existing = srcBlocks.find(x => x.id === clean.id)
-    if (existing) {
-      existing.start = Math.min(existing.start, clean.start)
-      existing.end = Math.max(existing.end, clean.end)
+  hostData.blocks.forEach(b => {
+    if (b.end <= lo || b.start >= hi) {
+      if (!forwardInv && b.start < 1440 && b.end > 1440) {
+        // 跨 00:00 边界的块：边界以上属于 source，split 后粘回（坐标不变）
+        const keep = { ...b, end: 1440 }
+        delete keep._cut
+        newHostBlocks.push(keep)
+        pushReturn({ ...b, start: 1440 }, 0)
+      } else {
+        newHostBlocks.push(b)
+      }
+    } else if (b.start >= lo && b.end <= hi) {
+      pushReturn(b, retShift)  // 完全在胶水区内
     } else {
-      srcBlocks.push(clean)
+      // 跨区域边界：split，区外部分留在 host
+      if (b.start < lo) {
+        const keep = { ...b, end: lo }
+        delete keep._cut
+        newHostBlocks.push(keep)
+      }
+      if (b.end > hi) {
+        const keep = { ...b, start: hi }
+        delete keep._cut
+        newHostBlocks.push(keep)
+      }
+      pushReturn({ ...b, start: Math.max(b.start, lo), end: Math.min(b.end, hi) }, retShift)
     }
   })
 
-  // Sort source
-  srcBlocks.sort((a, b) => a.start - b.start)
+  if (!toReturn.length) return false
 
-  // Save
-  if (hostBlocks.length) localStorage.setItem(hostKey, JSON.stringify(hostBlocks))
-  else localStorage.removeItem(hostKey)
-  if (srcBlocks.length) localStorage.setItem(srcKey, JSON.stringify(srcBlocks))
-  else localStorage.removeItem(srcKey)
+  // Restore source-day blocks to their original frame
+  const srcShift = forwardInv
+    ? 1440
+    : (srcMeta.toPrev ? srcMeta.toPrev.cutAt : (meta ? meta.cutAt : 0))
+  const srcBlocks = srcData.blocks.map(b =>
+    ({ ...b, start: b.start + srcShift, end: b.end + srcShift }))
 
-  // Undo
-  pushStoreUndo({
-    undo: () => {
-      if (hostSnap.length) localStorage.setItem(hostKey, JSON.stringify(hostSnap))
-      else localStorage.removeItem(hostKey)
-      if (srcSnap.length) localStorage.setItem(srcKey, JSON.stringify(srcSnap))
-      else localStorage.removeItem(srcKey)
-      const store = useTimelogStore()
-      if (store.dateKey === hostDate || store.dateKey === sourceDate) store.loadBlocks()
-    },
-    redo: () => {
-      if (hostBlocks.length) localStorage.setItem(hostKey, JSON.stringify(hostBlocks))
-      else localStorage.removeItem(hostKey)
-      if (srcBlocks.length) localStorage.setItem(srcKey, JSON.stringify(srcBlocks))
-      else localStorage.removeItem(srcKey)
-      const store = useTimelogStore()
-      if (store.dateKey === hostDate || store.dateKey === sourceDate) store.loadBlocks()
-    }
-  })
+  // Merge same-ID blocks (split halves reunite)
+  const newSrcBlocks = _mergeById([...srcBlocks, ...toReturn])
 
-  return { hostDate, sourceDate, moved: glueBlocks.length }
+  if (forwardInv) {
+    delete hostMeta.fromPrev
+    delete srcMeta.toNext
+  } else {
+    delete hostMeta.fromNext
+    delete srcMeta.toPrev
+  }
+
+  _saveDay(hostKey, newHostBlocks, hostMeta)
+  _saveDay(srcKey, newSrcBlocks, srcMeta)
+
+  // 粘回不支持撤销：清空 undo/redo 栈
+  storeUndo.clear()
+
+  return { hostDate, sourceDate, moved: toReturn.length }
 }
 
 /**
@@ -327,6 +374,7 @@ export function getGlueBlocks(blocks, hostDate) {
 export const useTimelogStore = defineStore('timelog', () => {
   const curDate = ref(new Date())
   const blocks = ref([])
+  const _cutMeta = ref({})
   const selectedBlocks = ref(new Set())
   const clipboard = ref([])
   const dateKey = computed(() => dkey(curDate.value))
@@ -334,19 +382,13 @@ export const useTimelogStore = defineStore('timelog', () => {
   const { blockOpacity: opacityRef } = storeToRefs(settingsStore)
 
   function loadBlocks() {
-    try {
-      const raw = localStorage.getItem(KEY_PREFIX + dateKey.value)
-      blocks.value = raw ? JSON.parse(raw) : []
-    } catch (e) { logger.error('timelog', 'loadBlocks failed', e); blocks.value = [] }
+    const data = _loadDay(KEY_PREFIX + dateKey.value)
+    blocks.value = data.blocks
+    _cutMeta.value = data._cutMeta
   }
 
   function saveBlocks() {
-    if (blocks.value.length) {
-      localStorage.setItem(KEY_PREFIX + dateKey.value,
-        JSON.stringify(blocks.value))
-    } else {
-      localStorage.removeItem(KEY_PREFIX + dateKey.value)
-    }
+    _saveDay(KEY_PREFIX + dateKey.value, blocks.value, _cutMeta.value)
   }
 
   function addBlock(rec) {
@@ -494,7 +536,7 @@ export const useTimelogStore = defineStore('timelog', () => {
   loadBlocks()
 
   return {
-    curDate, blocks, selectedBlocks, clipboard, dateKey,
+    curDate, blocks, _cutMeta, selectedBlocks, clipboard, dateKey,
     loadBlocks, saveBlocks, addBlock, updateBlock, deleteBlock,
     deleteSelectedBlocks, copySelected, pasteBlocks, selectAll, setDate,
     goNextDay, goPrevDay, goToday, colorOf,

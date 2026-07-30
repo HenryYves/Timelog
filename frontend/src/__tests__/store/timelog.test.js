@@ -4,7 +4,7 @@ import {
   useTimelogStore, dkey, fmt, toInput, fromInput,
   dateStr, addDays, isBefore,
   canCutForward, canCutBackward,
-  cutDay, glueBack, getGlueBlocks,
+  cutDay, glueBack, getGlueBlocks, storeUndo,
 } from '../../store/timelog.js'
 
 // Mock localStorage
@@ -150,76 +150,212 @@ describe('cut constraints', () => {
   })
 })
 
-describe('cutDay', () => {
+describe('cutDay v2', () => {
   beforeEach(() => {
-    // Seed localStorage with test data
-    localStorage.setItem('timelog:2026-07-24', JSON.stringify([
-      { id: 'a', start: 480, end: 600, title: 'Morning', note: '', tags: [] },   // 08:00-10:00
-      { id: 'b', start: 720, end: 840, title: 'Afternoon', note: '', tags: [] }, // 12:00-14:00
-      { id: 'c', start: 1200, end: 1380, title: 'Evening', note: '', tags: [] }, // 20:00-23:00
-    ]))
+    localStorage.setItem('timelog:2026-07-24', JSON.stringify({
+      blocks: [
+        { id: 'a', start: 1920, end: 2040 },  // 今天 08:00-10:00
+        { id: 'b', start: 2160, end: 2280 },  // 今天 12:00-14:00
+      ],
+      _cutMeta: {}
+    }))
     localStorage.removeItem('timelog:2026-07-25')
-    localStorage.removeItem('timelog:2026-07-23')
   })
 
-  it('cutDay forward moves blocks after cutAt to next day', () => {
-    const result = cutDay('2026-07-24', 780, 'forward') // cut at 13:00
-    expect(result).toBeTruthy()
-    expect(result.moved).toBeGreaterThan(0)
+  it('cutDay forward updates coordinates and _cutMeta', () => {
+    const result = cutDay('2026-07-24', 780, 'forward')  // 13:00
 
     const src = JSON.parse(localStorage.getItem('timelog:2026-07-24'))
     const tgt = JSON.parse(localStorage.getItem('timelog:2026-07-25'))
 
-    // Block 'b' (12:00-14:00) should be split: 12:00-13:00 stays, 13:00-14:00 moves
-    const splitB = src.find(x => x.id === 'b')
-    expect(splitB).toBeTruthy()
-    expect(splitB.end).toBe(780) // 13:00
+    // 今天的块应该调整坐标（-1440）
+    expect(src.blocks.find(b => b.id === 'a').start).toBe(480)
+    expect(src.blocks.find(b => b.id === 'b').start).toBe(720)
 
-    const movedB = tgt.find(x => x.id === 'b')
-    expect(movedB).toBeTruthy()
-    expect(movedB.start).toBe(780)
-    expect(movedB._cut).toBeTruthy()
-    expect(movedB._cut.sourceDate).toBe('2026-07-24')
+    // 明天应该有剪过来的块
+    expect(tgt.blocks.length).toBeGreaterThan(0)
+
+    // _cutMeta 应该更新
+    expect(src._cutMeta.toNext).toEqual({ targetDate: '2026-07-25', cutAt: 780 })
+    expect(tgt._cutMeta.fromPrev).toEqual({ sourceDate: '2026-07-24', cutAt: 780 })
   })
 
-  it('cutDay backward moves blocks before cutAt to prev day', () => {
-    const result = cutDay('2026-07-24', 660, 'backward') // cut at 11:00
-    expect(result).toBeTruthy()
+  it('cutDay merges same-ID blocks at 00:00 boundary', () => {
+    // 先创建一个跨区块
+    localStorage.setItem('timelog:2026-07-24', JSON.stringify({
+      blocks: [
+        { id: 'a', start: 1380, end: 1440 },  // 昨天 23:00-24:00
+        { id: 'a', start: 1440, end: 1500 },  // 今天 00:00-01:00（同 ID）
+      ],
+      _cutMeta: {}
+    }))
+
+    const result = cutDay('2026-07-24', 720, 'backward')  // 12:00
+
+    const tgt = JSON.parse(localStorage.getItem('timelog:2026-07-23'))
+
+    // 同 ID 块应该合并
+    const merged = tgt.blocks.filter(b => b.id === 'a')
+    expect(merged.length).toBe(1)
+    expect(merged[0].start).toBe(1380)
+    expect(merged[0].end).toBe(1500)
+  })
+
+  it('cutDay forward splits block crossing the cut line', () => {
+    cutDay('2026-07-24', 780, 'forward')  // 13:00
+
+    const src = JSON.parse(localStorage.getItem('timelog:2026-07-24'))
+    const tgt = JSON.parse(localStorage.getItem('timelog:2026-07-25'))
+
+    // b (12:00-14:00) 在 13:00 断开：前半留在源日，后半移入明天
+    const stayB = src.blocks.find(b => b.id === 'b')
+    expect(stayB.start).toBe(720)   // 2160 - 1440
+    expect(stayB.end).toBe(780)     // 2220 - 1440
+
+    const movedB = tgt.blocks.find(b => b.id === 'b')
+    expect(movedB.start).toBe(780)  // 2220 - 1440
+    expect(movedB.end).toBe(840)    // 2280 - 1440
+    expect(movedB._cut).toEqual({ sourceDate: '2026-07-24', cutAt: 780 })
+  })
+
+  it('cutDay backward moves today head to tomorrow-frame coords in yesterday', () => {
+    localStorage.setItem('timelog:2026-07-24', JSON.stringify({
+      blocks: [
+        { id: 'c', start: 1500, end: 1560 },  // 今天 01:00-02:00
+        { id: 'd', start: 2160, end: 2280 },  // 今天 12:00-14:00
+      ],
+      _cutMeta: {}
+    }))
+    localStorage.removeItem('timelog:2026-07-23')
+
+    cutDay('2026-07-24', 720, 'backward')  // 12:00
 
     const src = JSON.parse(localStorage.getItem('timelog:2026-07-24'))
     const tgt = JSON.parse(localStorage.getItem('timelog:2026-07-23'))
 
-    // Block 'a' (08:00-10:00) should be moved entirely (before 11:00)
-    const movedA = tgt.find(x => x.id === 'a')
-    expect(movedA).toBeTruthy()
-    expect(movedA._cut).toBeTruthy()
+    // c 整体移入昨天，+1440（明天帧 [2880,4320)，渲染进 next gutter）
+    const movedC = tgt.blocks.find(b => b.id === 'c')
+    expect(movedC.start).toBe(2940)
+    expect(movedC.end).toBe(3000)
+    expect(movedC._cut).toEqual({ sourceDate: '2026-07-24', cutAt: 720 })
+
+    // d 留在源日，-cutAt（对齐 toPrev 截断后的显示区与标签）
+    const stayD = src.blocks.find(b => b.id === 'd')
+    expect(stayD.start).toBe(1440)
+    expect(stayD.end).toBe(1560)
+
+    expect(src._cutMeta.toPrev).toEqual({ targetDate: '2026-07-23', cutAt: 720 })
+    expect(tgt._cutMeta.fromNext).toEqual({ sourceDate: '2026-07-24', cutAt: 720 })
+  })
+
+  it('cutDay clears the undo/redo stack', () => {
+    const s = useTimelogStore()
+    s.addBlock({ id: 'x', start: 60, end: 120, title: 'X', note: '', tags: [] })
+    expect(storeUndo.canUndo).toBe(true)
+
+    cutDay('2026-07-24', 780, 'forward')
+
+    expect(storeUndo.canUndo).toBe(false)
+    expect(storeUndo.canRedo).toBe(false)
+  })
+
+  it('cutDay dropShort drops split fragments < 10 min', () => {
+    localStorage.setItem('timelog:2026-07-24', JSON.stringify({
+      blocks: [{ id: 's', start: 2215, end: 2280 }],  // 12:55-14:00，13:00 处切断
+      _cutMeta: {}
+    }))
+
+    cutDay('2026-07-24', 780, 'forward', true)
+
+    const src = JSON.parse(localStorage.getItem('timelog:2026-07-24'))
+    const tgt = JSON.parse(localStorage.getItem('timelog:2026-07-25'))
+
+    // 前半 2215-2220（5min）丢弃；后半 2220-2280 移出
+    expect(src.blocks.find(b => b.id === 's')).toBeFalsy()
+    const moved = tgt.blocks.find(b => b.id === 's')
+    expect(moved.start).toBe(780)
+    expect(moved.end).toBe(840)
+  })
+
+  it('cutDay forward rejected when target has glue from the day after', () => {
+    localStorage.setItem('timelog:2026-07-25', JSON.stringify({
+      blocks: [{ id: 'z', start: 100, end: 200, _cut: { sourceDate: '2026-07-26', cutAt: 200 } }],
+      _cutMeta: { fromNext: { sourceDate: '2026-07-26', cutAt: 200 } }
+    }))
+
+    expect(cutDay('2026-07-24', 780, 'forward')).toBe(false)
   })
 })
 
-describe('glueBack', () => {
+describe('glueBack v2', () => {
   beforeEach(() => {
-    localStorage.setItem('timelog:2026-07-24', JSON.stringify([
-      { id: 'a', start: 0, end: 60, title: 'Normal', note: '', tags: [] },
-    ]))
-    localStorage.setItem('timelog:2026-07-25', JSON.stringify([
-      { id: 'b', start: 480, end: 600, _cut: { sourceDate: '2026-07-24', cutAt: 480 }, title: 'Cut', note: '', tags: [] },
-    ]))
+    localStorage.setItem('timelog:2026-07-24', JSON.stringify({
+      blocks: [
+        { id: 'a', start: 1920, end: 2040 },  // 今天 08:00-10:00
+        { id: 'b', start: 2160, end: 2280 },  // 今天 12:00-14:00
+      ],
+      _cutMeta: {}
+    }))
+    localStorage.removeItem('timelog:2026-07-25')
+    localStorage.removeItem('timelog:2026-07-23')
   })
 
-  it('glueBack moves blocks back to source date', () => {
+  it('round-trips a forward cut: restores blocks and clears _cutMeta', () => {
+    cutDay('2026-07-24', 780, 'forward')
     const result = glueBack('2026-07-25', '2026-07-24')
     expect(result).toBeTruthy()
 
-    const tgt = JSON.parse(localStorage.getItem('timelog:2026-07-25')) || []
-    const src = JSON.parse(localStorage.getItem('timelog:2026-07-24')) || []
+    const src = JSON.parse(localStorage.getItem('timelog:2026-07-24'))
+    const tgt = JSON.parse(localStorage.getItem('timelog:2026-07-25') || '{"blocks":[],"_cutMeta":{}}')
 
-    // Target should have no glue blocks
-    expect(tgt.find(x => x._cut)).toBeFalsy()
+    const a = src.blocks.find(b => b.id === 'a')
+    expect(a.start).toBe(1920)
+    expect(a.end).toBe(2040)
 
-    // Source should have the returned block
-    const returned = src.find(x => x.id === 'b')
-    expect(returned).toBeTruthy()
-    expect(returned._cut).toBeFalsy()
+    // split 两半重新合并为一个块
+    const bs = src.blocks.filter(b => b.id === 'b')
+    expect(bs.length).toBe(1)
+    expect(bs[0].start).toBe(2160)
+    expect(bs[0].end).toBe(2280)
+    expect(bs[0]._cut).toBeFalsy()
+
+    expect(src._cutMeta.toNext).toBeFalsy()
+    expect(tgt._cutMeta.fromPrev).toBeFalsy()
+  })
+
+  it('glueBack splits cross-boundary blocks at 00:00 on backward glue', () => {
+    localStorage.setItem('timelog:2026-07-24', JSON.stringify({
+      blocks: [
+        { id: 'a', start: 1380, end: 1440 },  // 昨天 23:00-24:00
+        { id: 'a', start: 1440, end: 1500 },  // 今天 00:00-01:00（同 ID）
+      ],
+      _cutMeta: {}
+    }))
+
+    cutDay('2026-07-24', 720, 'backward')
+    const result = glueBack('2026-07-23', '2026-07-24')
+    expect(result).toBeTruthy()
+
+    const host = JSON.parse(localStorage.getItem('timelog:2026-07-23'))
+    const src = JSON.parse(localStorage.getItem('timelog:2026-07-24'))
+
+    // 跨区块在边界处 split：host 留下 1380-1440，源日拿回 1440-1500
+    const hostA = host.blocks.filter(b => b.id === 'a')
+    expect(hostA.length).toBe(1)
+    expect(hostA[0].start).toBe(1380)
+    expect(hostA[0].end).toBe(1440)
+
+    const srcA = src.blocks.filter(b => b.id === 'a')
+    expect(srcA.length).toBe(1)
+    expect(srcA[0].start).toBe(1440)
+    expect(srcA[0].end).toBe(1500)
+
+    expect(host._cutMeta.fromNext).toBeFalsy()
+    expect(src._cutMeta.toPrev).toBeFalsy()
+  })
+
+  it('returns false when there is nothing to glue back', () => {
+    expect(glueBack('2026-07-25', '2026-07-24')).toBe(false)
   })
 })
 
