@@ -499,7 +499,7 @@ function onBlockMouseDown(e, ev) {
 
 function onMouseMove(e) {
   if (adrag) {
-    adrag.cur = yToMinute(e.clientY, adrag.dayEl)
+    adrag.cur = yToMinute(e.clientY, adrag.dayEl || dayRef.value)
     applyDrag()
   }
   if (selPending) {
@@ -834,7 +834,7 @@ onUnmounted(() => {
 
 function onWindowMouseMove(e) {
   if (!adrag) return
-  adrag.cur = yToMinute(e.clientY, adrag.dayEl)
+  adrag.cur = yToMinute(e.clientY, adrag.dayEl || dayRef.value)
   applyDrag()
 }
 
