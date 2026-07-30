@@ -104,9 +104,10 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { useTimelogStore, fmt, dkey, fromInput, pushStoreUndo } from '../store/timelog.js'
+import { useTimelogStore, fmt, fmtSigned, dkey, fromInput, pushStoreUndo } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { useSettingsStore } from '../store/settings.js'
+import { toDisplayBlock } from '../utils/displayBlocks.js'
 import { KEY_PREFIX } from '../constants.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
@@ -153,13 +154,16 @@ const importMode = ref('merge')
 const importPreview = ref(null)
 
 function buildExport() {
-  return timelogStore.blocks.slice().sort((a, b) => a.start - b.start).map(ev => {
-    const t = (ev.tags && ev.tags.length) ? ':' + ev.tags.join(',') : ''
-    const prefix = ev._cut ? `[来自${ev._cut.sourceDate}] ` : ''
-    return prefix + '- (' + fmt(ev.start) + '-' + fmt(ev.end) + t + ')' + (ev.title || '') + ';' +
-      (ev.note || '').replace(/\n(.*)/g, (m, line) =>
-        /^\s*(?:[-*]|\d+\.)\s/.test(line) ? '\n\t' + line : '\n ' + line)
-  }).join('\n')
+  return timelogStore.blocks.slice()
+    .map(b => toDisplayBlock(b, timelogStore._cutMeta))
+    .sort((a, b) => a.start - b.start)
+    .map(ev => {
+      const t = (ev.tags && ev.tags.length) ? ':' + ev.tags.join(',') : ''
+      const prefix = ev._cut ? `[来自${ev._cut.sourceDate}] ` : ''
+      return prefix + '- (' + fmtSigned(ev.start) + '-' + fmtSigned(ev.end) + t + ')' + (ev.title || '') + ';' +
+        (ev.note || '').replace(/\n(.*)/g, (m, line) =>
+          /^\s*(?:[-*]|\d+\.)\s/.test(line) ? '\n\t' + line : '\n ' + line)
+    }).join('\n')
 }
 
 watch(() => props.show, (val) => {

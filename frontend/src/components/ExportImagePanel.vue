@@ -189,67 +189,39 @@
             <!-- Date title -->
             <div v-if="displayTitle" class="exp-date-title">{{ displayTitle }}</div>
             <template v-if="props.mode === 'timeline'">
-              <!-- Glue-from-prev blocks area -->
-              <div v-if="gluePrevLayoutBlocks.length" class="exp-blocks exp-glue-prev" :style="{
-                marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px',
-                height: gluePrevHeight.value + 'px',
-              }">
-                <div v-if="settings.showGutter" class="exp-gutter" :style="{ width: GUTTER_WIDTH + 'px', left: -GUTTER_WIDTH + 'px', background: '#89c3eb' }">
-                  <div v-for="h in gluePrevHours" :key="'gph'+h" class="exp-hlabel" :style="{ top: h * 60 + 'px' }">{{ String(h).padStart(2, '0') }}:00</div>
-                </div>
-                <div v-for="b in gluePrevLayoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
-                  <div v-if="settings.showBlockColorBar" class="cbar">
-                    <i v-for="(t, ti) in (b.tags || [])" :key="ti" :style="{ background: tagColor(t) }" />
-                    <i v-if="!b.tags || !b.tags.length" style="background:#C4C3C0" />
-                  </div>
-                  <div v-if="settings.showBlockTitle" class="bt">{{ b.title || '(未命名)' }}</div>
-                  <div v-if="settings.showBlockTime && (b.end - b.start) >= 32" class="bs">{{ fmt(b.start) }}–{{ fmt(b.end) }}</div>
-                </div>
-              </div>
-              <!-- Today blocks area -->
+              <!-- Unified timeline (glue-prev + today + glue-next) -->
               <div class="exp-blocks" :style="{
                 marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px',
-                height: DAY_MIN + 'px',
+                height: (totalHeight.value * PX_MIN) + 'px',
               }">
-                <!-- Gutter (time labels) -->
+                <!-- Gutter (three sections) -->
                 <div v-if="settings.showGutter" class="exp-gutter" :style="{ width: GUTTER_WIDTH + 'px', left: -GUTTER_WIDTH + 'px' }">
-                  <div v-for="h in hours" :key="h" class="exp-hlabel" :style="{ top: h * 60 + 'px' }">
-                    {{ String(h).padStart(2, '0') }}:00
+                  <div v-if="gutterHeights.value.prev" class="exp-gutter-section glue" :style="{ top: '0px', height: (gutterHeights.value.prev * PX_MIN) + 'px' }">
+                    <div v-for="l in prevLabels" :key="'gp'+l.min" class="exp-hlabel" :style="{ top: l.top + 'px' }">{{ l.text }}</div>
+                  </div>
+                  <div class="exp-gutter-section" :style="{ top: (gutterHeights.value.prev * PX_MIN) + 'px', height: (gutterHeights.value.today * PX_MIN) + 'px' }">
+                    <div v-for="l in todayLabels" :key="'gt'+l.min" class="exp-hlabel" :style="{ top: l.top + 'px' }">{{ l.text }}</div>
+                  </div>
+                  <div v-if="gutterHeights.value.next" class="exp-gutter-section glue" :style="{ top: ((gutterHeights.value.prev + gutterHeights.value.today) * PX_MIN) + 'px', height: (gutterHeights.value.next * PX_MIN) + 'px' }">
+                    <div v-for="l in nextLabels" :key="'gn'+l.min" class="exp-hlabel" :style="{ top: l.top + 'px' }">{{ l.text }}</div>
                   </div>
                 </div>
-                <!-- Hour lines -->
-                <div v-for="h in hours" :key="'hl'+h" class="exp-hourline" :style="{ top: h * 60 + 'px' }" />
-                <div v-for="h in 24" :key="'hfl'+h" class="exp-halfline" :style="{ top: (h - 1) * 60 + 30 + 'px' }" />
+                <!-- Hour/half lines -->
+                <div v-for="(l, i) in allLabels" :key="'hl'+i" class="exp-hourline" :style="{ top: l.y + 'px' }" />
+                <div v-for="(l, i) in allLabels" :key="'hfl'+i" class="exp-halfline" :style="{ top: (l.y + 30 * PX_MIN) + 'px' }" />
                 <!-- Time blocks -->
-                <div v-for="b in todayLayoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
+                <div v-for="b in layoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
                   <div v-if="settings.showBlockColorBar" class="cbar">
                     <i v-for="(t, ti) in (b.tags || [])" :key="ti" :style="{ background: tagColor(t) }" />
                     <i v-if="!b.tags || !b.tags.length" style="background:#C4C3C0" />
                   </div>
                   <div v-if="settings.showBlockTitle" class="bt">{{ b.title || '(未命名)' }}</div>
-                  <div v-if="settings.showBlockTime && (b.end - b.start) >= 32" class="bs">{{ fmt(b.start) }}–{{ fmt(b.end) }}</div>
+                  <div v-if="settings.showBlockTime && (b.end - b.start) >= 32" class="bs">{{ fmtSigned(b.start) }}–{{ fmtSigned(b.end) }}</div>
                   <div v-if="settings.showBlockTags && (b.end - b.start) >= 18 && b.tags?.length" class="btags">
                     <span v-for="t in b.tags" :key="t"><span class="tdot" :style="{ background: tagColor(t) }" />{{ t }}</span>
                   </div>
                   <div v-if="settings.showBlockNote && b.note && (b.end - b.start) >= 16" class="bnote" v-html="mdToHtml(b.note)" />
                   <div v-if="settings.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
-                </div>
-              </div>
-              <!-- Glue-from-next blocks area -->
-              <div v-if="glueNextLayoutBlocks.length" class="exp-blocks exp-glue-next" :style="{
-                marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px',
-                height: glueNextHeight.value + 'px',
-              }">
-                <div v-if="settings.showGutter" class="exp-gutter" :style="{ width: GUTTER_WIDTH + 'px', left: -GUTTER_WIDTH + 'px', background: '#89c3eb' }">
-                  <div v-for="h in glueNextHours" :key="'gnh'+h" class="exp-hlabel" :style="{ top: h * 60 + 'px' }">{{ String(h).padStart(2, '0') }}:00</div>
-                </div>
-                <div v-for="b in glueNextLayoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
-                  <div v-if="settings.showBlockColorBar" class="cbar">
-                    <i v-for="(t, ti) in (b.tags || [])" :key="ti" :style="{ background: tagColor(t) }" />
-                    <i v-if="!b.tags || !b.tags.length" style="background:#C4C3C0" />
-                  </div>
-                  <div v-if="settings.showBlockTitle" class="bt">{{ b.title || '(未命名)' }}</div>
-                  <div v-if="settings.showBlockTime && (b.end - b.start) >= 32" class="bs">{{ fmt(b.start) }}–{{ fmt(b.end) }}</div>
                 </div>
               </div>
             </template>
@@ -326,18 +298,14 @@ const showBlockOpts = ref(false)
 const showAuthorOpts = ref(false)
 const showWatermarkOpts = ref(false)
 
-const hasPrevGlue = computed(() => {
-  const gb = getGlueBlocks(timelogStore.blocks, timelogStore.dateKey)
-  return gb.fromPrev.length > 0
-})
-const hasNextGlue = computed(() => {
-  const gb = getGlueBlocks(timelogStore.blocks, timelogStore.dateKey)
-  return gb.fromNext.length > 0
-})
+const hasPrevGlue = computed(() => timelogStore._cutMeta?.fromPrev != null)
+const hasNextGlue = computed(() => timelogStore._cutMeta?.fromNext != null)
 
 import { STR } from '../strings.js'
-import { useTimelogStore, fmt, dkey, fromInput, getGlueBlocks } from '../store/timelog.js'
+import { useTimelogStore, fmt, fmtSigned, dkey, fromInput } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
+import { toDisplayBlock } from '../utils/displayBlocks.js'
+import { useCoordConverter } from '../composables/useCoordConverter.js'
 import { PX_MIN, DAY_MIN, GUTTER_WIDTH, DATA_DIR, EXPORT_DATE_TITLE_H, EXPORT_AUTHOR_BLOCK_H } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
 import { logger } from '../utils/log.js'
@@ -497,8 +465,46 @@ onMounted(() => {
   nextTick(() => fitPreview(settings.exportWidth))
 })
 
-// ----- Timeline data -----
-const hours = Array.from({ length: 25 }, (_, i) => i)
+// ----- Timeline data (v2 unified coordinates via useCoordConverter) -----
+const { gutterHeights, totalHeight, todayRange, blockTop } = useCoordConverter()
+
+const displayBlocks = computed(() => timelogStore.blocks.map(b => toDisplayBlock(b, timelogStore._cutMeta)))
+const layoutBlocks = computed(() => layoutOverlap(displayBlocks.value.map(b => ({ ...b }))))
+
+const prevLabels = computed(() => {
+  const cutAt = timelogStore._cutMeta?.fromPrev?.cutAt
+  if (cutAt == null) return []
+  const out = []
+  for (let min = Math.ceil(cutAt / 60) * 60; min < DAY_MIN; min += 60) {
+    out.push({ min, text: `-${fmt(min)}`, top: (min - cutAt) * PX_MIN })
+  }
+  return out
+})
+const todayLabels = computed(() => {
+  const { start, end } = todayRange.value
+  const out = []
+  for (let min = start; min <= end; min += 60) {
+    out.push({ min, text: fmt(min), top: (min - start) * PX_MIN })
+  }
+  return out
+})
+const nextLabels = computed(() => {
+  const cutAt = timelogStore._cutMeta?.fromNext?.cutAt
+  if (!cutAt) return []
+  const out = []
+  for (let min = 60; min <= cutAt; min += 60) {
+    out.push({ min, text: `+${fmt(min)}`, top: min * PX_MIN })
+  }
+  return out
+})
+const allLabels = computed(() => {
+  const gh = gutterHeights.value
+  return [
+    ...prevLabels.value.map(l => ({ ...l, y: l.top })),
+    ...todayLabels.value.map(l => ({ ...l, y: gh.prev * PX_MIN + l.top })),
+    ...nextLabels.value.map(l => ({ ...l, y: (gh.prev + gh.today) * PX_MIN + l.top })),
+  ]
+})
 
 function blockBg(b) {
   if (b.tags?.length) return tagStore.colorOf(b.tags[0]).bg
@@ -543,11 +549,8 @@ const displayTitle = computed(() => {
 
 const exportHeight = computed(() => {
   if (props.mode === 'stats') return 0  // auto from scrollHeight
-  let h = DAY_MIN + EXPORT_DATE_TITLE_H
+  let h = totalHeight.value * PX_MIN + EXPORT_DATE_TITLE_H
   if (showAuthorBlock.value) h += EXPORT_AUTHOR_BLOCK_H
-  // Add glue area heights (in px, same scale as DAY_MIN)
-  if (gluePrevHeight.value > 0) h += gluePrevHeight.value
-  if (glueNextHeight.value > 0) h += glueNextHeight.value
   return h
 })
 
@@ -631,34 +634,7 @@ watch(
   { deep: false }
 )
 
-// ----- Block overlap layout (three-section) -----
-const glueData = computed(() => getGlueBlocks(timelogStore.blocks, timelogStore.dateKey))
-const gluePrevLayoutBlocks = computed(() => layoutOverlap(glueData.value.fromPrev.map(b => ({ ...b }))))
-const todayLayoutBlocks = computed(() => layoutOverlap(glueData.value.today.map(b => ({ ...b }))))
-const glueNextLayoutBlocks = computed(() => layoutOverlap(glueData.value.fromNext.map(b => ({ ...b }))))
-const layoutBlocks = todayLayoutBlocks  // keep for backward compat
-
-const gluePrevHeight = computed(() => {
-  const blocks = glueData.value.fromPrev
-  if (!blocks.length) return 0
-  return Math.max(Math.max(...blocks.map(b => b.end)), 60) // at least 1hr
-})
-const glueNextHeight = computed(() => {
-  const blocks = glueData.value.fromNext
-  if (!blocks.length) return 0
-  return Math.max(Math.max(...blocks.map(b => b.end)), 60)
-})
-const gluePrevHours = computed(() => {
-  const h = gluePrevHeight.value
-  if (!h) return []
-  return Array.from({ length: Math.ceil(h / 60) + 1 }, (_, i) => i)
-})
-const glueNextHours = computed(() => {
-  const h = glueNextHeight.value
-  if (!h) return []
-  return Array.from({ length: Math.ceil(h / 60) + 1 }, (_, i) => i)
-})
-
+// ----- Block overlap layout (unified display coordinates) -----
 function layoutOverlap(blocks) {
   const sorted = [...blocks].sort((a, b) => a.start - b.start)
   const result = sorted.map(b => ({ ...b }))
@@ -694,7 +670,7 @@ function layoutOverlap(blocks) {
 }
 
 function blockStyle(b) {
-  const top = b.start * PX_MIN
+  const top = blockTop(b)
   const height = (b.end - b.start) * PX_MIN
   const w = 100 / (b._cols || 1)
   const left = ((b._col || 0) / (b._cols || 1)) * 100
@@ -804,7 +780,9 @@ async function captureCanvas() {
 /**
  * Crop canvas to the custom time range.
  * Keeps header (author + title) and footer (padding-bottom + author bottom)
- * intact, but only shows the timeline portion between startMin and endMin.
+ * intact, but only shows the timeline portion between the per-section ranges.
+ * v2: 三段坐标由 useCoordConverter/_cutMeta 驱动（prev 段为昨天本地时间、
+ * today 段为今天本地时间、next 段为明天本地时间）。
  */
 function cropToTimeRange(canvas) {
   if (props.mode !== 'timeline' || settings.exportTimeRange !== 'custom') return canvas
@@ -816,48 +794,52 @@ function cropToTimeRange(canvas) {
   const padB = 24  // .exp-blocks padding-bottom
 
   const headerH = authorTopH + titleH
-  const prevH = gluePrevHeight.value
-  const todayH = DAY_MIN
-  const nextH = glueNextHeight.value
+  const gh = gutterHeights.value
+  const prevH = gh.prev * PX_MIN
+  const todayH = gh.today * PX_MIN
+  const nextH = gh.next * PX_MIN
+  const prevCutAt = timelogStore._cutMeta?.fromPrev?.cutAt ?? null
+  const nextCutAt = timelogStore._cutMeta?.fromNext?.cutAt ?? null
+  const { start: todayStart, end: todayEnd } = todayRange.value
 
-  // Parse time ranges for each visible section
-  const prevStartMin = prevH ? fromInput(settings.customRangePrevStart) : NaN
-  const prevEndMin = prevH ? fromInput(settings.customRangePrevEnd) : NaN
+  // Parse time ranges for each visible section (本地时间)
+  const prevStartMin = prevCutAt != null ? fromInput(settings.customRangePrevStart) : NaN
+  const prevEndMin = prevCutAt != null ? fromInput(settings.customRangePrevEnd) : NaN
   const todayStartMin = fromInput(settings.customRangeTodayStart)
   const todayEndMin = fromInput(settings.customRangeTodayEnd)
-  const nextStartMin = nextH ? fromInput(settings.customRangeNextStart) : NaN
-  const nextEndMin = nextH ? fromInput(settings.customRangeNextEnd) : NaN
+  const nextStartMin = nextCutAt != null ? fromInput(settings.customRangeNextStart) : NaN
+  const nextEndMin = nextCutAt != null ? fromInput(settings.customRangeNextEnd) : NaN
 
-  // Fall back to full section if inputs are invalid
-  const hasPrevRange = prevH && !isNaN(prevStartMin) && !isNaN(prevEndMin) && prevEndMin > prevStartMin && prevStartMin >= 0
-  const hasTodayRange = !isNaN(todayStartMin) && !isNaN(todayEndMin) && todayEndMin > todayStartMin && todayStartMin >= 0 && todayEndMin <= todayH
-  const hasNextRange = nextH && !isNaN(nextStartMin) && !isNaN(nextEndMin) && nextEndMin > nextStartMin && nextStartMin >= 0
+  const hasPrevRange = prevCutAt != null && !isNaN(prevStartMin) && !isNaN(prevEndMin)
+    && prevEndMin > prevStartMin && prevStartMin >= prevCutAt && prevEndMin <= DAY_MIN
+  const hasTodayRange = !isNaN(todayStartMin) && !isNaN(todayEndMin)
+    && todayEndMin > todayStartMin && todayStartMin >= todayStart && todayEndMin <= todayEnd
+  const hasNextRange = nextCutAt != null && !isNaN(nextStartMin) && !isNaN(nextEndMin)
+    && nextEndMin > nextStartMin && nextStartMin >= 0 && nextEndMin <= nextCutAt
 
   // If no valid range at all, return original
   if (!hasPrevRange && !hasTodayRange && !hasNextRange) return canvas
 
   const contentStartY = headerH + padT
-
-  // Build list of strips to draw
   const strips = []
-  let srcY = contentStartY
 
-  if (prevH) {
-    if (hasPrevRange) {
-      strips.push({ srcY, srcH: (prevEndMin - prevStartMin) * PX_MIN, shiftSrc: prevStartMin * PX_MIN })
-    }
-    srcY += prevH
+  if (hasPrevRange) {
+    strips.push({
+      srcY: contentStartY + (prevStartMin - prevCutAt) * PX_MIN,
+      srcH: (prevEndMin - prevStartMin) * PX_MIN,
+    })
   }
-
   if (hasTodayRange) {
-    strips.push({ srcY, srcH: (todayEndMin - todayStartMin) * PX_MIN, shiftSrc: todayStartMin * PX_MIN })
+    strips.push({
+      srcY: contentStartY + prevH + (todayStartMin - todayStart) * PX_MIN,
+      srcH: (todayEndMin - todayStartMin) * PX_MIN,
+    })
   }
-  srcY += todayH
-
-  if (nextH) {
-    if (hasNextRange) {
-      strips.push({ srcY, srcH: (nextEndMin - nextStartMin) * PX_MIN, shiftSrc: nextStartMin * PX_MIN })
-    }
+  if (hasNextRange) {
+    strips.push({
+      srcY: contentStartY + prevH + todayH + nextStartMin * PX_MIN,
+      srcH: (nextEndMin - nextStartMin) * PX_MIN,
+    })
   }
 
   const totalContentH = strips.reduce((s, st) => s + st.srcH, 0)
@@ -875,7 +857,7 @@ function cropToTimeRange(canvas) {
 
   // 2. Cropped sections
   for (const st of strips) {
-    ctx.drawImage(canvas, 0, st.srcY + st.shiftSrc, canvas.width, st.srcH, 0, dstY, canvas.width, st.srcH)
+    ctx.drawImage(canvas, 0, st.srcY, canvas.width, st.srcH, 0, dstY, canvas.width, st.srcH)
     dstY += st.srcH
   }
 
@@ -991,6 +973,14 @@ async function doExport() {
   top: 0;
   height: 100%;
   z-index: 1;
+}
+.exp-gutter-section {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+.exp-gutter-section.glue {
+  background: #89c3eb;
 }
 .exp-gutter::after {
   content: '';
