@@ -192,17 +192,17 @@
               <!-- Unified timeline (glue-prev + today + glue-next) -->
               <div class="exp-blocks" :style="{
                 marginLeft: (settings.showGutter ? GUTTER_WIDTH : 0) + 'px',
-                height: (totalHeight.value * PX_MIN) + 'px',
+                height: (totalHeight * PX_MIN) + 'px',
               }">
                 <!-- Gutter (three sections) -->
                 <div v-if="settings.showGutter" class="exp-gutter" :style="{ width: GUTTER_WIDTH + 'px', left: -GUTTER_WIDTH + 'px' }">
-                  <div v-if="gutterHeights.value.prev" class="exp-gutter-section glue" :style="{ top: '0px', height: (gutterHeights.value.prev * PX_MIN) + 'px' }">
+                  <div v-if="gutterHeights.prev" class="exp-gutter-section glue" :style="{ top: '0px', height: (gutterHeights.prev * PX_MIN) + 'px' }">
                     <div v-for="l in prevLabels" :key="'gp'+l.min" class="exp-hlabel" :style="{ top: l.top + 'px' }">{{ l.text }}</div>
                   </div>
-                  <div class="exp-gutter-section" :style="{ top: (gutterHeights.value.prev * PX_MIN) + 'px', height: (gutterHeights.value.today * PX_MIN) + 'px' }">
+                  <div class="exp-gutter-section" :style="{ top: (gutterHeights.prev * PX_MIN) + 'px', height: (gutterHeights.today * PX_MIN) + 'px' }">
                     <div v-for="l in todayLabels" :key="'gt'+l.min" class="exp-hlabel" :style="{ top: l.top + 'px' }">{{ l.text }}</div>
                   </div>
-                  <div v-if="gutterHeights.value.next" class="exp-gutter-section glue" :style="{ top: ((gutterHeights.value.prev + gutterHeights.value.today) * PX_MIN) + 'px', height: (gutterHeights.value.next * PX_MIN) + 'px' }">
+                  <div v-if="gutterHeights.next" class="exp-gutter-section glue" :style="{ top: ((gutterHeights.prev + gutterHeights.today) * PX_MIN) + 'px', height: (gutterHeights.next * PX_MIN) + 'px' }">
                     <div v-for="l in nextLabels" :key="'gn'+l.min" class="exp-hlabel" :style="{ top: l.top + 'px' }">{{ l.text }}</div>
                   </div>
                 </div>

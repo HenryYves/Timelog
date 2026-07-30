@@ -2,10 +2,10 @@
   <div class="grid">
     <div class="gutter-container">
       <!-- Glue-prev gutter -->
-      <div v-if="gutterHeights.value.prev" class="glue-from-prev">
+      <div v-if="gutterHeights.prev" class="glue-from-prev">
         <div
           class="gutter glue-prev"
-          :style="{ width: GUTTER_WIDTH + 'px', height: gutterHeights.value.prev * PX_MIN + 'px' }"
+          :style="{ width: GUTTER_WIDTH + 'px', height: gutterHeights.prev * PX_MIN + 'px' }"
           @contextmenu.prevent="onGluePrevRightClick"
           @mousemove="onGutterHover"
           @mouseleave="onGutterLeave"
@@ -22,7 +22,7 @@
       <!-- Today gutter -->
       <div
         class="gutter today"
-        :style="{ width: GUTTER_WIDTH + 'px', height: gutterHeights.value.today * PX_MIN + 'px' }"
+        :style="{ width: GUTTER_WIDTH + 'px', height: gutterHeights.today * PX_MIN + 'px' }"
         @contextmenu.prevent="onTodayRightClick"
         @mousemove="onGutterHover"
         @mouseleave="onGutterLeave"
@@ -36,10 +36,10 @@
       </div>
 
       <!-- Glue-next gutter -->
-      <div v-if="gutterHeights.value.next" class="glue-from-next">
+      <div v-if="gutterHeights.next" class="glue-from-next">
         <div
           class="gutter glue-next"
-          :style="{ width: GUTTER_WIDTH + 'px', height: gutterHeights.value.next * PX_MIN + 'px' }"
+          :style="{ width: GUTTER_WIDTH + 'px', height: gutterHeights.next * PX_MIN + 'px' }"
           @contextmenu.prevent="onGlueNextRightClick"
           @mousemove="onGutterHover"
           @mouseleave="onGutterLeave"
@@ -58,7 +58,7 @@
     <div
       class="day"
       ref="dayRef"
-      :style="{ height: totalHeight.value * PX_MIN + 'px' }"
+      :style="{ height: totalHeight * PX_MIN + 'px' }"
       @mousedown="onDayMouseDown"
       @mousemove="onMouseMove"
       @mouseup="onMouseUp"
@@ -75,14 +75,14 @@
         }"
       />
       <div
-        v-for="label in allLabels"
-        :key="'hl' + label.min"
+        v-for="(label, i) in allLabels"
+        :key="'hl' + i"
         class="hourline"
         :style="{ top: label.top + 'px' }"
       />
       <div
-        v-for="label in allLabels"
-        :key="'hfl' + label.min"
+        v-for="(label, i) in allLabels"
+        :key="'hfl' + i"
         class="halfline"
         :style="{ top: label.top + 30 * PX_MIN + 'px' }"
       />
@@ -115,7 +115,7 @@
       <div v-if="hoverLine" class="cut-hover" :style="{ top: hoverLine.y + 'px' }">
         <span class="cut-hover-label">{{ hoverLine.label }}</span>
       </div>
-      <div v-if="isToday && nowInToday" class="nowline" :style="{ top: minuteToY(DAY_MIN + nowMin - todayRange.value.start) + 'px' }" />
+      <div v-if="isToday && nowInToday" class="nowline" :style="{ top: minuteToY(DAY_MIN + nowMin - todayRange.start) + 'px' }" />
     </div>
   </div>
 
@@ -447,7 +447,7 @@ function endDrag(commit) {
 // --- Event handlers ---
 function onDayClick() {
   if (suppressClick.value) return
-  if (selectedBlocks.value.size > 0) selectedBlocks.value.clear()
+  if (selectedBlocks.size > 0) selectedBlocks.clear()
 }
 
 function onDayMouseDown(e) {
@@ -550,11 +550,11 @@ function onMouseUp(e) {
       const blockLeft = (ev._col || 0) * colW + 2
       const blockRight = blockLeft + colW - 4
       if (selRight > blockLeft && selLeft < blockRight) {
-        selectedBlocks.value.add(ev.id)
+        selectedBlocks.add(ev.id)
       }
     })
-    if (selectedBlocks.value.size > 0) {
-      toast(STR.toast.contextSelected(selectedBlocks.value.size))
+    if (selectedBlocks.size > 0) {
+      toast(STR.toast.contextSelected(selectedBlocks.size))
     }
   }
   overGrid.value = false
@@ -572,14 +572,14 @@ function onBlockClick(e, ev) {
 
 function onBlockContextMenu(ev) {
   if (selMoved) return
-  if (selectedBlocks.value.has(ev.id)) {
-    selectedBlocks.value.delete(ev.id)
-    if (selectedBlocks.value.size === 0) {
+  if (selectedBlocks.has(ev.id)) {
+    selectedBlocks.delete(ev.id)
+    if (selectedBlocks.size === 0) {
       toast(STR.toast.unselected)
     }
   } else {
-    selectedBlocks.value.add(ev.id)
-    toast(STR.toast.contextSelected(selectedBlocks.value.size))
+    selectedBlocks.add(ev.id)
+    toast(STR.toast.contextSelected(selectedBlocks.size))
   }
 }
 
@@ -729,15 +729,15 @@ function onKeyDown(e) {
 
   if (e.key === 'Delete' || e.key === 'Backspace') {
     if (document.querySelector('.overlay')) return
-    if (selectedBlocks.value.size) {
+    if (selectedBlocks.size) {
       e.preventDefault()
       onDeleteSelected()
     }
     return
   }
 
-  if (e.key === 'Escape' && selectedBlocks.value.size) {
-    selectedBlocks.value.clear()
+  if (e.key === 'Escape' && selectedBlocks.size) {
+    selectedBlocks.clear()
     toast(STR.toast.unselected)
     return
   }
@@ -745,9 +745,9 @@ function onKeyDown(e) {
 
 // 剪贴板统一存存储坐标（保留 _cut 以便跨帧块正确换算显示坐标）
 function copySelectedLocal() {
-  if (!selectedBlocks.value.size) return false
+  if (!selectedBlocks.size) return false
   store.clipboard = layoutBlocks.value
-    .filter(b => selectedBlocks.value.has(b.id))
+    .filter(b => selectedBlocks.has(b.id))
     .sort((a, b) => a.start - b.start)
     .map(b => ({
       start: b._storageStart,
@@ -761,7 +761,7 @@ function copySelectedLocal() {
 }
 
 async function onDeleteSelected() {
-  const n = selectedBlocks.value.size
+  const n = selectedBlocks.size
   const ok = await showConfirm(STR.confirm.deleteSelected(n))
   if (!ok) return
   store.deleteSelectedBlocks()
@@ -797,7 +797,7 @@ function doPaste() {
     newBlocks.push(nb)
   })
   newBlocks.forEach(nb => store.addBlock(nb))
-  selectedBlocks.value = new Set(newBlocks.map(n => n.id))
+  store.selectedBlocks = new Set(newBlocks.map(n => n.id))
   toast(STR.toast.pasteResult(newBlocks.length, anchored))
 }
 
