@@ -1,12 +1,16 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTagStore } from '../../store/tags.js'
+import { useTimelogStore } from '../../store/timelog.js'
 
 const store = {}
 globalThis.localStorage = {
+  get length() { return Object.keys(store).length },
+  key: (i) => Object.keys(store)[i] || null,
   getItem: (k) => store[k] || null,
   setItem: (k, v) => { store[k] = v },
   removeItem: (k) => { delete store[k] },
+  clear: () => { Object.keys(store).forEach(k => delete store[k]) },
 }
 
 beforeEach(() => {
@@ -56,5 +60,33 @@ describe('useTagStore', () => {
     s.tags = [{ name: 'Test', color: '#FF8800', group: '' }]
     expect(s.colorOf('Test')).toEqual({ hex: '#FF8800', bg: 'rgba(255,136,0,0.15)' })
     expect(s.colorOf('Nonexistent')).toEqual({ hex: '#C4C3C0', bg: '#F0EFED' })
+  })
+
+  it('removeTagFromBlocks handles v2 {blocks, _cutMeta} format', () => {
+    const key = 'timelog:2026-01-01'
+    localStorage.setItem(key, JSON.stringify({
+      blocks: [{ tags: ['A', 'B'] }, { tags: ['A'] }],
+      _cutMeta: { toNext: { targetDate: '2026-01-02', cutAt: 120 } },
+    }))
+    const timelog = useTimelogStore()
+    timelog.setDate(new Date('2026-01-01'))
+    const s = useTagStore()
+    s.removeTagFromBlocks('A')
+    const saved = JSON.parse(localStorage.getItem(key))
+    expect(saved.blocks).toEqual([{ tags: ['B'] }, { tags: [] }])
+    expect(saved._cutMeta).toEqual({ toNext: { targetDate: '2026-01-02', cutAt: 120 } })
+  })
+
+  it('replaceTagInBlocks handles v2 {blocks, _cutMeta} format', () => {
+    const key = 'timelog:2026-01-02'
+    localStorage.setItem(key, JSON.stringify({
+      blocks: [{ tags: ['Old'] }],
+      _cutMeta: { fromPrev: { sourceDate: '2026-01-01', cutAt: 120 } },
+    }))
+    const s = useTagStore()
+    s.replaceTagInBlocks('Old', 'New')
+    const saved = JSON.parse(localStorage.getItem(key))
+    expect(saved.blocks).toEqual([{ tags: ['New'] }])
+    expect(saved._cutMeta).toEqual({ fromPrev: { sourceDate: '2026-01-01', cutAt: 120 } })
   })
 })

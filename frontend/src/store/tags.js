@@ -4,6 +4,7 @@ import { KEY_PREFIX } from '../constants.js'
 import { useTimelogStore } from './timelog.js'
 import { useSettingsStore } from './settings.js'
 import { logger } from '../utils/log.js'
+import { extractBlocks, extractCutMeta } from '../utils/dayStorage.js'
 
 const PALETTE = {
   gray: '#6B6B6B', brown: '#8A5A3B', orange: '#BE5C1E',
@@ -73,17 +74,19 @@ export const useTagStore = defineStore('tags', () => {
       const datePortion = k.slice(KEY_PREFIX.length)
       if (!/^\d{4}-\d{2}-\d{2}$/.test(datePortion)) continue
       try {
-        const arr = JSON.parse(localStorage.getItem(k))
-        if (!Array.isArray(arr)) continue
+        const data = JSON.parse(localStorage.getItem(k))
+        const blocks = extractBlocks(data)
+        if (!blocks.length) continue
+        const meta = extractCutMeta(data)
         let mod = false
-        for (const b of arr) {
+        for (const b of blocks) {
           if (b.tags && b.tags.includes(name)) {
             b.tags = b.tags.filter(t => t !== name)
             mod = true
           }
         }
         if (mod) {
-          localStorage.setItem(k, JSON.stringify(arr))
+          localStorage.setItem(k, JSON.stringify({ blocks, _cutMeta: meta }))
           changed = true
         }
       } catch (e) { logger.error('tags', 'removeTagFromBlocks failed', e) }
@@ -105,9 +108,12 @@ export const useTagStore = defineStore('tags', () => {
       if (k.startsWith(KEY_PREFIX) && k !== KEY_PREFIX + 'tags') {
         try {
           const data = JSON.parse(localStorage.getItem(k))
+          const blocks = extractBlocks(data)
+          if (!blocks.length) continue
+          const meta = extractCutMeta(data)
           let changed2 = false
-          data.forEach(b => { if (b.tags) { b.tags = b.tags.map(t => t === oldName ? newName : t); changed2 = true } })
-          if (changed2) localStorage.setItem(k, JSON.stringify(data))
+          blocks.forEach(b => { if (b.tags) { b.tags = b.tags.map(t => t === oldName ? newName : t); changed2 = true } })
+          if (changed2) localStorage.setItem(k, JSON.stringify({ blocks, _cutMeta: meta }))
         } catch (e) { logger.error('tags', 'replaceTagInBlocks failed', e) }
       }
     }

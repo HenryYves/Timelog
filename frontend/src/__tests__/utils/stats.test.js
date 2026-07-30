@@ -57,9 +57,13 @@ describe('loadDayBlocks', () => {
   it('returns empty array for missing key', () => {
     expect(loadDayBlocks('2026-01-01')).toEqual([])
   })
-  it('loads blocks from localStorage', () => {
-    localStorage.setItem(key, JSON.stringify([{ start: 0, end: 60 }]))
+  it('loads blocks from v2 {blocks, _cutMeta} format', () => {
+    localStorage.setItem(key, JSON.stringify({ blocks: [{ start: 0, end: 60 }], _cutMeta: { toNext: { targetDate: '2026-01-02', cutAt: 120 } } }))
     expect(loadDayBlocks('2026-01-01')).toEqual([{ start: 0, end: 60 }])
+  })
+  it('returns empty array for corrupt JSON', () => {
+    localStorage.setItem(key, '{not json')
+    expect(loadDayBlocks('2026-01-01')).toEqual([])
   })
 })
 

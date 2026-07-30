@@ -4,6 +4,7 @@ import { KEY_PREFIX, MAIN_NAME, DATA_DIR, MAX_BACKUP_COUNT } from '../constants.
 import { STR } from '../strings.js'
 import { logger } from './log.js'
 import { useToast } from '../composables/useToast.js'
+import { extractBlocks } from './dayStorage.js'
 
 const { toast } = useToast()
 
@@ -62,7 +63,8 @@ export function getAllData() {
     if (isDayKey(k)) {
       try {
         const a = JSON.parse(localStorage.getItem(k))
-        if (Array.isArray(a) && a.length) days[k.slice(KEY_PREFIX.length)] = a
+        // v1: array, v2: { blocks, _cutMeta } — preserve original shape in backup
+        if (extractBlocks(a).length) days[k.slice(KEY_PREFIX.length)] = a
       } catch (e) { logger.error('backup', 'getAllData parse day failed', e) }
     }
   }

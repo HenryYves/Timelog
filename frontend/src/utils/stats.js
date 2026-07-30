@@ -3,6 +3,7 @@
 // Shared by StatsPanel.vue and ExportImagePanel (stats mode).
 
 import { KEY_PREFIX } from '../constants.js'
+import { extractBlocks } from './dayStorage.js'
 
 // ---- Date helpers ----
 
@@ -61,7 +62,10 @@ export function getDaysInRange(timeRange, customStart, customEnd) {
 
 export function loadDayBlocks(dateKey) {
   const raw = localStorage.getItem(KEY_PREFIX + dateKey)
-  return raw ? JSON.parse(raw) : []
+  if (!raw) return []
+  try {
+    return extractBlocks(JSON.parse(raw))
+  } catch { return [] }
 }
 
 // ---- Card data aggregation ----

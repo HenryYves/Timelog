@@ -68,6 +68,7 @@ import { KEY_PREFIX } from '../constants.js'
 import { pushStoreUndo } from '../store/timelog.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { STR } from '../strings.js'
+import { extractBlocks } from '../utils/dayStorage.js'
 
 const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close', 'changed'])
@@ -132,10 +133,11 @@ function loadDays() {
       const date = k.slice(KEY_PREFIX.length)
       try {
         const data = JSON.parse(localStorage.getItem(k))
-        if (Array.isArray(data) && data.length) {
+        const blocks = extractBlocks(data)
+        if (blocks.length) {
           let mins = 0
-          data.forEach(b => mins += (b.end - b.start))
-          map[date] = { count: data.length, hours: Math.round((mins / 60) * 10) / 10 }
+          blocks.forEach(b => mins += (b.end - b.start))
+          map[date] = { count: blocks.length, hours: Math.round((mins / 60) * 10) / 10 }
         }
       } catch { /* skip corrupt keys */ }
     }
@@ -260,20 +262,23 @@ async function onFileSelected(e) {
           snapDays[date] = localStorage.getItem(KEY_PREFIX + date)
         })
 
-        Object.entries(data.days).forEach(([date, blocks]) => {
-          if (Array.isArray(blocks) && blocks.length) {
+        Object.entries(data.days).forEach(([date, dayData]) => {
+          const blocks = extractBlocks(dayData)
+          if (blocks.length) {
             // Merge with existing data
             const key = KEY_PREFIX + date
-            let existing = []
-            try { existing = JSON.parse(snapDays[date]) || [] } catch { /* ignore */ }
-            const merged = existing.concat(blocks)
+            let existingRaw = null
+            try { existingRaw = JSON.parse(snapDays[date]) } catch { /* ignore */ }
+            const existingBlocks = extractBlocks(existingRaw)
+            const existingMeta = (existingRaw && existingRaw._cutMeta) || (dayData && dayData._cutMeta) || {}
+            const merged = existingBlocks.concat(blocks)
             // Deduplicate by id
             const seen = {}
             merged.forEach(b => {
               const bid = b.id || ('b' + b.start + '-' + b.end)
               if (!seen[bid]) seen[bid] = b
             })
-            localStorage.setItem(key, JSON.stringify(Object.values(seen)))
+            localStorage.setItem(key, JSON.stringify({ blocks: Object.values(seen), _cutMeta: existingMeta }))
             count += blocks.length
           }
         })

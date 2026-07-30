@@ -30,6 +30,7 @@ import { useTagStore } from '../store/tags.js'
 import { KEY_PREFIX } from '../constants.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { STR } from '../strings.js'
+import { extractBlocks, extractCutMeta } from '../utils/dayStorage.js'
 
 const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close', 'saved'])
@@ -97,9 +98,11 @@ function removeTagFromBlocksAll(name) {
     if (!isDayKey(k)) continue
     try {
       const data = JSON.parse(localStorage.getItem(k))
-      if (!Array.isArray(data)) continue
+      const blocks = extractBlocks(data)
+      if (!blocks.length) continue
+      const meta = extractCutMeta(data)
       let changed = false
-      data.forEach(b => {
+      blocks.forEach(b => {
         if (b.tags) {
           const filtered = b.tags.filter(t => t !== name)
           if (filtered.length !== b.tags.length) {
@@ -108,7 +111,7 @@ function removeTagFromBlocksAll(name) {
           }
         }
       })
-      if (changed) localStorage.setItem(k, JSON.stringify(data))
+      if (changed) localStorage.setItem(k, JSON.stringify({ blocks, _cutMeta: meta }))
     } catch { /* skip corrupt keys */ }
   }
 }
