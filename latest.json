@@ -1,11 +1,11 @@
 {
-  "version": "v0.10.0",
-  "notes": "新增：剪刀/胶水时间轴切分——右键剪刀切分时间轴到相邻日期，胶水区（蓝色gutter）粘回\n新增：统一坐标系+带符号时间标签（-17:00/08:00/+01:00）、三段gutter单day渲染\n新增：剪刀/胶水确认弹窗、批量创建+/-前缀、导出图片三段渲染+单输入时间裁剪\n新增：v1旧数据自动迁移、DataManager删除天时四向清理邻居剪切关系\n变更：剪切/粘回不支持撤销（清空undo/redo栈）、天存储升级为{blocks,_cutMeta}对象\n157 tests",
+  "version": "v0.10.9",
+  "notes": "新增：时间输入[-+]hh:mm自由切换帧、blur格式+区段校验、胶水区endTimeAtNow\n变更：glue-next背景色#e0ebaf、红线全页面感知、goToday自动跳转、导出单起止输入\n修复：非整点标签、ref误用.value、resize dayEl、EditModal坐标偏移、T键胶水帧适配、空胶水区粘回、DataManager四向清理、标签key冲突、槽位独立约束\n158 tests",
   "pub_date": "2026-07-31T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUdHQTI0SVA2RGhTTXdGTEM1aVJwVGhmeFgxaW92bEViRjlNRXpIUnVOdFAwOUxIYXJYQlpJRUdUeUtZY05hMG9QR21ONGRxTHdDbUl6WXZ6bEd4REFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NDI0NDU0CWZpbGU6dGltZWxvZ18wLjEwLjBfeDY0X2VuLVVTLm1zaQozR1ZWRXdZYlhyeVNTNFZGd2dEYXhZWGhZUEdvcFdGK29GbTl5SnlUTUNlSVdsSi96YTdaM1kvcGxzSWFZbjcrYlJ6UWw5TDBsNTRYdmV1emorc0pCdz09Cg==",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.10.0/timelog_0.10.0_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUZYUHlaNUgvc29MMmt6bVY3Qys1bm1YK2syaEFhWlhxak5sc0JSWkVabGJ2QWJyOS9yR0J2MzNEVEoxOTZwQVhOcWQvenNtSHJuN0dYTlA3eG1YZmdNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NDg1Mzc0CWZpbGU6dGltZWxvZ18wLjEwLjlfeDY0X2VuLVVTLm1zaQo5SWt4ekVzN1ZobGRrclhnOFhDbmxmbEEvUEt1UWJQOW5GT1hLanY4NEtmT2x1eHhWWHJ3bjMyaWVWQ25hRXZseUpSM3FtanUvT2ZRSTNYYXNqMEdCQT09Cg==",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.10.9/timelog_0.10.9_x64_en-US.msi"
     }
   }
 }
