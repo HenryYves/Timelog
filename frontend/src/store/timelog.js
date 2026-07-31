@@ -575,6 +575,18 @@ export const useTimelogStore = defineStore('timelog', () => {
 
   function goToday() {
     setDate(new Date())
+    // 如果今天的时间被剪到了相邻天 → 自动跳转到包含当前时间的页
+    const now = new Date()
+    const nowMin = now.getHours() * 60 + now.getMinutes()
+    if (_cutMeta.value.toPrev && nowMin < _cutMeta.value.toPrev.cutAt) {
+      const d = new Date()
+      d.setDate(d.getDate() - 1)
+      setDate(d)  // 被剪到了昨天
+    } else if (_cutMeta.value.toNext && nowMin >= _cutMeta.value.toNext.cutAt) {
+      const d = new Date()
+      d.setDate(d.getDate() + 1)
+      setDate(d)  // 被剪到了明天
+    }
   }
 
   // Color helpers

@@ -16,13 +16,11 @@
         @keydown.enter.prevent="save"
       >
 
-      <label>时间</label>
+      <label>时间（可选 +/- 前缀切换帧：−昨天 / +明天 / 无前缀今天）</label>
       <div class="timerow">
-        <span v-if="startPrefix" class="frame-prefix">{{ startPrefix }}</span>
-        <input type="time" id="mStart" v-model="mStart" step="60" @keydown.enter.prevent="focusFirstChip">
+        <input type="text" id="mStart" v-model="mStart" pattern="[+-]?\d{1,2}:\d{2}" placeholder="-08:00" maxlength="6" @keydown.enter.prevent="focusFirstChip">
         <span>—</span>
-        <span v-if="endPrefix" class="frame-prefix">{{ endPrefix }}</span>
-        <input type="time" id="mEnd" v-model="mEnd" step="60" @keydown.enter.prevent="focusFirstChip">
+        <input type="text" id="mEnd" v-model="mEnd" pattern="[+-]?\d{1,2}:\d{2}" placeholder="+08:00" maxlength="6" @keydown.enter.prevent="focusFirstChip">
       </div>
 
       <label>标签</label>
@@ -76,7 +74,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { useTimelogStore, fmt, toInput, fromInput, storageToLocal, localToStorage } from '../store/timelog.js'
+import { useTimelogStore, fmt, toInput, todayStorageBase, storageToLocal } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { useSettingsStore } from '../store/settings.js'
 import { useToast } from '../composables/useToast.js'
@@ -118,20 +116,23 @@ function isDirty() {
 }
 
 // Populate form when modal opens
-// 用 storageToLocal 获取真实的本地时间（接入了 todayStorageBase），
-// frameBase 仅用于输入框前缀（昨天 0 / 今天 1440 / 明天 2880）
-const startBase = ref(0)
-const endBase = ref(0)
-// 当前块的帧类型（save 时回推存储坐标用）
-const curFrame = ref('today')
+// 时间输入接受 [-+]HH:MM 格式，帧由符号决定，可跨区编辑
 
-function framePrefix(base) {
-  if (base === 2880) return '+'
-  if (base === 0 && timelogStore._cutMeta?.fromPrev) return '-'
-  return ''
+function parseSignedTime(str) {
+  const m = (str || '').trim().match(/^([+-])?(\d{1,2}):(\d{2})$/)
+  if (!m) return null
+  const min = parseInt(m[2]) * 60 + parseInt(m[3])
+  if (min > 1440) return null
+  const base = m[1] === '-' ? 0 : m[1] === '+' ? 2880 : 1440
+  return { base, min }
 }
-const startPrefix = computed(() => framePrefix(startBase.value))
-const endPrefix = computed(() => framePrefix(endBase.value))
+
+function formatSignedTime(local, base) {
+  const t = toInput(local)
+  if (base === 0) return '-' + t
+  if (base === 2880) return '+' + t
+  return t
+}
 
 watch(
   () => [props.show, props.editingBlock, props.createTimes],
@@ -139,23 +140,21 @@ watch(
     if (!show) return
     if (block) {
       const local = storageToLocal(block.start, block.end, timelogStore._cutMeta)
-      startBase.value = block.start < 1440 ? 0 : block.start < 2880 ? 1440 : 2880
-      endBase.value = block.end <= 1440 ? 0 : block.end <= 2880 ? 1440 : 2880
-      curFrame.value = block.start < 1440 ? 'prev' : block.start < 2880 ? 'today' : 'next'
+      const sBase = block.start < 1440 ? 0 : block.start < 2880 ? 1440 : 2880
+      const eBase = block.end <= 1440 ? 0 : block.end <= 2880 ? 1440 : 2880
       mTitle.value = block.title || ''
       mNote.value = block.note || ''
-      mStart.value = toInput(local.start)
-      mEnd.value = toInput(local.end)
+      mStart.value = formatSignedTime(local.start, sBase)
+      mEnd.value = formatSignedTime(local.end, eBase)
       selectedTags.value = [...(block.tags || [])]
     } else if (cTimes) {
       const local = storageToLocal(cTimes.start, cTimes.end, timelogStore._cutMeta)
-      startBase.value = cTimes.start < 1440 ? 0 : cTimes.start < 2880 ? 1440 : 2880
-      endBase.value = cTimes.end <= 1440 ? 0 : cTimes.end <= 2880 ? 1440 : 2880
-      curFrame.value = cTimes.start < 1440 ? 'prev' : cTimes.start < 2880 ? 'today' : 'next'
+      const sBase = cTimes.start < 1440 ? 0 : cTimes.start < 2880 ? 1440 : 2880
+      const eBase = cTimes.end <= 1440 ? 0 : cTimes.end <= 2880 ? 1440 : 2880
       mTitle.value = ''
       mNote.value = ''
-      mStart.value = toInput(local.start)
-      mEnd.value = toInput(local.end)
+      mStart.value = formatSignedTime(local.start, sBase)
+      mEnd.value = formatSignedTime(local.end, eBase)
       selectedTags.value = []
     }
     original.value = {
@@ -186,8 +185,11 @@ const groupedTags = computed(() => {
 
 // Duration display (HH:MM)
 const duration = computed(() => {
-  const diff = fromInput(mEnd.value) - fromInput(mStart.value)
-  return toInput(Math.max(diff, 0))
+  const sp = parseSignedTime(mStart.value)
+  const ep = parseSignedTime(mEnd.value)
+  const ms = sp ? sp.base + sp.min : 0
+  const me = ep ? ep.base + ep.min : 0
+  return toInput(Math.max(me - ms, 0))
 })
 
 // Tag toggle
@@ -227,12 +229,12 @@ function focusFirstChip() {
 
 // Save
 async function save() {
-  const st = localToStorage(
-    fromInput(mStart.value), fromInput(mEnd.value),
-    timelogStore._cutMeta, curFrame.value,
-  )
-  let s = st.start
-  let en = st.end
+  const sp = parseSignedTime(mStart.value)
+  const ep = parseSignedTime(mEnd.value)
+  const storeBase = todayStorageBase(timelogStore._cutMeta)
+  const toStorage = (p) => p ? (p.base === 1440 ? p.min + storeBase : p.min + p.base) : 0
+  let s = toStorage(sp)
+  let en = toStorage(ep)
   if (en <= s) en = s + 1
   const dur = en - s
   // Confirm short blocks (new blocks only, not edits)
@@ -282,15 +284,14 @@ async function deleteBlock() {
 }
 
 // Copy to clipboard + toast — reads live form values, not props.editingBlock
-// 剪贴板统一存存储坐标
 function copyBlock() {
-  const st = localToStorage(
-    fromInput(mStart.value), fromInput(mEnd.value),
-    timelogStore._cutMeta, curFrame.value,
-  )
+  const sp = parseSignedTime(mStart.value)
+  const ep = parseSignedTime(mEnd.value)
+  const storeBase = todayStorageBase(timelogStore._cutMeta)
+  const toStorage = (p) => p ? (p.base === 1440 ? p.min + storeBase : p.min + p.base) : 0
   timelogStore.clipboard = [{
-    start: st.start,
-    end: st.end,
+    start: toStorage(sp),
+    end: toStorage(ep),
     title: mTitle.value.trim(),
     note: mNote.value.trim(),
     tags: selectedTags.value.slice(),
@@ -327,11 +328,6 @@ function trapFocus(e) {
 }
 .modal-head h2 { margin: 0; }
 .modal { max-height: calc(82vh / var(--zoom, 1)); overflow: auto; }
-.frame-prefix {
-  font-weight: 700;
-  color: var(--text2);
-  user-select: none;
-}
 .duration {
   font-size: 13px;
   color: var(--text2);

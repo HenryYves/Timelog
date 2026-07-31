@@ -148,10 +148,11 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { tExport } from './utils/tauri.js'
 import { save } from '@tauri-apps/plugin-dialog'
-import { useTimelogStore, dkey, storeUndo, todayStorageBase, todayLocalToStorage } from './store/timelog.js'
+import { useTimelogStore, dkey, storeUndo, todayLocalToStorage } from './store/timelog.js'
+import { toDisplayBlock } from './utils/displayBlocks.js'
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
-import { APP_VERSION, compareSemver } from './constants.js'
+import { APP_VERSION, compareSemver, DAY_MIN } from './constants.js'
 import { STR } from './strings.js'
 import {
   bkStatusText, bkStatusClass, setBackupPrefs,
@@ -666,22 +667,37 @@ function onWindowKeyDown(e) {
     const now = new Date()
     const isToday = dkey(now) === store.dateKey
     const nowMin = now.getHours() * 60 + now.getMinutes()
-    // 只看今天帧的块（本地时间），忽略胶水块
-    const base = todayStorageBase(store._cutMeta)
-    const todayEnds = store.blocks
-      .filter(b => !b._cut && b.start >= base && b.start < base + 1440)
-      .map(b => b.end - base)
-    let s
-    if (todayEnds.length > 0) {
-      const lastEnd = Math.max(...todayEnds)
-      s = (isToday && lastEnd > nowMin) ? nowMin : lastEnd
+    // 扫描所有块（含胶水区），用显示坐标找最后一个末尾
+    const unified = store.blocks.map(b => toDisplayBlock(b, store._cutMeta))
+    const maxUnified = unified.length ? Math.max(...unified.map(b => b.end)) : 0
+    const fromPrevCut = store._cutMeta?.fromPrev?.cutAt ?? null
+    const toPrevCut = store._cutMeta?.toPrev?.cutAt
+
+    let s, isPrevFrame
+    if (maxUnified > 0) {
+      // 有块：从最后一个显示末尾开始
+      if (maxUnified < DAY_MIN) { s = maxUnified; isPrevFrame = true }       // glue-prev
+      else if (maxUnified < 2 * DAY_MIN) { s = maxUnified - DAY_MIN; isPrevFrame = false }  // 今天
+      else { s = maxUnified - 2 * DAY_MIN; isPrevFrame = false }              // glue-next
+      if (isToday && s > nowMin) s = nowMin  // 今天且块末尾在未来 → 用当前时间
     } else {
-      s = store._cutMeta?.toPrev?.cutAt || 0  // 今天显示起点
+      // 无块：页面最早可用时间
+      if (fromPrevCut != null) { s = fromPrevCut; isPrevFrame = true }
+      else { s = toPrevCut || 0; isPrevFrame = false }
     }
     if (s > 1380) s = 1380
-    const end = settings.endTimeAtNow ? nowMin : Math.min(s + settings.defaultDuration, 1440)
+    let end
+    if (isPrevFrame) {
+      end = Math.min(s + settings.defaultDuration, DAY_MIN)
+    } else if (settings.endTimeAtNow) {
+      end = nowMin >= s ? nowMin : Math.min(s + settings.defaultDuration, DAY_MIN)
+    } else {
+      end = Math.min(s + settings.defaultDuration, DAY_MIN)
+    }
     editingBlock.value = null
-    createTimes.value = todayLocalToStorage(s, end, store._cutMeta)
+    createTimes.value = isPrevFrame
+      ? { start: s, end }
+      : todayLocalToStorage(s, end, store._cutMeta)
     showModal.value = true
   }
   if (e.key === 'n' || e.key === 'N') {

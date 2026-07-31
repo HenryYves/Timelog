@@ -115,7 +115,7 @@
       <div v-if="hoverLine" class="cut-hover" :style="{ top: hoverLine.y + 'px' }">
         <span class="cut-hover-label">{{ hoverLine.label }}</span>
       </div>
-      <div v-if="isToday && nowInToday" class="nowline" :style="{ top: minuteToY(DAY_MIN + nowMin - todayRange.start) + 'px' }" />
+      <div v-if="isToday && nowInToday" class="nowline" :style="{ top: nowLineY() + 'px' }" />
     </div>
   </div>
 
@@ -193,10 +193,29 @@ const overGrid = ref(false)
 const isToday = computed(() => dkey(new Date()) === store.dateKey)
 const nowMin = ref(0)
 let nowTimer = null
+// 当前时间是否落在本页显示范围内（prev + today + next）
 const nowInToday = computed(() => {
-  const { start, end } = todayRange.value
-  return nowMin.value >= start && nowMin.value <= end
+  const n = nowMin.value
+  const prevCut = store._cutMeta?.fromPrev?.cutAt
+  if (prevCut != null && n >= prevCut && n < DAY_MIN) return true
+  if (n >= todayRange.value.start && n <= todayRange.value.end) return true
+  const nextCut = store._cutMeta?.fromNext?.cutAt
+  if (nextCut != null && n <= nextCut) return true
+  return false
 })
+// now 线在 .day 中的 y 坐标
+function nowLineY() {
+  const n = nowMin.value
+  const prevCut = store._cutMeta?.fromPrev?.cutAt
+  if (prevCut != null && n >= prevCut && n < DAY_MIN) {
+    return (n - prevCut) * PX_MIN  // glue-prev 区（昨天帧）
+  }
+  const nextCut = store._cutMeta?.fromNext?.cutAt
+  if (nextCut != null && n <= nextCut) {
+    return minuteToY(2 * DAY_MIN + n)  // glue-next 区（明天帧）
+  }
+  return minuteToY(DAY_MIN + n - todayRange.value.start)  // 今天帧
+}
 
 function updateNowMin() {
   if (dkey(new Date()) === store.dateKey) {
@@ -813,7 +832,7 @@ function scrollToNow() {
   const main = document.querySelector('main')
   if (!main) return
   if (isToday.value && nowInToday.value) {
-    main.scrollTop = Math.max(0, minuteToY(DAY_MIN + nowMin.value - todayRange.value.start) - 160)
+    main.scrollTop = Math.max(0, nowLineY() - 160)
   } else {
     main.scrollTop = Math.max(0, minuteToY(DAY_MIN) - 160)
   }
