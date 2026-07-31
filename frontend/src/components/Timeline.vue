@@ -869,6 +869,9 @@ watch(() => store.dateKey, () => {
   flex: none;
   position: relative;
 }
+.gutter.today {
+  z-index: 1; /* 24:00 标签 translateY(-50%) 不被后渲染的 glue-next 背景盖住 */
+}
 .gutter .hlabel {
   position: absolute;
   right: 8px;

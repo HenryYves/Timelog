@@ -185,13 +185,13 @@
               }">
                 <!-- Gutter (three sections) -->
                 <div v-if="settings.showGutter" class="exp-gutter" :style="{ width: GUTTER_WIDTH + 'px', left: -GUTTER_WIDTH + 'px' }">
-                  <div v-if="gutterHeights.prev" class="exp-gutter-section glue" :style="{ top: '0px', height: (gutterHeights.prev * PX_MIN) + 'px' }">
+                  <div v-if="gutterHeights.prev" class="exp-gutter-section glue glue-prev" :style="{ top: '0px', height: (gutterHeights.prev * PX_MIN) + 'px' }">
                     <div v-for="l in prevLabels" :key="'gp'+l.min" class="exp-hlabel" :style="{ top: l.top + 'px' }">{{ l.text }}</div>
                   </div>
                   <div class="exp-gutter-section" :style="{ top: (gutterHeights.prev * PX_MIN) + 'px', height: (gutterHeights.today * PX_MIN) + 'px' }">
                     <div v-for="l in todayLabels" :key="'gt'+l.min" class="exp-hlabel" :style="{ top: l.top + 'px' }">{{ l.text }}</div>
                   </div>
-                  <div v-if="gutterHeights.next" class="exp-gutter-section glue" :style="{ top: ((gutterHeights.prev + gutterHeights.today) * PX_MIN) + 'px', height: (gutterHeights.next * PX_MIN) + 'px' }">
+                  <div v-if="gutterHeights.next" class="exp-gutter-section glue glue-next" :style="{ top: ((gutterHeights.prev + gutterHeights.today) * PX_MIN) + 'px', height: (gutterHeights.next * PX_MIN) + 'px' }">
                     <div v-for="l in nextLabels" :key="'gn'+l.min" class="exp-hlabel" :style="{ top: l.top + 'px' }">{{ l.text }}</div>
                   </div>
                 </div>
@@ -943,8 +943,11 @@ async function doExport() {
   left: 0;
   right: 0;
 }
-.exp-gutter-section.glue {
+.exp-gutter-section.glue.glue-prev {
   background: #89c3eb;
+}
+.exp-gutter-section.glue.glue-next {
+  background: #e0ebaf;
 }
 .exp-gutter::after {
   content: '';
