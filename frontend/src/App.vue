@@ -676,7 +676,7 @@ function onWindowKeyDown(e) {
       const lastEnd = Math.max(...todayEnds)
       s = (isToday && lastEnd > nowMin) ? nowMin : lastEnd
     } else {
-      s = 0  // 00:00 — empty page defaults to start of day
+      s = store._cutMeta?.toPrev?.cutAt || 0  // 今天显示起点
     }
     if (s > 1380) s = 1380
     const end = settings.endTimeAtNow ? nowMin : Math.min(s + settings.defaultDuration, 1440)

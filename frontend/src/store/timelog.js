@@ -113,6 +113,28 @@ export function unifiedToStorage(x, cutMeta) {
   return x
 }
 
+/** 存储坐标 → 本地时间（各帧独立）：lastEnd/EditModal 等需要本地时间的入口使用 */
+export function storageToLocal(start, end, cutMeta) {
+  const base = todayStorageBase(cutMeta)
+  if (start >= base && start < base + DAY_MIN) {
+    return { start: start - base, end: end - base }
+  }
+  // 胶水帧：坐标不变（昨天帧）或 -2880（明天帧）
+  if (start < DAY_MIN) return { start, end }
+  return { start: start - 2 * DAY_MIN, end: end - 2 * DAY_MIN }
+}
+
+/** 本地时间 → 存储坐标（EditModal 保存等入口），frame 指定帧类型 */
+export function localToStorage(s, en, cutMeta, frame) {
+  if (frame === 'today') {
+    const base = todayStorageBase(cutMeta)
+    return { start: s + base, end: en + base }
+  }
+  if (frame === 'prev') return { start: s, end: en }
+  if (frame === 'next') return { start: s + 2 * DAY_MIN, end: en + 2 * DAY_MIN }
+  return { start: s, end: en }
+}
+
 /**
  * Load a day's storage in v2 object format { blocks, _cutMeta }.
  * v1 数组格式自动迁移：无 _cut 的块 +1440 移入今天帧；

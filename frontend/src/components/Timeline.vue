@@ -282,7 +282,8 @@ const gluePrevLabels = computed(() => {
 const todayLabels = computed(() => {
   const { start, end } = todayRange.value
   const labels = []
-  for (let min = start; min <= end; min += 60) {
+  const firstHour = Math.ceil(start / 60) * 60
+  for (let min = firstHour; min <= end; min += 60) {
     labels.push({
       min,
       text: fmt(min),

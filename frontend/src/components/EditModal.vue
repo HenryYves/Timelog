@@ -76,7 +76,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { useTimelogStore, fmt, toInput, fromInput } from '../store/timelog.js'
+import { useTimelogStore, fmt, toInput, fromInput, storageToLocal, localToStorage } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { useSettingsStore } from '../store/settings.js'
 import { useToast } from '../composables/useToast.js'
@@ -118,18 +118,13 @@ function isDirty() {
 }
 
 // Populate form when modal opens
-// 每个时间输入各自的帧基准（昨天 0 / 今天 1440 / 明天 2880），
-// 输入框显示帧内本地时间，保存时加回各自 base；跨帧块因此不会溢出（--:--）
+// 用 storageToLocal 获取真实的本地时间（接入了 todayStorageBase），
+// frameBase 仅用于输入框前缀（昨天 0 / 今天 1440 / 明天 2880）
 const startBase = ref(0)
 const endBase = ref(0)
+// 当前块的帧类型（save 时回推存储坐标用）
+const curFrame = ref('today')
 
-function baseOf(min, isEnd) {
-  if (isEnd ? min <= 1440 : min < 1440) return 0
-  if (isEnd ? min <= 2880 : min < 2880) return 1440
-  return 2880
-}
-
-// 帧前缀：明天 +，昨天帧（fromPrev 存在时的 0 基准）-
 function framePrefix(base) {
   if (base === 2880) return '+'
   if (base === 0 && timelogStore._cutMeta?.fromPrev) return '-'
@@ -143,20 +138,24 @@ watch(
   ([show, block, cTimes]) => {
     if (!show) return
     if (block) {
-      startBase.value = baseOf(block.start)
-      endBase.value = baseOf(block.end, true)
+      const local = storageToLocal(block.start, block.end, timelogStore._cutMeta)
+      startBase.value = block.start < 1440 ? 0 : block.start < 2880 ? 1440 : 2880
+      endBase.value = block.end <= 1440 ? 0 : block.end <= 2880 ? 1440 : 2880
+      curFrame.value = block.start < 1440 ? 'prev' : block.start < 2880 ? 'today' : 'next'
       mTitle.value = block.title || ''
       mNote.value = block.note || ''
-      mStart.value = toInput(block.start - startBase.value)
-      mEnd.value = toInput(block.end - endBase.value)
+      mStart.value = toInput(local.start)
+      mEnd.value = toInput(local.end)
       selectedTags.value = [...(block.tags || [])]
     } else if (cTimes) {
-      startBase.value = baseOf(cTimes.start)
-      endBase.value = baseOf(cTimes.end, true)
+      const local = storageToLocal(cTimes.start, cTimes.end, timelogStore._cutMeta)
+      startBase.value = cTimes.start < 1440 ? 0 : cTimes.start < 2880 ? 1440 : 2880
+      endBase.value = cTimes.end <= 1440 ? 0 : cTimes.end <= 2880 ? 1440 : 2880
+      curFrame.value = cTimes.start < 1440 ? 'prev' : cTimes.start < 2880 ? 'today' : 'next'
       mTitle.value = ''
       mNote.value = ''
-      mStart.value = toInput(cTimes.start - startBase.value)
-      mEnd.value = toInput(cTimes.end - endBase.value)
+      mStart.value = toInput(local.start)
+      mEnd.value = toInput(local.end)
       selectedTags.value = []
     }
     original.value = {
@@ -228,8 +227,12 @@ function focusFirstChip() {
 
 // Save
 async function save() {
-  const s = fromInput(mStart.value) + startBase.value
-  let en = fromInput(mEnd.value) + endBase.value
+  const st = localToStorage(
+    fromInput(mStart.value), fromInput(mEnd.value),
+    timelogStore._cutMeta, curFrame.value,
+  )
+  let s = st.start
+  let en = st.end
   if (en <= s) en = s + 1
   const dur = en - s
   // Confirm short blocks (new blocks only, not edits)
@@ -281,9 +284,13 @@ async function deleteBlock() {
 // Copy to clipboard + toast — reads live form values, not props.editingBlock
 // 剪贴板统一存存储坐标
 function copyBlock() {
+  const st = localToStorage(
+    fromInput(mStart.value), fromInput(mEnd.value),
+    timelogStore._cutMeta, curFrame.value,
+  )
   timelogStore.clipboard = [{
-    start: fromInput(mStart.value) + startBase.value,
-    end: fromInput(mEnd.value) + endBase.value,
+    start: st.start,
+    end: st.end,
     title: mTitle.value.trim(),
     note: mNote.value.trim(),
     tags: selectedTags.value.slice(),
