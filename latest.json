@@ -1,11 +1,11 @@
 {
-  "version": "v0.9.46",
-  "notes": "新增：ExportImagePanel解耦+stats完整导出面板+持久化修复+日志系统+标题/图例配置\n变更：导出切图→导出图片、设置key按mode分离、StatsPanel拆为子组件\n修复：持久化TDZ/100%饼图/虚线偏移/水印透明度/BarChart CSS/封面缺失/静默catch日志化",
-  "pub_date": "2026-07-23T00:00:00Z",
+  "version": "v0.10.0",
+  "notes": "新增：剪刀/胶水时间轴切分——右键剪刀切分时间轴到相邻日期，胶水区（蓝色gutter）粘回\n新增：统一坐标系+带符号时间标签（-17:00/08:00/+01:00）、三段gutter单day渲染\n新增：剪刀/胶水确认弹窗、批量创建+/-前缀、导出图片三段渲染+单输入时间裁剪\n新增：v1旧数据自动迁移、DataManager删除天时四向清理邻居剪切关系\n变更：剪切/粘回不支持撤销（清空undo/redo栈）、天存储升级为{blocks,_cutMeta}对象\n157 tests",
+  "pub_date": "2026-07-31T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUlUYXpqTW1GQWxVZ25iejUvY20rakpHejNqd0tqK2xMYXFJYWtmZGw2Yjlpc09HdWpSdHRKZFMwd0d5aExReFNKZW1aaUtkTnBCR1JidVBwRFlWbmdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg0ODA2MTcyCWZpbGU6dGltZWxvZ18wLjkuNDZfeDY0X2VuLVVTLm1zaQpmM2M0K2ljZkNGN3Y5dHVQN0ZBMlg3MVpJTXZiTHFsNUlYQ1pibVNXNVhUU1hpRFl0M2s4TjBxVDVyWVRDc1RyZXJyL1owL1hISzduTTNwZWdubUFDUT09Cg==",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.9.46/timelog_0.9.46_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUdHQTI0SVA2RGhTTXdGTEM1aVJwVGhmeFgxaW92bEViRjlNRXpIUnVOdFAwOUxIYXJYQlpJRUdUeUtZY05hMG9QR21ONGRxTHdDbUl6WXZ6bEd4REFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NDI0NDU0CWZpbGU6dGltZWxvZ18wLjEwLjBfeDY0X2VuLVVTLm1zaQozR1ZWRXdZYlhyeVNTNFZGd2dEYXhZWGhZUEdvcFdGK29GbTl5SnlUTUNlSVdsSi96YTdaM1kvcGxzSWFZbjcrYlJ6UWw5TDBsNTRYdmV1emorc0pCdz09Cg==",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.10.0/timelog_0.10.0_x64_en-US.msi"
     }
   }
 }
