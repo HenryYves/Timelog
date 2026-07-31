@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.10.9] - 2026-07-31
+
+### Added
+- 时间输入支持 [-+]hh:mm 格式自由切换帧（EditModal / 批量创建）
+- 胶水区 endTimeAtNow 支持（同一帧内可用当前时间）
+- blur 格式 + 区段校验（时间不得超出当天可截取范围）
+
+### Changed
+- glue-next 背景色改为 #e0ebaf（区分于 glue-prev 的 #89c3eb）
+- 当前时间红线全页面感知（prev + today + next 三个区段）
+- goToday 自动跳转到包含当前时间的页（启动复用）
+- 导出时间范围改为单起止输入（[+-]HH:MM + 区段校验）
+- canCutForward/Backward 改为 meta 驱动，fromPrev/fromNext 槽位独立
+
+### Fixed
+- 剪走时间后时间轴标签非整点显示
+- 模板 ref 误用 .value（gutterHeights/totalHeight/selectedBlocks）
+- resize 拖拽 dayEl undefined
+- EditModal toPrev 天存储坐标偏移 + 跨帧块 --:--
+- T 键默认起点适配胶水帧 + 扫描全部块末尾
+- 空胶水区不让粘回
+- DataManager 删除天时四向清理邻居关系
+- 标签 key 冲突（三段 gutter min 重复）
+- 158 tests
+
 ## [0.10.0] - 2026-07-30
 
 ### Added
