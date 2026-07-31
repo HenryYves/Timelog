@@ -887,6 +887,9 @@ onMounted(async () => {
   // Watch data changes → trigger auto-save / clean
   watch(() => store.blocks, onDataChanged, { deep: true })
   watch(() => tagStore.tags, onDataChanged, { deep: true })
+
+  // 启动时跳转到包含当前时间的页（复用 goToday 逻辑）
+  store.goToday()
 })
 
 onUnmounted(() => {
