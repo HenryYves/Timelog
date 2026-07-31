@@ -134,19 +134,20 @@ describe('date helpers', () => {
 })
 
 describe('cut constraints', () => {
-  it('canCutForward rejects if blocks from tomorrow exist', () => {
-    const blocks = [{ id: 'b1', start: 0, end: 60, _cut: { sourceDate: '2026-07-25', cutAt: 0 } }]
-    expect(canCutForward(blocks, '2026-07-24')).toBe(false)
+  it('canCutForward rejects if fromNext exists', () => {
+    expect(canCutForward({ fromNext: { sourceDate: '2026-07-25', cutAt: 0 } })).toBe(false)
   })
 
-  it('canCutForward allows if no blocks from tomorrow', () => {
-    const blocks = [{ id: 'b1', start: 0, end: 60, _cut: { sourceDate: '2026-07-23', cutAt: 0 } }]
-    expect(canCutForward(blocks, '2026-07-24')).toBe(true)
+  it('canCutForward allows if no fromNext', () => {
+    expect(canCutForward({})).toBe(true)
   })
 
-  it('canCutBackward rejects if blocks from yesterday exist', () => {
-    const blocks = [{ id: 'b1', start: 0, end: 60, _cut: { sourceDate: '2026-07-23', cutAt: 0 } }]
-    expect(canCutBackward(blocks, '2026-07-24')).toBe(false)
+  it('canCutBackward rejects if fromPrev exists', () => {
+    expect(canCutBackward({ fromPrev: { sourceDate: '2026-07-23', cutAt: 0 } })).toBe(false)
+  })
+
+  it('canCutBackward allows if no fromPrev', () => {
+    expect(canCutBackward({})).toBe(true)
   })
 })
 
@@ -277,10 +278,10 @@ describe('cutDay v2', () => {
     expect(moved.end).toBe(840)
   })
 
-  it('cutDay forward rejected when target has glue from the day after', () => {
+  it('cutDay forward rejected when target fromPrev slot occupied by different source', () => {
     localStorage.setItem('timelog:2026-07-25', JSON.stringify({
-      blocks: [{ id: 'z', start: 100, end: 200, _cut: { sourceDate: '2026-07-26', cutAt: 200 } }],
-      _cutMeta: { fromNext: { sourceDate: '2026-07-26', cutAt: 200 } }
+      blocks: [],
+      _cutMeta: { fromPrev: { sourceDate: '2026-07-23', cutAt: 200 } }
     }))
 
     expect(cutDay('2026-07-24', 780, 'forward')).toBe(false)

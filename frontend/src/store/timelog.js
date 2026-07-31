@@ -78,14 +78,35 @@ export function isBefore(a, b) {
   return a < b
 }
 
-export function canCutForward(blocks, dateKey) {
-  // Can cut to tomorrow if no block came FROM tomorrow
-  return !blocks.some(b => b._cut && isBefore(dateKey, b._cut.sourceDate))
+/**
+ * UI 级检查：源日能否向目标方向剪切（只看源日自身状态）。
+ * cutDay 另在运行时用双方 _cutMeta 做完整双向检查。
+ */
+export function canCutForward(srcMeta) {
+  return !srcMeta.fromNext  // 已有来自明天的胶水 = 不能便是明朝
 }
 
-export function canCutBackward(blocks, dateKey) {
-  // Can cut to yesterday if no block came FROM yesterday
-  return !blocks.some(b => b._cut && isBefore(b._cut.sourceDate, dateKey))
+export function canCutBackward(srcMeta) {
+  return !srcMeta.fromPrev  // 已有来自昨天的胶水 = 不能溯与昨宵
+}
+
+/**
+ * 运行时双向检查（cutDay 内使用，可读双方数据）。
+ */
+function checkCutBidir(srcMeta, tgtMeta, direction, sourceDate, targetDate) {
+  if (direction === 'forward') {
+    // 源日已有 fromNext（目标→源的逆向）？
+    if (srcMeta.fromNext && srcMeta.fromNext.sourceDate === targetDate) return false
+    // 目标日 fromPrev 槽被其他人占用？
+    if (tgtMeta.fromPrev && tgtMeta.fromPrev.sourceDate !== sourceDate) return false
+    // 目标日曾向源日剪切（逆向）？
+    if (tgtMeta.toPrev?.targetDate === sourceDate) return false
+  } else {
+    if (srcMeta.fromPrev && srcMeta.fromPrev.sourceDate === targetDate) return false
+    if (tgtMeta.fromNext && tgtMeta.fromNext.sourceDate !== sourceDate) return false
+    if (tgtMeta.toNext?.targetDate === sourceDate) return false
+  }
+  return true
 }
 
 /**
@@ -243,9 +264,8 @@ export function cutDay(sourceDate, cutAt, direction, dropShort = false) {
   const srcMeta = srcData._cutMeta
   const tgtMeta = tgtData._cutMeta
 
-  // Constraint: target must not contain glue from beyond itself
-  if (direction === 'forward' && !canCutForward(tgtData.blocks, targetDate)) return false
-  if (direction === 'backward' && !canCutBackward(tgtData.blocks, targetDate)) return false
+  // Constraint: 双向检查（双方 _cutMeta） + 槽位冲突
+  if (!checkCutBidir(srcMeta, tgtMeta, direction, sourceDate, targetDate)) return false
 
   const base = todayStorageBase(srcMeta)
   const cutLine = base + cutAt

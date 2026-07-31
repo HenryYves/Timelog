@@ -115,7 +115,7 @@
       <div v-if="hoverLine" class="cut-hover" :style="{ top: hoverLine.y + 'px' }">
         <span class="cut-hover-label">{{ hoverLine.label }}</span>
       </div>
-      <div v-if="isToday && nowInToday" class="nowline" :style="{ top: nowLineY() + 'px' }" />
+      <div v-if="nowInToday" class="nowline" :style="{ top: nowLineY() + 'px' }" />
     </div>
   </div>
 
@@ -198,10 +198,11 @@ const nowInToday = computed(() => {
   const n = nowMin.value
   const prevCut = store._cutMeta?.fromPrev?.cutAt
   if (prevCut != null && n >= prevCut && n < DAY_MIN) return true
-  if (n >= todayRange.value.start && n <= todayRange.value.end) return true
   const nextCut = store._cutMeta?.fromNext?.cutAt
   if (nextCut != null && n <= nextCut) return true
-  return false
+  // 今天区段：仅日历当天显示（未来/过去的今天区段都不画红线）
+  if (!isToday.value) return false
+  return n >= todayRange.value.start && n <= todayRange.value.end
 })
 // now 线在 .day 中的 y 坐标
 function nowLineY() {
@@ -218,12 +219,8 @@ function nowLineY() {
 }
 
 function updateNowMin() {
-  if (dkey(new Date()) === store.dateKey) {
-    const now = new Date()
-    nowMin.value = now.getHours() * 60 + now.getMinutes()
-  } else {
-    nowMin.value = 0
-  }
+  const now = new Date()
+  nowMin.value = now.getHours() * 60 + now.getMinutes()
 }
 
 // --- Coordinate conversion between storage and unified display ---
@@ -336,8 +333,8 @@ const allLabels = computed(() => {
 })
 
 // --- Cut availability ---
-const canCutFwd = computed(() => canCutForward(store.blocks, store.dateKey))
-const canCutBwd = computed(() => canCutBackward(store.blocks, store.dateKey))
+const canCutFwd = computed(() => canCutForward(store._cutMeta))
+const canCutBwd = computed(() => canCutBackward(store._cutMeta))
 const availableDirs = computed(() => {
   const dirs = []
   if (canCutFwd.value) dirs.push('forward')
@@ -831,7 +828,7 @@ function scrollToNow() {
   if (!settingsStore.autoScroll) return
   const main = document.querySelector('main')
   if (!main) return
-  if (isToday.value && nowInToday.value) {
+  if (nowInToday.value) {
     main.scrollTop = Math.max(0, nowLineY() - 160)
   } else {
     main.scrollTop = Math.max(0, minuteToY(DAY_MIN) - 160)
