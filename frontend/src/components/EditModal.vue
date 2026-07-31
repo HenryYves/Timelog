@@ -18,9 +18,9 @@
 
       <label>时间（可选 +/- 前缀切换帧：−昨天 / +明天 / 无前缀今天）</label>
       <div class="timerow">
-        <input type="text" id="mStart" v-model="mStart" pattern="[+-]?\d{1,2}:\d{2}" placeholder="-08:00" maxlength="6" @keydown.enter.prevent="focusFirstChip">
+        <input type="text" id="mStart" v-model="mStart" pattern="[+-]?\d{1,2}:\d{2}" placeholder="-08:00" maxlength="6" @keydown.enter.prevent="focusFirstChip" @blur="onTimeBlur('start')">
         <span>—</span>
-        <input type="text" id="mEnd" v-model="mEnd" pattern="[+-]?\d{1,2}:\d{2}" placeholder="+08:00" maxlength="6" @keydown.enter.prevent="focusFirstChip">
+        <input type="text" id="mEnd" v-model="mEnd" pattern="[+-]?\d{1,2}:\d{2}" placeholder="+08:00" maxlength="6" @keydown.enter.prevent="focusFirstChip" @blur="onTimeBlur('end')">
       </div>
 
       <label>标签</label>
@@ -125,6 +125,17 @@ function parseSignedTime(str) {
   if (min > 1440) return null
   const base = m[1] === '-' ? 0 : m[1] === '+' ? 2880 : 1440
   return { base, min }
+}
+
+// blur 时校验并回退非法值
+function onTimeBlur(field) {
+  const val = field === 'start' ? mStart.value : mEnd.value
+  if (!val.trim()) return
+  if (!parseSignedTime(val)) {
+    // 回退到原始值
+    if (field === 'start') mStart.value = original.value.start
+    else mEnd.value = original.value.end
+  }
 }
 
 function formatSignedTime(local, base) {

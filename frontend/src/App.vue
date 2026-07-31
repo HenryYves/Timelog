@@ -686,11 +686,11 @@ function onWindowKeyDown(e) {
       else { s = toPrevCut || 0; isPrevFrame = false }
     }
     if (s > 1380) s = 1380
+    // end: endTimeAtNow 在同一帧内可用；胶水帧 nowMin 也在该帧时生效
     let end
-    if (isPrevFrame) {
-      end = Math.min(s + settings.defaultDuration, DAY_MIN)
-    } else if (settings.endTimeAtNow) {
-      end = nowMin >= s ? nowMin : Math.min(s + settings.defaultDuration, DAY_MIN)
+    const nowInSameFrame = isPrevFrame ? (nowMin >= s && nowMin < DAY_MIN) : (nowMin >= s)
+    if (settings.endTimeAtNow && nowInSameFrame) {
+      end = nowMin
     } else {
       end = Math.min(s + settings.defaultDuration, DAY_MIN)
     }
