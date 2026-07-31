@@ -127,12 +127,26 @@ function parseSignedTime(str) {
   return { base, min }
 }
 
-// blur 时校验并回退非法值
+// blur 时校验格式 + 范围（是否落在当天的可截取区段内），非法则回退
 function onTimeBlur(field) {
   const val = field === 'start' ? mStart.value : mEnd.value
   if (!val.trim()) return
-  if (!parseSignedTime(val)) {
-    // 回退到原始值
+  const p = parseSignedTime(val)
+  let valid = false
+  if (p) {
+    if (p.base === 0) {
+      const cutAt = timelogStore._cutMeta?.fromPrev?.cutAt
+      valid = cutAt != null && p.min >= cutAt && p.min <= 1440
+    } else if (p.base === 1440) {
+      const start = timelogStore._cutMeta?.toPrev?.cutAt || 0
+      const end = timelogStore._cutMeta?.toNext?.cutAt || 1440
+      valid = p.min >= start && p.min <= end
+    } else {
+      const cutAt = timelogStore._cutMeta?.fromNext?.cutAt
+      valid = cutAt != null && p.min >= 0 && p.min <= cutAt
+    }
+  }
+  if (!valid) {
     if (field === 'start') mStart.value = original.value.start
     else mEnd.value = original.value.end
   }
