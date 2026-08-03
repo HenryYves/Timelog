@@ -149,7 +149,7 @@ import { listen } from '@tauri-apps/api/event'
 import { tExport } from './utils/tauri.js'
 import { save } from '@tauri-apps/plugin-dialog'
 import { useTimelogStore, dkey, storeUndo, todayLocalToStorage } from './store/timelog.js'
-import { toDisplayBlock } from './utils/displayBlocks.js'
+
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
 import { APP_VERSION, compareSemver, DAY_MIN } from './constants.js'
@@ -668,8 +668,7 @@ function onWindowKeyDown(e) {
     const isToday = dkey(now) === store.dateKey
     const nowMin = now.getHours() * 60 + now.getMinutes()
     // 扫描所有块（含胶水区），用显示坐标找最后一个末尾
-    const unified = store.blocks.map(b => toDisplayBlock(b, store._cutMeta))
-    const maxUnified = unified.length ? Math.max(...unified.map(b => b.end)) : 0
+    const maxUnified = store.blocks.length ? Math.max(...store.blocks.map(b => b.end)) : 0
     const fromPrevCut = store._cutMeta?.fromPrev?.cutAt ?? null
     const toPrevCut = store._cutMeta?.toPrev?.cutAt
 
@@ -697,7 +696,7 @@ function onWindowKeyDown(e) {
     editingBlock.value = null
     createTimes.value = isPrevFrame
       ? { start: s, end }
-      : todayLocalToStorage(s, end, store._cutMeta)
+      : todayLocalToStorage(s, end)
     showModal.value = true
   }
   if (e.key === 'n' || e.key === 'N') {

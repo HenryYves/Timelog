@@ -290,7 +290,7 @@ const showWatermarkOpts = ref(false)
 import { STR } from '../strings.js'
 import { useTimelogStore, fmt, fmtSigned, dkey } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
-import { toDisplayBlock } from '../utils/displayBlocks.js'
+
 import { useCoordConverter } from '../composables/useCoordConverter.js'
 import { PX_MIN, DAY_MIN, GUTTER_WIDTH, DATA_DIR, EXPORT_DATE_TITLE_H, EXPORT_AUTHOR_BLOCK_H } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
@@ -450,8 +450,7 @@ onMounted(() => {
 // ----- Timeline data (v2 unified coordinates via useCoordConverter) -----
 const { gutterHeights, totalHeight, todayRange, blockTop, minuteToY } = useCoordConverter()
 
-const displayBlocks = computed(() => timelogStore.blocks.map(b => toDisplayBlock(b, timelogStore._cutMeta)))
-const layoutBlocks = computed(() => layoutOverlap(displayBlocks.value.map(b => ({ ...b }))))
+const layoutBlocks = computed(() => layoutOverlap(timelogStore.blocks.map(b => ({ ...b }))))
 
 const prevLabels = computed(() => {
   const cutAt = timelogStore._cutMeta?.fromPrev?.cutAt

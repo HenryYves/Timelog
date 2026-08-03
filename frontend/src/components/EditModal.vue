@@ -74,7 +74,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { useTimelogStore, fmt, toInput, todayStorageBase, storageToLocal } from '../store/timelog.js'
+import { useTimelogStore, fmt, toInput, todayStorageBase, storageToLocal, addDays } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { useSettingsStore } from '../store/settings.js'
 import { useToast } from '../composables/useToast.js'
@@ -136,26 +136,12 @@ function parseSignedTime(str) {
   return null
 }
 
-// blur 时校验格式 + 范围（是否落在当天的可截取区段内），非法则回退
+// blur 时校验格式，非法则回退（范围由 save 时的穿界 split 处理）
 function onTimeBlur(field) {
   const val = field === 'start' ? mStart.value : mEnd.value
   if (!val.trim()) return
   const p = parseSignedTime(val)
-  let valid = false
-  if (p) {
-    if (p.base === 0) {
-      const cutAt = timelogStore._cutMeta?.fromPrev?.cutAt
-      valid = cutAt != null && p.min >= cutAt && p.min <= 1440
-    } else if (p.base === 1440) {
-      const start = timelogStore._cutMeta?.toPrev?.cutAt || 0
-      const end = timelogStore._cutMeta?.toNext?.cutAt || 1440
-      valid = p.min >= start && p.min <= end
-    } else {
-      const cutAt = timelogStore._cutMeta?.fromNext?.cutAt
-      valid = cutAt != null && p.min >= 0 && p.min <= cutAt
-    }
-  }
-  if (!valid) {
+  if (!p) {
     if (field === 'start') mStart.value = original.value.start
     else mEnd.value = original.value.end
   }
@@ -173,7 +159,7 @@ watch(
   ([show, block, cTimes]) => {
     if (!show) return
     if (block) {
-      const local = storageToLocal(block.start, block.end, timelogStore._cutMeta)
+      const local = storageToLocal(block.start, block.end)
       const sBase = block.start < 1440 ? 0 : block.start < 2880 ? 1440 : 2880
       const eBase = block.end <= 1440 ? 0 : block.end <= 2880 ? 1440 : 2880
       mTitle.value = block.title || ''
@@ -182,7 +168,7 @@ watch(
       mEnd.value = formatSignedTime(local.end, eBase)
       selectedTags.value = [...(block.tags || [])]
     } else if (cTimes) {
-      const local = storageToLocal(cTimes.start, cTimes.end, timelogStore._cutMeta)
+      const local = storageToLocal(cTimes.start, cTimes.end)
       const sBase = cTimes.start < 1440 ? 0 : cTimes.start < 2880 ? 1440 : 2880
       const eBase = cTimes.end <= 1440 ? 0 : cTimes.end <= 2880 ? 1440 : 2880
       mTitle.value = ''
@@ -265,10 +251,33 @@ function focusFirstChip() {
 async function save() {
   const sp = parseSignedTime(mStart.value)
   const ep = parseSignedTime(mEnd.value)
+  if (!sp || !ep) return
   const storeBase = todayStorageBase(timelogStore._cutMeta)
-  const toStorage = (p) => p ? (p.base === 1440 ? p.min + storeBase : p.min + p.base) : 0
+  const toStorage = (p) => p.base === 1440 ? p.min + storeBase : p.min + p.base
   let s = toStorage(sp)
   let en = toStorage(ep)
+  if (en <= s) en = s + 1
+  const newId = props.editingBlock?.id || ('b' + Date.now() + Math.random().toString(36).slice(2, 6))
+  // 穿界 split：溢出段用统一坐标存入相邻天
+  let splitKey = null
+  {
+    const us = sp.base + sp.min  // unified start
+    const ue = ep.base + ep.min  // unified end
+    const tr = { start: timelogStore._cutMeta?.toPrev?.cutAt || 0, end: timelogStore._cutMeta?.toNext?.cutAt || 1440 }
+    const todayUStart = 1440 + tr.start
+    const todayUEnd = 1440 + tr.end
+    if (us < todayUStart && ue > todayUStart) {
+      const ok = await showConfirm(`时间跨越区段边界，${fmt(tr.start)}之前的部分将存入昨天。确认？`)
+      if (!ok) return
+      splitKey = { dateKey: addDays(timelogStore.dateKey, -1), start: us, end: todayUStart }
+      s = toStorage({ min: tr.start, base: sp.base === 0 && us < 1440 ? 0 : 1440 })
+    } else if (us < todayUEnd && ue > todayUEnd) {
+      const ok = await showConfirm(`时间跨越区段边界，${fmt(tr.end)}之后的部分将存入明天。确认？`)
+      if (!ok) return
+      splitKey = { dateKey: addDays(timelogStore.dateKey, 1), start: todayUEnd, end: ue }
+      en = toStorage({ min: tr.end, base: 1440 })
+    }
+  }
   if (en <= s) en = s + 1
   const dur = en - s
   // Confirm short blocks (new blocks only, not edits)
@@ -276,8 +285,19 @@ async function save() {
     const confirmed = await showConfirm(STR.confirm.shortBlock(dur, settings.minBlockMinutes))
     if (!confirmed) return  // stay in editor
   }
+  // 写分裂块到相邻天（统一坐标）
+  if (splitKey) {
+    try {
+      const key = 'timelog:' + splitKey.dateKey
+      const raw = localStorage.getItem(key)
+      const data = raw ? JSON.parse(raw) : { blocks: [], _cutMeta: {} }
+      const blocks = Array.isArray(data) ? data : (data.blocks || [])
+      blocks.push({ id: newId, start: splitKey.start, end: splitKey.end, title: mTitle.value.trim(), note: '', tags: selectedTags.value.slice() })
+      localStorage.setItem(key, JSON.stringify(Array.isArray(data) ? blocks : { blocks, _cutMeta: data._cutMeta || {} }))
+    } catch {}
+  }
   const rec = {
-    id: props.editingBlock?.id || ('b' + Date.now() + Math.random().toString(36).slice(2, 6)),
+    id: newId,
     start: s,
     end: en,
     title: mTitle.value.trim(),

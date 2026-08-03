@@ -107,7 +107,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { useTimelogStore, fmt, fmtSigned, dkey, fromInput, pushStoreUndo } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { useSettingsStore } from '../store/settings.js'
-import { toDisplayBlock } from '../utils/displayBlocks.js'
+
 import { KEY_PREFIX } from '../constants.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
@@ -155,7 +155,6 @@ const importPreview = ref(null)
 
 function buildExport() {
   return timelogStore.blocks.slice()
-    .map(b => toDisplayBlock(b, timelogStore._cutMeta))
     .sort((a, b) => a.start - b.start)
     .map(ev => {
       const t = (ev.tags && ev.tags.length) ? ':' + ev.tags.join(',') : ''

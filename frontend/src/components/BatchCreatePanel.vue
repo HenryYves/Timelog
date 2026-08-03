@@ -187,8 +187,8 @@ async function onCreate() {
   for (const b of blocks) {
     store.addBlock({
       id: 'b' + Date.now() + Math.random().toString(36).slice(2, 6),
-      start: unifiedToStorage(b.start, store._cutMeta),
-      end: unifiedToStorage(b.end, store._cutMeta),
+      start: unifiedToStorage(b.start),
+      end: unifiedToStorage(b.end),
       title: b.title,
       note: b.note,
       tags: b.tags,
