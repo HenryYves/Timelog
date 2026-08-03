@@ -170,8 +170,8 @@ describe('cutDay v2', () => {
     const tgt = JSON.parse(localStorage.getItem('timelog:2026-07-25'))
 
     // 今天的块应该调整坐标（-1440）
-    expect(src.blocks.find(b => b.id === 'a').start).toBe(480)
-    expect(src.blocks.find(b => b.id === 'b').start).toBe(720)
+    expect(src.blocks.find(b => b.id === 'a').start).toBe(1920)
+    expect(src.blocks.find(b => b.id === 'b').start).toBe(2160)
 
     // 明天应该有剪过来的块
     expect(tgt.blocks.length).toBeGreaterThan(0)
@@ -210,8 +210,8 @@ describe('cutDay v2', () => {
 
     // b (12:00-14:00) 在 13:00 断开：前半留在源日，后半移入明天
     const stayB = src.blocks.find(b => b.id === 'b')
-    expect(stayB.start).toBe(720)   // 2160 - 1440
-    expect(stayB.end).toBe(780)     // 2220 - 1440
+    expect(stayB.start).toBe(2160)   // 诚实存储，不变
+    expect(stayB.end).toBe(2220)     // cutLine
 
     const movedB = tgt.blocks.find(b => b.id === 'b')
     expect(movedB.start).toBe(780)  // 2220 - 1440
@@ -240,10 +240,10 @@ describe('cutDay v2', () => {
     expect(movedC.end).toBe(3000)
     expect(movedC._cut).toEqual({ sourceDate: '2026-07-24', cutAt: 720 })
 
-    // d 留在源日，-cutAt（对齐 toPrev 截断后的显示区与标签）
+    // d 留在源日，坐标不变（诚实存储）
     const stayD = src.blocks.find(b => b.id === 'd')
-    expect(stayD.start).toBe(1440)
-    expect(stayD.end).toBe(1560)
+    expect(stayD.start).toBe(2160)
+    expect(stayD.end).toBe(2280)
 
     expect(src._cutMeta.toPrev).toEqual({ targetDate: '2026-07-23', cutAt: 720 })
     expect(tgt._cutMeta.fromNext).toEqual({ sourceDate: '2026-07-24', cutAt: 720 })
@@ -299,10 +299,10 @@ describe('cutDay v2', () => {
     expect(src._cutMeta.toNext.cutAt).toBe(600)
     expect(tgt._cutMeta.fromPrev.cutAt).toBe(600)
 
-    // a (08:00-10:00) 留在源日局部帧 [480,600]
+    // a (08:00-10:00) 留在源日，坐标不变
     const a = src.blocks.find(b => b.id === 'a')
-    expect(a.start).toBe(480)
-    expect(a.end).toBe(600)
+    expect(a.start).toBe(1920)
+    expect(a.end).toBe(2040)
 
     // b 的两个半块在明天合并回 [720,840]
     const bs = tgt.blocks.filter(b => b.id === 'b')
@@ -325,20 +325,20 @@ describe('cutDay v2', () => {
     expect(src._cutMeta.toPrev.cutAt).toBe(540)
     expect(yst._cutMeta.fromNext).toEqual({ sourceDate: '2026-07-24', cutAt: 540 })
 
-    // a (08:00-10:00) 在 09:00 断开：前半 [480,540]→昨天 [2880+480, 2880+540]，后半留存
+    // a (08:00-10:00) 在 09:00 断开：前半→昨天 [+1440]，后半留存
     const movedA = yst.blocks.find(b => b.id === 'a')
-    expect(movedA.start).toBe(2880 + 480)
-    expect(movedA.end).toBe(2880 + 540)
+    expect(movedA.start).toBe(3360) // 1920+1440
+    expect(movedA.end).toBe(3420)   // 1980+1440
 
-    // 留存块基准 = -540（both 规范基准）：a 后半 local [540,600] → storage [0,60]
+    // a 后半留存（诚实存储，不变）
     const stayA = src.blocks.find(b => b.id === 'a')
-    expect(stayA.start).toBe(0)
-    expect(stayA.end).toBe(60)
+    expect(stayA.start).toBe(1980)
+    expect(stayA.end).toBe(2040)
 
-    // b 前半 local [720,780] → storage [180,240]
+    // b 留存（诚实存储，不变）
     const stayB = src.blocks.find(b => b.id === 'b')
-    expect(stayB.start).toBe(180)
-    expect(stayB.end).toBe(240)
+    expect(stayB.start).toBe(2160)
+    expect(stayB.end).toBe(2220)
   })
 
   it('v1 array data migrates to today frame with synthesized meta', () => {

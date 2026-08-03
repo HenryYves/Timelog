@@ -116,42 +116,28 @@ function checkCutBidir(srcMeta, tgtMeta, direction, sourceDate, targetDate) {
  * - 仅 toPrev：1440 - cutAt
  * - toPrev + toNext：-cutAt(toPrev)（规范基准，见 cutDay）
  */
-export function todayStorageBase(cutMeta) {
-  if (cutMeta?.toNext) return cutMeta.toPrev ? -cutMeta.toPrev.cutAt : 0
-  if (cutMeta?.toPrev) return DAY_MIN - cutMeta.toPrev.cutAt
-  return DAY_MIN
+export function todayStorageBase() { return DAY_MIN }
+
+/** 今天的本地时间 → 存储坐标（T 键/批量创建等入口） */
+export function todayLocalToStorage(s, en) {
+  return { start: s + DAY_MIN, end: en + DAY_MIN }
 }
 
-/** 今天的本地时间 → 存储坐标（用于 T 键/批量创建等以本地时间构造块的入口） */
-export function todayLocalToStorage(s, en, cutMeta) {
-  const base = todayStorageBase(cutMeta)
-  return { start: s + base, end: en + base }
+/** 存储坐标 → 本地时间（纯帧检测） */
+export function storageToLocal(start, end) {
+  if (start >= DAY_MIN && start < 2 * DAY_MIN)
+    return { start: start - DAY_MIN, end: end - DAY_MIN }
+  if (start >= 2 * DAY_MIN)
+    return { start: start - 2 * DAY_MIN, end: end - 2 * DAY_MIN }
+  return { start, end }
 }
 
-/** 统一坐标（带帧）→ 存储坐标：今天帧按基准换算，胶水帧原样 */
-export function unifiedToStorage(x, cutMeta) {
-  if (x >= DAY_MIN && x < 2 * DAY_MIN) return x - DAY_MIN + todayStorageBase(cutMeta)
-  return x
-}
+/** 统一坐标 → 存储（纯帧检测，不换算） */
+export function unifiedToStorage(x) { return x }
 
-/** 存储坐标 → 本地时间（各帧独立）：lastEnd/EditModal 等需要本地时间的入口使用 */
-export function storageToLocal(start, end, cutMeta) {
-  const base = todayStorageBase(cutMeta)
-  if (start >= base && start < base + DAY_MIN) {
-    return { start: start - base, end: end - base }
-  }
-  // 胶水帧：坐标不变（昨天帧）或 -2880（明天帧）
-  if (start < DAY_MIN) return { start, end }
-  return { start: start - 2 * DAY_MIN, end: end - 2 * DAY_MIN }
-}
-
-/** 本地时间 → 存储坐标（EditModal 保存等入口），frame 指定帧类型 */
-export function localToStorage(s, en, cutMeta, frame) {
-  if (frame === 'today') {
-    const base = todayStorageBase(cutMeta)
-    return { start: s + base, end: en + base }
-  }
-  if (frame === 'prev') return { start: s, end: en }
+/** 本地时间 → 存储坐标，frame 指定帧类型 */
+export function localToStorage(s, en, _cutMeta, frame) {
+  if (frame === 'today') return { start: s + DAY_MIN, end: en + DAY_MIN }
   if (frame === 'next') return { start: s + 2 * DAY_MIN, end: en + 2 * DAY_MIN }
   return { start: s, end: en }
 }
@@ -228,105 +214,74 @@ function _mergeById(blocks) {
 }
 
 /**
- * Cut a day at cutAt (minutes), moving blocks to the adjacent day.
- * v2 统一坐标系：昨天 [0,1440)，今天 [1440,2880)，明天 [2880,4320)。
- *
- * cutAt 为今天的本地时间（0-1440）。今天块的存储基准 base = todayStorageBase(srcMeta)，
- * cutLine = base + cutAt。胶水块（_cut 标记）不参与剪切。
- * 无 _cut 且不在今天帧的块（跨帧碎片/遗留）：backward 时昨天帧部分回家（坐标不变），
- * 其余情况原样保留。
- *
- * 坐标变换（local = x - base）：
- *   moved = x - base + (forward ? 0 : 2880)   → 目标日胶水帧
- *   stay  = x - base + baseNew                → 源日新基准
- *   forward:  baseNew = toPrev ? -toPrev.cutAt : 0
- *   backward: baseNew = toNext ? -newCut : 1440 - newCut
- *
- * 多次剪切合并：forward 取 min(cutAt)，backward 取 max(cutAt)。
- * 00:00 边界处同 ID 的块在目标日合并（跨帧碎片先归一化再 min/max）。
- * 剪切后清空 undo/redo 栈（不支持撤销）。
- *
- * @param {string} sourceDate - 'YYYY-MM-DD' of the day being cut
- * @param {number} cutAt - cut point in LOCAL minutes of the source day (0-1440)
- * @param {'forward'|'backward'} direction - forward=to tomorrow, backward=to yesterday
- * @param {boolean} dropShort - drop split fragments < 10 min
+ * Cut a day at cutAt (local minutes), moving blocks to adjacent day.
+ * 诚实存储：统一帧坐标只做 ±1440 变换，不留 local offset。
+ * cutAt 是今天的本地分钟数，cut = DAY_MIN + cutAt。
  */
 export function cutDay(sourceDate, cutAt, direction, dropShort = false) {
   const targetDate = direction === 'forward'
-    ? addDays(sourceDate, 1)
-    : addDays(sourceDate, -1)
+    ? addDays(sourceDate, 1) : addDays(sourceDate, -1)
 
-  const srcKey = KEY_PREFIX + sourceDate
-  const tgtKey = KEY_PREFIX + targetDate
-
-  const srcData = _loadDay(srcKey)
-  const tgtData = _loadDay(tgtKey)
+  const srcData = _loadDay(KEY_PREFIX + sourceDate)
+  const tgtData = _loadDay(KEY_PREFIX + targetDate)
   const srcMeta = srcData._cutMeta
   const tgtMeta = tgtData._cutMeta
 
-  // Constraint: 双向检查（双方 _cutMeta） + 槽位冲突
   if (!checkCutBidir(srcMeta, tgtMeta, direction, sourceDate, targetDate)) return false
 
-  const base = todayStorageBase(srcMeta)
-  const cutLine = base + cutAt
+  const cut = DAY_MIN + cutAt  // 统一帧切线（块坐标比较用）
   const newCut = direction === 'forward'
     ? Math.min(srcMeta.toNext?.cutAt ?? Infinity, cutAt)
     : Math.max(srcMeta.toPrev?.cutAt ?? 0, cutAt)
-  const baseNew = direction === 'forward'
-    ? (srcMeta.toPrev ? -srcMeta.toPrev.cutAt : 0)
-    : (srcMeta.toNext ? -newCut : DAY_MIN - newCut)
-
-  const moveX = (x) => x - base + (direction === 'forward' ? 0 : 2 * DAY_MIN)
-  const stayX = (x) => x - base + baseNew
 
   const toMove = []
   const toStay = []
-
-  const pushPiece = (list, b, isFrag) => {
+  const push = (list, b, isFrag) => {
     if (isFrag && dropShort && b.end - b.start < 10) return
     list.push(b)
   }
 
   srcData.blocks.forEach(b => {
-    if (b._cut) { toStay.push(b); return }  // 胶水块不参与剪切
-    const isTodayFrame = b.start >= base && b.start < base + DAY_MIN
-    if (!isTodayFrame) {
-      // 跨帧碎片/遗留：backward 时昨天帧部分回家（坐标不变）
-      if (direction === 'backward' && b.start >= 0 && b.end <= DAY_MIN) {
-        toMove.push(b)
+    // 胶水块分类
+    if (b._cut) {
+      if (direction === 'backward' && b.start < DAY_MIN)  // glue-prev 回家
+        toMove.push({ ...b, start: b.start + DAY_MIN, end: b.end + DAY_MIN })
+      else toStay.push(b)
+      return
+    }
+    // 非今天帧的无 _cut 块（跨帧碎片/遗留）
+    if (b.start < DAY_MIN || b.start >= 2 * DAY_MIN) {
+      if (direction === 'backward' && b.start >= 0 && b.end <= DAY_MIN)
+        toMove.push(b)  // 昨天帧碎片回家（坐标不变）
+      else toStay.push(b)
+      return
+    }
+    // 今天帧块
+    if (direction === 'forward') {
+      if (b.start >= cut) {
+        toMove.push({ ...b, start: b.start - DAY_MIN, end: b.end - DAY_MIN })
+      } else if (b.end > cut) {
+        push(toStay, { ...b, start: b.start, end: cut }, true)
+        push(toMove, { ...b, start: cut - DAY_MIN, end: b.end - DAY_MIN }, true)
       } else {
         toStay.push(b)
       }
-      return
-    }
-    if (direction === 'forward') {
-      if (b.start >= cutLine) {
-        toMove.push({ ...b, start: moveX(b.start), end: moveX(b.end) })
-      } else if (b.end > cutLine) {
-        pushPiece(toStay, { ...b, start: stayX(b.start), end: stayX(cutLine) }, true)
-        pushPiece(toMove, { ...b, start: moveX(cutLine), end: moveX(b.end) }, true)
+    } else { // backward
+      if (b.end <= cut) {
+        toMove.push({ ...b, start: b.start + DAY_MIN, end: b.end + DAY_MIN })
+      } else if (b.start < cut) {
+        push(toMove, { ...b, start: b.start + DAY_MIN, end: cut + DAY_MIN }, true)
+        push(toStay, { ...b, start: cut, end: b.end }, true)
       } else {
-        toStay.push({ ...b, start: stayX(b.start), end: stayX(b.end) })
-      }
-    } else {
-      if (b.end <= cutLine) {
-        toMove.push({ ...b, start: moveX(b.start), end: moveX(b.end) })
-      } else if (b.start < cutLine) {
-        pushPiece(toMove, { ...b, start: moveX(b.start), end: moveX(cutLine) }, true)
-        pushPiece(toStay, { ...b, start: stayX(cutLine), end: stayX(b.end) }, true)
-      } else {
-        toStay.push({ ...b, start: stayX(b.start), end: stayX(b.end) })
+        toStay.push(b)
       }
     }
   })
 
-  // Tag moved blocks (getGlueBlocks / 旧 UI 仍按 _cut 识别)
   toMove.forEach(b => { b._cut = { sourceDate, cutAt: newCut } })
 
-  // Merge same-ID blocks at the 00:00 boundary into the target day
-  const newTgtBlocks = _mergeById([...tgtData.blocks, ...toMove])
-  // 统一同来源胶水块的 cutAt（多次剪切合并后的新切口）
-  newTgtBlocks.forEach(b => { if (b._cut?.sourceDate === sourceDate) b._cut.cutAt = newCut })
+  const newTgt = _mergeById([...tgtData.blocks, ...toMove])
+  newTgt.forEach(b => { if (b._cut?.sourceDate === sourceDate) b._cut.cutAt = newCut })
 
   if (direction === 'forward') {
     srcMeta.toNext = { targetDate, cutAt: newCut }
@@ -336,117 +291,81 @@ export function cutDay(sourceDate, cutAt, direction, dropShort = false) {
     tgtMeta.fromNext = { sourceDate, cutAt: newCut }
   }
 
-  _saveDay(srcKey, toStay, srcMeta)
-  _saveDay(tgtKey, newTgtBlocks, tgtMeta)
-
-  // 剪切不支持撤销：清空 undo/redo 栈
+  _saveDay(KEY_PREFIX + sourceDate, toStay, srcMeta)
+  _saveDay(KEY_PREFIX + targetDate, newTgt, tgtMeta)
   storeUndo.clear()
-
   return { sourceDate, targetDate, moved: toMove.length }
 }
 
 /**
  * Glue blocks back to their source date (inverse of cutDay).
- *
- * 胶水区由 host 的 _cutMeta 决定：
- *   - fromPrev（host = source + 1）：[cutAt, 1440)，粘回时 +1440，
- *     源日保留块同步 +1440 还原今天帧
- *   - fromNext（host = source - 1）：[2880, 2880+cutAt)，粘回时 -1440，
- *     源日保留块 +cutAt 还原
- * 跨 00:00 边界的块在边界处 split（同 ID），属于 source 的一侧粘回。
- * 粘回后清空 undo/redo 栈。
- *
- * @param {string} hostDate - 'YYYY-MM-DD' where the glue blocks currently live
- * @param {string} sourceDate - 'YYYY-MM-DD' where blocks originated
+ * 诚实存储：只做 ±1440 平移。
+ * 空胶水区（meta 存在但 0 块）→ 归还时间，清理 meta。
  */
 export function glueBack(hostDate, sourceDate) {
-  const hostKey = KEY_PREFIX + hostDate
-  const srcKey = KEY_PREFIX + sourceDate
+  const hostData = _loadDay(KEY_PREFIX + hostDate)
+  const srcData = _loadDay(KEY_PREFIX + sourceDate)
+  const fwd = isBefore(sourceDate, hostDate)
+  const meta = fwd ? hostData._cutMeta.fromPrev : hostData._cutMeta.fromNext
 
-  const hostData = _loadDay(hostKey)
-  const srcData = _loadDay(srcKey)
-  const hostMeta = hostData._cutMeta
-  const srcMeta = srcData._cutMeta
-
-  const forwardInv = isBefore(sourceDate, hostDate)  // host = source + 1
-  const meta = forwardInv ? hostMeta.fromPrev : hostMeta.fromNext
-
-  // Glue region in host coordinates
-  let lo, hi
+  let lo, hi, shift
   if (meta) {
-    lo = forwardInv ? meta.cutAt : 2880
-    hi = forwardInv ? 1440 : 2880 + meta.cutAt
+    lo = fwd ? meta.cutAt : 2 * DAY_MIN
+    hi = fwd ? DAY_MIN : 2 * DAY_MIN + meta.cutAt
+    shift = fwd ? DAY_MIN : -DAY_MIN
   } else {
-    // Fallback: no meta — identify glue by _cut tags
-    const tagged = hostData.blocks.filter(b => b._cut && b._cut.sourceDate === sourceDate)
+    const tagged = hostData.blocks.filter(b => b._cut?.sourceDate === sourceDate)
     if (!tagged.length) return false
     lo = Math.min(...tagged.map(b => b.start))
     hi = Math.max(...tagged.map(b => b.end))
-  }  const retShift = forwardInv ? 1440 : -1440
+    shift = lo < DAY_MIN ? DAY_MIN : -DAY_MIN
+  }
+
   const toReturn = []
-  const newHostBlocks = []
-  const pushReturn = (b, shift) => {
-    const r = { ...b, start: b.start + shift, end: b.end + shift }
+  const newHost = []
+  const pushRet = (b, s) => {
+    const r = { ...b, start: b.start + s, end: b.end + s }
     delete r._cut
     toReturn.push(r)
   }
-
   hostData.blocks.forEach(b => {
-    if (b.end <= lo || b.start >= hi) {
-      if (!forwardInv && b.start < 1440 && b.end > 1440) {
-        // 跨 00:00 边界的块：边界以上属于 source，split 后粘回（坐标不变）
-        const keep = { ...b, end: 1440 }
-        delete keep._cut
-        newHostBlocks.push(keep)
-        pushReturn({ ...b, start: 1440 }, 0)
-      } else {
-        newHostBlocks.push(b)
-      }
-    } else if (b.start >= lo && b.end <= hi) {
-      pushReturn(b, retShift)  // 完全在胶水区内
+    if (b.start >= lo && b.end <= hi) {
+      pushRet(b, shift)  // 完全在胶水区内
+    } else if (b.start >= lo && b.start < hi) {
+      // 跨上界：后半在胶水区
+      const keep = { ...b, start: hi }
+      delete keep._cut
+      newHost.push(keep)
+      pushRet({ ...b, end: hi }, shift)
+    } else if (b.end > lo && b.end <= hi) {
+      // 跨下界：前半在胶水区
+      const keep = { ...b, end: lo }
+      delete keep._cut
+      newHost.push(keep)
+      pushRet({ ...b, start: lo }, shift)
+    } else if (b.start < lo && b.end > hi) {
+      // 横跨整个胶水区
+      newHost.push({ ...b, end: lo }, { ...b, start: hi })
+      pushRet({ ...b, start: lo, end: hi }, shift)
+    } else if (b._cut?.sourceDate === sourceDate && b.start < DAY_MIN && b.end > DAY_MIN) {
+      // 跨 00:00 边界的合并块（_cut 标记来自源日）
+      const keep = { ...b, end: DAY_MIN }
+      delete keep._cut
+      newHost.push(keep)
+      pushRet({ ...b, start: DAY_MIN }, 0)
     } else {
-      // 跨区域边界：split，区外部分留在 host
-      if (b.start < lo) {
-        const keep = { ...b, end: lo }
-        delete keep._cut
-        newHostBlocks.push(keep)
-      }
-      if (b.end > hi) {
-        const keep = { ...b, start: hi }
-        delete keep._cut
-        newHostBlocks.push(keep)
-      }
-      pushReturn({ ...b, start: Math.max(b.start, lo), end: Math.min(b.end, hi) }, retShift)
+      newHost.push(b)
     }
   })
 
-  if (!toReturn.length && !meta) return false
-  // meta 存在但胶水区无块：依然清理 meta（空胶水区粘回=归还时间，无块可移）
+  const newSrc = _mergeById([...srcData.blocks, ...toReturn])
 
-  // Restore source-day blocks to their original frame
-  const srcShift = forwardInv
-    ? 1440
-    : (srcMeta.toPrev ? srcMeta.toPrev.cutAt : (meta ? meta.cutAt : 0))
-  const srcBlocks = srcData.blocks.map(b =>
-    ({ ...b, start: b.start + srcShift, end: b.end + srcShift }))
+  if (fwd) { delete hostData._cutMeta.fromPrev; delete srcData._cutMeta.toNext }
+  else { delete hostData._cutMeta.fromNext; delete srcData._cutMeta.toPrev }
 
-  // Merge same-ID blocks (split halves reunite)
-  const newSrcBlocks = _mergeById([...srcBlocks, ...toReturn])
-
-  if (forwardInv) {
-    delete hostMeta.fromPrev
-    delete srcMeta.toNext
-  } else {
-    delete hostMeta.fromNext
-    delete srcMeta.toPrev
-  }
-
-  _saveDay(hostKey, newHostBlocks, hostMeta)
-  _saveDay(srcKey, newSrcBlocks, srcMeta)
-
-  // 粘回不支持撤销：清空 undo/redo 栈
+  _saveDay(KEY_PREFIX + hostDate, newHost, hostData._cutMeta)
+  _saveDay(KEY_PREFIX + sourceDate, newSrc, srcData._cutMeta)
   storeUndo.clear()
-
   return { hostDate, sourceDate, moved: toReturn.length }
 }
 
