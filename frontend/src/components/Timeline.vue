@@ -140,7 +140,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useTimelogStore, fmt, fmtSigned, dkey, cutDay, glueBack, canCutForward, canCutBackward } from '../store/timelog.js'
 import { useSettingsStore } from '../store/settings.js'
 import { mdToHtml } from '../utils/markdown.js'
-import { toDisplayBlock } from '../utils/displayBlocks.js'
+
 import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
 import { useConfirm } from '../composables/useConfirm.js'
@@ -194,29 +194,29 @@ const overGrid = ref(false)
 const isToday = computed(() => dkey(new Date()) === store.dateKey)
 const nowMin = ref(0)
 let nowTimer = null
-// 当前时间是否落在本页显示范围内（prev + today + next）
+// 当前时间是否落在本页显示范围内（today 优先于 glue-prev/glue-next）
 const nowInToday = computed(() => {
   const n = nowMin.value
+  // 今天区段优先（仅日历当天）
+  if (isToday.value && n >= todayRange.value.start && n <= todayRange.value.end) return true
   const prevCut = store._cutMeta?.fromPrev?.cutAt
   if (prevCut != null && n >= prevCut && n < DAY_MIN) return true
   const nextCut = store._cutMeta?.fromNext?.cutAt
   if (nextCut != null && n <= nextCut) return true
-  // 今天区段：仅日历当天显示（未来/过去的今天区段都不画红线）
-  if (!isToday.value) return false
-  return n >= todayRange.value.start && n <= todayRange.value.end
+  return false
 })
-// now 线在 .day 中的 y 坐标
+// now 线在 .day 中的 y 坐标（today 优先）
 function nowLineY() {
   const n = nowMin.value
+  if (isToday.value && n >= todayRange.value.start && n <= todayRange.value.end)
+    return minuteToY(DAY_MIN + n - todayRange.value.start)
   const prevCut = store._cutMeta?.fromPrev?.cutAt
-  if (prevCut != null && n >= prevCut && n < DAY_MIN) {
-    return (n - prevCut) * PX_MIN  // glue-prev 区（昨天帧）
-  }
+  if (prevCut != null && n >= prevCut && n < DAY_MIN)
+    return (n - prevCut) * PX_MIN
   const nextCut = store._cutMeta?.fromNext?.cutAt
-  if (nextCut != null && n <= nextCut) {
-    return minuteToY(2 * DAY_MIN + n)  // glue-next 区（明天帧）
-  }
-  return minuteToY(DAY_MIN + n - todayRange.value.start)  // 今天帧
+  if (nextCut != null && n <= nextCut)
+    return minuteToY(2 * DAY_MIN + n)
+  return 0
 }
 
 function updateNowMin() {
@@ -224,24 +224,7 @@ function updateNowMin() {
   nowMin.value = now.getHours() * 60 + now.getMinutes()
 }
 
-// --- Coordinate conversion between storage and unified display ---
-function todayStorageOffsetForOrig(storageStart) {
-  return store._cutMeta?.toNext && storageStart < DAY_MIN ? DAY_MIN : 0
-}
-
-function toStorageFromDisplay(b) {
-  if (b._cut) return { ...b }
-  const off = todayStorageOffsetForOrig(b._storageStart)
-  if (!off) return { ...b }
-  return { ...b, start: b.start - off, end: b.end - off }
-}
-
-function storageTimesForNewDisplayBlock(start, end) {
-  if (store._cutMeta?.toNext && start >= DAY_MIN && end <= 2 * DAY_MIN) {
-    return { start: start - DAY_MIN, end: end - DAY_MIN }
-  }
-  return { start, end }
-}
+// 诚实存储：storage = display，无需转换函数
 
 // --- Layout algorithm ---
 function layout(list) {
@@ -277,8 +260,7 @@ function layout(list) {
   return evs
 }
 
-const displayBlocks = computed(() => store.blocks.map(b => toDisplayBlock(b, store._cutMeta)))
-const layoutBlocks = computed(() => layout(displayBlocks.value.slice()))
+const layoutBlocks = computed(() => layout(store.blocks.slice()))
 
 // --- Labels ---
 const gluePrevLabels = computed(() => {
@@ -449,17 +431,11 @@ function endDrag(commit) {
   if (!commit) return
   if (type === 'create') {
     if (b.en - b.s < 3) return
-    const st = storageTimesForNewDisplayBlock(b.s, b.en)
-    emit('create-block', st.start, st.end)
+    emit('create-block', b.s, b.en)
   } else {
     const rec = store.blocks.find(x => x.id === id)
     if (rec) {
-      const off = rec._cut ? 0 : todayStorageOffsetForOrig(rec.start)
-      store.updateBlock({
-        ...rec,
-        start: b.s - off,
-        end: b.en - off,
-      })
+      store.updateBlock({ ...rec, start: b.s, end: b.en })
     }
     setTimeout(() => { suppressClick.value = false }, 60)
   }
@@ -588,7 +564,7 @@ function onBlockClick(e, ev) {
     suppressClick.value = false
     return
   }
-  emit('edit-block', toStorageFromDisplay(ev))
+  emit('edit-block', ev)
 }
 
 function onBlockContextMenu(ev) {
@@ -612,7 +588,7 @@ function onGutterHover(e) {
   if (min < DAY_MIN) {
     label = `-${fmt(min)}`
   } else if (min < 2 * DAY_MIN) {
-    label = fmt(min - DAY_MIN + todayRange.value.start)
+    label = fmt(min - DAY_MIN)
   } else {
     label = `+${fmt(min - 2 * DAY_MIN)}`
   }
@@ -626,7 +602,7 @@ function onGutterLeave() {
 function onTodayRightClick(e) {
   if (!availableDirs.value.length) return
   const min = yToMinute(e.clientY, dayRef.value)
-  const localMin = Math.max(0, Math.min(DAY_MIN, min - DAY_MIN + todayRange.value.start))
+  const localMin = Math.max(0, Math.min(DAY_MIN, min - DAY_MIN))
   cutInitialMin.value = localMin
   showCutConfirm.value = true
 }
@@ -655,10 +631,9 @@ async function onCutConfirm(cutAt, direction) {
     return
   }
 
-  const tr = todayRange.value
-  const localTodayBlocks = displayBlocks.value
+  const localTodayBlocks = store.blocks
     .filter(b => !b._cut && b.start >= DAY_MIN && b.end <= 2 * DAY_MIN)
-    .map(b => ({ ...b, start: b.start - DAY_MIN + tr.start, end: b.end - DAY_MIN + tr.start }))
+    .map(b => ({ ...b, start: b.start - DAY_MIN, end: b.end - DAY_MIN }))
 
   let hasShort = false
   let shortDur = 0
@@ -769,14 +744,12 @@ function onKeyDown(e) {
 // 剪贴板统一存存储坐标（保留 _cut 以便跨帧块正确换算显示坐标）
 function copySelectedLocal() {
   if (!selectedBlocks.size) return false
-  store.clipboard = layoutBlocks.value
+  store.clipboard = store.blocks
     .filter(b => selectedBlocks.has(b.id))
     .sort((a, b) => a.start - b.start)
     .map(b => ({
-      start: b._storageStart,
-      end: b._storageEnd,
-      title: b.title,
-      note: b.note,
+      start: b.start, end: b.end,
+      title: b.title, note: b.note,
       tags: [...(b.tags || [])],
       ...(b._cut ? { _cut: b._cut } : {}),
     }))
@@ -793,8 +766,7 @@ async function onDeleteSelected() {
 
 function doPaste() {
   if (!store.clipboard.length) return
-  const disp = store.clipboard.map(c => toDisplayBlock(c, store._cutMeta))
-  const minStart = Math.min(...disp.map(c => c.start))
+  const minStart = Math.min(...store.clipboard.map(c => c.start))
   let offset = 0
   const anchored = overGrid.value
   if (anchored) {
@@ -802,7 +774,7 @@ function doPaste() {
     offset = anchor - minStart
   }
   const newBlocks = []
-  disp.forEach(c => {
+  store.clipboard.forEach(c => {
     const dur = c.end - c.start
     let s = c.start + offset
     let en = c.end + offset
