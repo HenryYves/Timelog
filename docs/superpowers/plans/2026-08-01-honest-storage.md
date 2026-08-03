@@ -281,7 +281,7 @@ if (us < todayUStart && ue > todayUStart) {
   s = todayUStart
 }
 if (us < todayUEnd && ue > todayUEnd) {
-  splitKey = { dateKey: D+1, start: us - DAY_MIN, end: ue - DAY_MIN }  // 实际上..更简单
+  splitKey = { dateKey: D+1, start: todayUEnd - DAY_MIN, end: ue - DAY_MIN }  // 溢出段从边界开始
   en = todayUEnd
 }
 ```
