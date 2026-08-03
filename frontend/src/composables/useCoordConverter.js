@@ -37,25 +37,25 @@ export function useCoordConverter() {
     gutterHeights.value.prev + gutterHeights.value.today + gutterHeights.value.next
   )
 
+  const todayStart = computed(() => (cutMeta.value.toPrev ? cutMeta.value.toPrev.cutAt : 0) + 1440)
   const todayRange = computed(() => ({
-    start: cutMeta.value.toPrev ? cutMeta.value.toPrev.cutAt : 0,
+    start: todayStart.value - 1440,
     end: cutMeta.value.toNext ? cutMeta.value.toNext.cutAt : 1440,
   }))
 
-  /** 块（绝对分钟坐标）→ 渲染 top 像素 */
+  /** 块（统一帧坐标）→ 渲染 top 像素 */
   function blockTop(block) {
     if (block.start < 1440) {
       const cutAt = cutMeta.value.fromPrev?.cutAt || 0
       return (block.start - cutAt) * PX_MIN
     } else if (block.start < 2880) {
-      // 今天块，减 todayRange.start 偏移（toPrev 的起始偏移）
-      return gutterHeights.value.prev + (block.start - 1440 - todayRange.value.start) * PX_MIN
+      return gutterHeights.value.prev + (block.start - todayStart.value) * PX_MIN
     } else {
       return gutterHeights.value.prev + gutterHeights.value.today + (block.start - 2880) * PX_MIN
     }
   }
 
-  /** 视口 y 像素（clientY）→ 绝对分钟数。dayEl 为时间轴天的容器元素。 */
+  /** 视口 y 像素（clientY）→ 统一帧分钟数 */
   function yToMinute(y, dayEl) {
     const r = dayEl.getBoundingClientRect()
     const z = (settingsStore.zoom || 100) / 100
@@ -64,21 +64,21 @@ export function useCoordConverter() {
 
     if (localMin < gutterHeights.value.prev) {
       const cutAt = cutMeta.value.fromPrev?.cutAt || 0
-      return cutAt + localMin // 昨天坐标
+      return cutAt + localMin
     } else if (localMin < gutterHeights.value.prev + gutterHeights.value.today) {
-      return 1440 + todayRange.value.start + (localMin - gutterHeights.value.prev) // 今天坐标
+      return todayStart.value + (localMin - gutterHeights.value.prev)
     } else {
-      return 2880 + (localMin - gutterHeights.value.prev - gutterHeights.value.today) // 明天坐标
+      return 2880 + (localMin - gutterHeights.value.prev - gutterHeights.value.today)
     }
   }
 
-  /** 绝对分钟数 → 渲染 y 像素（与 blockTop 对 block.start 一致） */
+  /** 统一帧分钟数 → 渲染 y 像素 */
   function minuteToY(minute) {
     if (minute < 1440) {
       const cutAt = cutMeta.value.fromPrev?.cutAt || 0
       return (minute - cutAt) * PX_MIN
     } else if (minute < 2880) {
-      return gutterHeights.value.prev + (minute - 1440 - todayRange.value.start) * PX_MIN
+      return gutterHeights.value.prev + (minute - todayStart.value) * PX_MIN
     } else {
       return gutterHeights.value.prev + gutterHeights.value.today + (minute - 2880) * PX_MIN
     }

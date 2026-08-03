@@ -209,7 +209,7 @@ const nowInToday = computed(() => {
 function nowLineY() {
   const n = nowMin.value
   if (isToday.value && n >= todayRange.value.start && n <= todayRange.value.end)
-    return minuteToY(DAY_MIN + n - todayRange.value.start)
+    return minuteToY(DAY_MIN + n)
   const prevCut = store._cutMeta?.fromPrev?.cutAt
   if (prevCut != null && n >= prevCut && n < DAY_MIN)
     return (n - prevCut) * PX_MIN

@@ -258,24 +258,25 @@ async function save() {
   let en = toStorage(ep)
   if (en <= s) en = s + 1
   const newId = props.editingBlock?.id || ('b' + Date.now() + Math.random().toString(36).slice(2, 6))
-  // 穿界 split：溢出段用统一坐标存入相邻天
-  let splitKey = null
+  // 穿界 split：溢出段用统一坐标存入相邻天（可同时穿上下界）
+  const splitKeys = []
   {
-    const us = sp.base + sp.min  // unified start
-    const ue = ep.base + ep.min  // unified end
+    const us = sp.base + sp.min
+    const ue = ep.base + ep.min
     const tr = { start: timelogStore._cutMeta?.toPrev?.cutAt || 0, end: timelogStore._cutMeta?.toNext?.cutAt || 1440 }
     const todayUStart = 1440 + tr.start
     const todayUEnd = 1440 + tr.end
     if (us < todayUStart && ue > todayUStart) {
       const ok = await showConfirm(`时间跨越区段边界，${fmt(tr.start)}之前的部分将存入昨天。确认？`)
       if (!ok) return
-      splitKey = { dateKey: addDays(timelogStore.dateKey, -1), start: us, end: todayUStart }
-      s = toStorage({ min: tr.start, base: sp.base === 0 && us < 1440 ? 0 : 1440 })
-    } else if (us < todayUEnd && ue > todayUEnd) {
+      splitKeys.push({ dateKey: addDays(timelogStore.dateKey, -1), start: us + 1440, end: todayUStart + 1440 })
+      s = todayUStart
+    }
+    if (us < todayUEnd && ue > todayUEnd) {
       const ok = await showConfirm(`时间跨越区段边界，${fmt(tr.end)}之后的部分将存入明天。确认？`)
       if (!ok) return
-      splitKey = { dateKey: addDays(timelogStore.dateKey, 1), start: todayUEnd, end: ue }
-      en = toStorage({ min: tr.end, base: 1440 })
+      splitKeys.push({ dateKey: addDays(timelogStore.dateKey, 1), start: todayUEnd - 1440, end: ue - 1440 })
+      en = todayUEnd
     }
   }
   if (en <= s) en = s + 1
@@ -285,17 +286,25 @@ async function save() {
     const confirmed = await showConfirm(STR.confirm.shortBlock(dur, settings.minBlockMinutes))
     if (!confirmed) return  // stay in editor
   }
-  // 写分裂块到相邻天（统一坐标）
-  if (splitKey) {
+  // 写分裂块到相邻天
+  splitKeys.forEach(sk => {
     try {
-      const key = 'timelog:' + splitKey.dateKey
+      const key = 'timelog:' + sk.dateKey
       const raw = localStorage.getItem(key)
       const data = raw ? JSON.parse(raw) : { blocks: [], _cutMeta: {} }
       const blocks = Array.isArray(data) ? data : (data.blocks || [])
-      blocks.push({ id: newId, start: splitKey.start, end: splitKey.end, title: mTitle.value.trim(), note: '', tags: selectedTags.value.slice() })
+      const piece = { id: newId, start: sk.start, end: sk.end, title: mTitle.value.trim(), note: '', tags: selectedTags.value.slice() }
+      // 同 ID 合并
+      const existing = blocks.findIndex(b => b.id === newId)
+      if (existing !== -1) {
+        blocks[existing].start = Math.min(blocks[existing].start, piece.start)
+        blocks[existing].end = Math.max(blocks[existing].end, piece.end)
+      } else {
+        blocks.push(piece)
+      }
       localStorage.setItem(key, JSON.stringify(Array.isArray(data) ? blocks : { blocks, _cutMeta: data._cutMeta || {} }))
     } catch {}
-  }
+  })
   const rec = {
     id: newId,
     start: s,
