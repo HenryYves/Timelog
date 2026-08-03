@@ -9,6 +9,7 @@
           class="cut-time-input"
           v-model="timeStr"
           maxlength="5"
+          autocomplete="off"
           @keydown.enter="onConfirm"
           @keydown.escape.stop="emit('close')"
         />，
@@ -67,11 +68,21 @@ watch(() => props.show, async (v) => {
 })
 
 function parseTime(str) {
+  // HH:MM
   const m = str.trim().match(/^(\d{1,2}):(\d{2})$/)
-  if (!m) return null
-  const h = parseInt(m[1]), min = parseInt(m[2])
-  if (h < 0 || h > 23 || min < 0 || min > 59) return null
-  return h * 60 + min
+  if (m) {
+    const h = parseInt(m[1]), min = parseInt(m[2])
+    if (h < 0 || h > 23 || min < 0 || min > 59) return null
+    return h * 60 + min
+  }
+  // HHMM (省略 :)
+  const n = str.trim().match(/^(\d{2})(\d{2})$/)
+  if (n) {
+    const h = parseInt(n[1]), min = parseInt(n[2])
+    if (h < 0 || h > 23 || min < 0 || min > 59) return null
+    return h * 60 + min
+  }
+  return null
 }
 
 function onConfirm() {

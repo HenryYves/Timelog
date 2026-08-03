@@ -80,12 +80,13 @@
         class="hourline"
         :style="{ top: label.y + 'px' }"
       />
-      <div
-        v-for="(label, i) in allLabels"
-        :key="'hfl' + i"
-        class="halfline"
-        :style="{ top: label.y + 30 * PX_MIN + 'px' }"
-      />
+      <template v-for="(label, i) in allLabels" :key="'hfl' + i">
+        <div
+          v-if="i < allLabels.length - 1"
+          class="halfline"
+          :style="{ top: label.y + 30 * PX_MIN + 'px' }"
+        />
+      </template>
       <div
         v-for="ev in layoutBlocks"
         :key="ev.id"

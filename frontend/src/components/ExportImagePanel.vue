@@ -30,9 +30,9 @@
           <template v-if="props.mode === 'timeline' && settings.exportTimeRange === 'custom'">
             <div class="setting-group">
               <label>{{ STR.export.timeRangeCustom }}</label>
-              <input type="text" v-model="settings.customRangeStart" placeholder="-08:00" maxlength="6" />
+              <input type="text" v-model="settings.customRangeStart" placeholder="-08:00" maxlength="6" autocomplete="off" />
               <span>→</span>
-              <input type="text" v-model="settings.customRangeEnd" placeholder="+08:00" maxlength="6" />
+              <input type="text" v-model="settings.customRangeEnd" placeholder="+08:00" maxlength="6" autocomplete="off" />
             </div>
             <div class="small" style="margin-top:-8px;margin-bottom:12px">{{ STR.export.timeRangeHint }}</div>
           </template>
@@ -197,7 +197,7 @@
                 </div>
                 <!-- Hour/half lines -->
                 <div v-for="(l, i) in allLabels" :key="'hl'+i" class="exp-hourline" :style="{ top: l.y + 'px' }" />
-                <div v-for="(l, i) in allLabels" :key="'hfl'+i" class="exp-halfline" :style="{ top: (l.y + 30 * PX_MIN) + 'px' }" />
+                <template v-for="(l, i) in allLabels" :key="'hfl'+i"><div v-if="i < allLabels.length - 1" class="exp-halfline" :style="{ top: (l.y + 30 * PX_MIN) + 'px' }" /></template>
                 <!-- Time blocks -->
                 <div v-for="b in layoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
                   <div v-if="settings.showBlockColorBar" class="cbar">

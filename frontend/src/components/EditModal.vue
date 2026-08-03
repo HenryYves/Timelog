@@ -18,9 +18,9 @@
 
       <label>时间（可选 +/- 前缀切换帧：−昨天 / +明天 / 无前缀今天）</label>
       <div class="timerow">
-        <input type="text" id="mStart" v-model="mStart" pattern="[+-]?\d{1,2}:\d{2}" placeholder="-08:00" maxlength="6" @keydown.enter.prevent="focusFirstChip" @blur="onTimeBlur('start')">
+        <input type="text" id="mStart" v-model="mStart" pattern="[+-]?\d{1,2}:\d{2}" placeholder="-08:00" maxlength="6" autocomplete="off" @keydown.enter.prevent="focusFirstChip" @blur="onTimeBlur('start')">
         <span>—</span>
-        <input type="text" id="mEnd" v-model="mEnd" pattern="[+-]?\d{1,2}:\d{2}" placeholder="+08:00" maxlength="6" @keydown.enter.prevent="focusFirstChip" @blur="onTimeBlur('end')">
+        <input type="text" id="mEnd" v-model="mEnd" pattern="[+-]?\d{1,2}:\d{2}" placeholder="+08:00" maxlength="6" autocomplete="off" @keydown.enter.prevent="focusFirstChip" @blur="onTimeBlur('end')">
       </div>
 
       <label>标签</label>
@@ -119,12 +119,21 @@ function isDirty() {
 // 时间输入接受 [-+]HH:MM 格式，帧由符号决定，可跨区编辑
 
 function parseSignedTime(str) {
+  // HH:MM
   const m = (str || '').trim().match(/^([+-])?(\d{1,2}):(\d{2})$/)
-  if (!m) return null
-  const min = parseInt(m[2]) * 60 + parseInt(m[3])
-  if (min > 1440) return null
-  const base = m[1] === '-' ? 0 : m[1] === '+' ? 2880 : 1440
-  return { base, min }
+  if (m) {
+    const min = parseInt(m[2]) * 60 + parseInt(m[3])
+    if (min > 1440) return null
+    return { base: m[1] === '-' ? 0 : m[1] === '+' ? 2880 : 1440, min }
+  }
+  // HHMM (省略 :)
+  const n = (str || '').trim().match(/^([+-])?(\d{2})(\d{2})$/)
+  if (n) {
+    const min = parseInt(n[2]) * 60 + parseInt(n[3])
+    if (min > 1440) return null
+    return { base: n[1] === '-' ? 0 : n[1] === '+' ? 2880 : 1440, min }
+  }
+  return null
 }
 
 // blur 时校验格式 + 范围（是否落在当天的可截取区段内），非法则回退
