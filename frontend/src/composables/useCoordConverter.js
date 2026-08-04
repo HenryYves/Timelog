@@ -43,6 +43,28 @@ export function useCoordConverter() {
     end: cutMeta.value.toNext ? cutMeta.value.toNext.cutAt : 1440,
   }))
 
+  /**
+   * pageRange — 本页可见的统一帧区间 [lo, hi)
+   * 包含所有胶水区 + 今天显示区，用于所有"这个时间在不在本页"的判定
+   * 统一帧坐标：昨天 [0,1440)，今天 [1440,2880)，明天 [2880,4320)
+   */
+  const pageRange = computed(() => {
+    const fromPrev = cutMeta.value.fromPrev
+    const fromNext = cutMeta.value.fromNext
+    const toPrev = cutMeta.value.toPrev
+    const toNext = cutMeta.value.toNext
+
+    // 如果有 fromPrev（昨天末尾胶来的块），起点是昨天帧的 cutAt
+    // 否则，起点是今天帧的开头（1440）加上 toPrev 偏移（如果今天开头被剪走）
+    const lo = fromPrev ? fromPrev.cutAt : 1440 + (toPrev?.cutAt ?? 0)
+
+    // 如果有 fromNext（明天开头胶来的块），终点是明天帧的 2880 + cutAt
+    // 否则，终点是今天帧的 1440 + toNext.cutAt（如果今天末尾被剪走）或完整今天 2880
+    const hi = fromNext ? 2880 + fromNext.cutAt : 1440 + (toNext?.cutAt ?? 1440)
+
+    return { lo, hi }
+  })
+
   /** 块（统一帧坐标）→ 渲染 top 像素 */
   function blockTop(block) {
     if (block.start < 1440) {
@@ -88,6 +110,7 @@ export function useCoordConverter() {
     gutterHeights,
     totalHeight,
     todayRange,
+    pageRange,
     blockTop,
     yToMinute,
     minuteToY,

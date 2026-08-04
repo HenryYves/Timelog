@@ -111,4 +111,133 @@ describe('useCoordConverter', () => {
       expect(yToMinute(minuteToY(minute), dayEl)).toBe(minute)
     }
   })
+
+  describe('pageRange', () => {
+    it('returns full today [1440, 2880) when no cuts', () => {
+      const timelogStore = useTimelogStore()
+      timelogStore._cutMeta = null
+
+      const { pageRange } = useCoordConverter()
+
+      expect(pageRange.value).toEqual({ lo: 1440, hi: 2880 })
+    })
+
+    it('extends lo to yesterday frame when fromPrev exists', () => {
+      const timelogStore = useTimelogStore()
+      timelogStore._cutMeta = {
+        fromPrev: { sourceDate: '2026-07-23', cutAt: 1200 },
+      }
+
+      const { pageRange } = useCoordConverter()
+
+      // 昨天 20:00 (1200) 到今天末尾 (2880)
+      expect(pageRange.value).toEqual({ lo: 1200, hi: 2880 })
+    })
+
+    it('extends hi to tomorrow frame when fromNext exists', () => {
+      const timelogStore = useTimelogStore()
+      timelogStore._cutMeta = {
+        fromNext: { sourceDate: '2026-07-25', cutAt: 120 },
+      }
+
+      const { pageRange } = useCoordConverter()
+
+      // 今天开头 (1440) 到明天 02:00 (2880 + 120 = 3000)
+      expect(pageRange.value).toEqual({ lo: 1440, hi: 3000 })
+    })
+
+    it('shifts lo forward when toPrev exists (today start cut away)', () => {
+      const timelogStore = useTimelogStore()
+      timelogStore._cutMeta = {
+        toPrev: { targetDate: '2026-07-23', cutAt: 120 },
+      }
+
+      const { pageRange } = useCoordConverter()
+
+      // 今天从 02:00 (1440 + 120 = 1560) 开始显示
+      expect(pageRange.value).toEqual({ lo: 1560, hi: 2880 })
+    })
+
+    it('shifts hi backward when toNext exists (today end cut away)', () => {
+      const timelogStore = useTimelogStore()
+      timelogStore._cutMeta = {
+        toNext: { targetDate: '2026-07-25', cutAt: 1320 },
+      }
+
+      const { pageRange } = useCoordConverter()
+
+      // 今天显示到 22:00 (1440 + 1320 = 2760)
+      expect(pageRange.value).toEqual({ lo: 1440, hi: 2760 })
+    })
+
+    it('handles fromPrev + fromNext (both gutters)', () => {
+      const timelogStore = useTimelogStore()
+      timelogStore._cutMeta = {
+        fromPrev: { sourceDate: '2026-07-23', cutAt: 997 },
+        fromNext: { sourceDate: '2026-07-25', cutAt: 120 },
+      }
+
+      const { pageRange } = useCoordConverter()
+
+      // 昨天 16:37 (997) 到明天 02:00 (3000)
+      expect(pageRange.value).toEqual({ lo: 997, hi: 3000 })
+    })
+
+    it('handles toPrev + toNext (today shrunk on both ends)', () => {
+      const timelogStore = useTimelogStore()
+      timelogStore._cutMeta = {
+        toPrev: { targetDate: '2026-07-23', cutAt: 480 },
+        toNext: { targetDate: '2026-07-25', cutAt: 997 },
+      }
+
+      const { pageRange } = useCoordConverter()
+
+      // 今天显示 [08:00, 16:37) → [1440+480, 1440+997) = [1920, 2437)
+      expect(pageRange.value).toEqual({ lo: 1920, hi: 2437 })
+    })
+
+    it('fromPrev takes precedence over toPrev for lo', () => {
+      const timelogStore = useTimelogStore()
+      timelogStore._cutMeta = {
+        fromPrev: { sourceDate: '2026-07-23', cutAt: 1200 },
+        toPrev: { targetDate: '2026-07-23', cutAt: 120 },
+      }
+
+      const { pageRange } = useCoordConverter()
+
+      // fromPrev.cutAt (1200) < 1440 + toPrev.cutAt (1560)
+      // 所以 lo = 1200 (fromPrev 优先，因为胶水块在昨天帧，更早)
+      expect(pageRange.value).toEqual({ lo: 1200, hi: 2880 })
+    })
+
+    it('fromNext takes precedence over toNext for hi', () => {
+      const timelogStore = useTimelogStore()
+      timelogStore._cutMeta = {
+        fromNext: { sourceDate: '2026-07-25', cutAt: 120 },
+        toNext: { targetDate: '2026-07-25', cutAt: 1320 },
+      }
+
+      const { pageRange } = useCoordConverter()
+
+      // fromNext 优先：hi = 2880 + 120 = 3000
+      // toNext 被忽略（如果同时存在 fromNext，说明明天有胶来，toNext 不影响本页终点）
+      expect(pageRange.value).toEqual({ lo: 1440, hi: 3000 })
+    })
+
+    it('all four cut directions combined', () => {
+      const timelogStore = useTimelogStore()
+      timelogStore._cutMeta = {
+        fromPrev: { sourceDate: '2026-07-23', cutAt: 997 },
+        fromNext: { sourceDate: '2026-07-25', cutAt: 120 },
+        toPrev: { targetDate: '2026-07-23', cutAt: 480 },
+        toNext: { targetDate: '2026-07-25', cutAt: 997 },
+      }
+
+      const { pageRange } = useCoordConverter()
+
+      // fromPrev 优先确定 lo = 997
+      // fromNext 优先确定 hi = 3000
+      expect(pageRange.value).toEqual({ lo: 997, hi: 3000 })
+    })
+  })
 })
