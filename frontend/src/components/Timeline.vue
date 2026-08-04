@@ -177,6 +177,9 @@ let adrag = null
 let ghost = null
 let dlabel = null
 const suppressClick = ref(false)
+let dragPending = null
+let dragStartX = 0
+let dragStartY = 0
 
 // --- Right-drag selection ---
 const selRect = ref(null)
@@ -472,8 +475,9 @@ function onDayMouseDown(e) {
   if (e.button !== 0 || adrag) return
   const dayEl = e.currentTarget
   const s = yToMinute(e.clientY, dayEl)
-  adrag = { type: 'create', anchor: s, cur: s, dayEl }
-  applyDrag()
+  dragPending = { anchor: s, dayEl }
+  dragStartX = e.clientX
+  dragStartY = e.clientY
 }
 
 function onBlockMouseMove(e, _ev) {
@@ -515,6 +519,17 @@ function onMouseMove(e) {
     adrag.cur = yToMinute(e.clientY, adrag.dayEl || dayRef.value)
     applyDrag()
   }
+  if (dragPending) {
+    const dy = Math.abs(e.clientY - dragStartY)
+    const dx = Math.abs(e.clientX - dragStartX)
+    if (dy > 3 || dx > 3) {
+      const s = yToMinute(dragStartY, dragPending.dayEl)
+      adrag = { type: 'create', anchor: s, cur: yToMinute(e.clientY, dragPending.dayEl), dayEl: dragPending.dayEl }
+      dragPending = null
+      applyDrag()
+    }
+    return
+  }
   if (selPending) {
     const dy = Math.abs(e.clientY - selPending.clientY)
     const dx = Math.abs(e.clientX - selPending.clientX)
@@ -543,6 +558,7 @@ function onMouseMove(e) {
 function onMouseUp(e) {
   if (adrag) { endDrag(true) }
 
+  dragPending = null
   selPending = null
   selMoved = false
   if (selRect.value) {
