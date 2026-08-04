@@ -74,7 +74,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { useTimelogStore, fmt, toInput, todayStorageBase, storageToLocal, addDays } from '../store/timelog.js'
+import { useTimelogStore, fmt, toInput, todayStorageBase, addDays } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { useSettingsStore } from '../store/settings.js'
 import { useToast } from '../composables/useToast.js'
@@ -154,27 +154,42 @@ function formatSignedTime(local, base) {
   return t
 }
 
+// 返回起点坐标所属的帧基准（统一帧坐标）
+function frameOf(x) {
+  if (x < 1440) return 0      // 昨天帧
+  if (x < 2880) return 1440   // 今天帧
+  return 2880                 // 明天帧
+}
+
+// 返回终点坐标所属的帧基准（统一帧坐标）
+// 终点使用 <= 判断，1440 算作昨天帧的结束
+function frameOfEnd(x) {
+  if (x <= 1440) return 0     // 昨天帧
+  if (x <= 2880) return 1440  // 今天帧
+  return 2880                 // 明天帧
+}
+
 watch(
   () => [props.show, props.editingBlock, props.createTimes],
   ([show, block, cTimes]) => {
     if (!show) return
     if (block) {
-      const local = storageToLocal(block.start, block.end)
-      const sBase = block.start < 1440 ? 0 : block.start < 2880 ? 1440 : 2880
-      const eBase = block.end <= 1440 ? 0 : block.end <= 2880 ? 1440 : 2880
+      // 存储坐标即统一帧坐标，逐端点判帧并转本地分钟
+      const sBase = frameOf(block.start)
+      const eBase = frameOfEnd(block.end)
       mTitle.value = block.title || ''
       mNote.value = block.note || ''
-      mStart.value = formatSignedTime(local.start, sBase)
-      mEnd.value = formatSignedTime(local.end, eBase)
+      mStart.value = formatSignedTime(block.start - sBase, sBase)
+      mEnd.value = formatSignedTime(block.end - eBase, eBase)
       selectedTags.value = [...(block.tags || [])]
     } else if (cTimes) {
-      const local = storageToLocal(cTimes.start, cTimes.end)
-      const sBase = cTimes.start < 1440 ? 0 : cTimes.start < 2880 ? 1440 : 2880
-      const eBase = cTimes.end <= 1440 ? 0 : cTimes.end <= 2880 ? 1440 : 2880
+      // 存储坐标即统一帧坐标，逐端点判帧并转本地分钟
+      const sBase = frameOf(cTimes.start)
+      const eBase = frameOfEnd(cTimes.end)
       mTitle.value = ''
       mNote.value = ''
-      mStart.value = formatSignedTime(local.start, sBase)
-      mEnd.value = formatSignedTime(local.end, eBase)
+      mStart.value = formatSignedTime(cTimes.start - sBase, sBase)
+      mEnd.value = formatSignedTime(cTimes.end - eBase, eBase)
       selectedTags.value = []
     }
     original.value = {
