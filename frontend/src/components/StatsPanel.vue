@@ -334,7 +334,12 @@ const cardTagData = computed(() => {
 
   return computeCardsData(
     cards.value, tagGroup, tagStore, STR.stats,
-    { timeRange: timeRange.value, customStart: customStart.value, customEnd: customEnd.value },
+    {
+      timeRange: timeRange.value,
+      customStart: customStart.value,
+      customEnd: customEnd.value,
+      now: new Date()
+    },
     cutMetaByDay
   )
 })

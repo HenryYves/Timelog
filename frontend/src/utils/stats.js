@@ -148,18 +148,56 @@ export function computeUnrecorded(days, blocksByDay, rangesByDay = null) {
  * @param {Function} tagGroup - (tagName) => group string
  * @param {Object} tagStore - Pinia tag store (has .colorOf method + .tags array)
  * @param {Object} STR - stats strings (needs .untagged)
- * @param {Object} timeRangeState - { timeRange, customStart, customEnd }
+ * @param {Object} timeRangeState - { timeRange, customStart, customEnd, now }
  * @param {Object} cutMetaByDay - optional map of dateKey -> cutMeta for computing ranges
  * @returns {Object} map of cardId -> [{tag, minutes, color}]
  */
-export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, customStart, customEnd }, cutMetaByDay = {}) {
+export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, customStart, customEnd, now }, cutMetaByDay = {}) {
   const days = getDaysInRange(timeRange, customStart, customEnd)
   const blocksByDay = days.map(d => loadDayBlocks(d))
   const PAL = ['#A1AFC9','#F0C7C1','#C4E0D4','#B5D8A8','#FCE38A','#F36838','#9370DB','#20B2AA','#FF7F50','#87CEEB']
   const map = {}
 
+  // For 24h/168h, compute exact time window
+  let absoluteWindow = null
+  if (timeRange === '24h' || timeRange === '168h') {
+    const nowDate = now || new Date()
+    const hours = timeRange === '24h' ? 24 : 168
+    const startTime = new Date(nowDate.getTime() - hours * 3600000)
+
+    absoluteWindow = {
+      startDate: fmtDate(startTime),
+      startMin: startTime.getHours() * 60 + startTime.getMinutes(),
+      endDate: fmtDate(nowDate),
+      endMin: nowDate.getHours() * 60 + nowDate.getMinutes()
+    }
+  }
+
   // Compute visible range for each day (统一帧坐标)
-  const rangesByDay = days.map(dateKey => {
+  const rangesByDay = days.map((dateKey, idx) => {
+    // For absolute time windows (24h/168h), compute precise boundaries
+    if (absoluteWindow) {
+      let lo = 0
+      let hi = 1440
+
+      if (dateKey === absoluteWindow.startDate && dateKey === absoluteWindow.endDate) {
+        // Same day: [startMin, endMin)
+        lo = absoluteWindow.startMin
+        hi = absoluteWindow.endMin
+      } else if (dateKey === absoluteWindow.startDate) {
+        // Start day: [startMin, 1440)
+        lo = absoluteWindow.startMin
+        hi = 1440
+      } else if (dateKey === absoluteWindow.endDate) {
+        // End day: [0, endMin)
+        lo = 0
+        hi = absoluteWindow.endMin
+      }
+      // else: middle days use full [0, 1440)
+
+      return { lo, hi }
+    }
+
     const cutMeta = cutMetaByDay[dateKey]
     if (!cutMeta) {
       // No scissors/glue - default to calendar day [0, 1440)
