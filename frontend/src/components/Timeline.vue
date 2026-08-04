@@ -821,11 +821,10 @@ function doPaste() {
     let en = c.end + offset
     if (s < 0) { s = 0; en = dur }
     if (en > TOTAL_MIN) { en = TOTAL_MIN; s = Math.max(0, en - dur) }
-    const st = storageTimesForNewDisplayBlock(s, en)
     const nb = {
       id: 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-      start: st.start,
-      end: st.end,
+      start: s,
+      end: en,
       title: c.title,
       note: c.note,
       tags: (c.tags || []).slice(),

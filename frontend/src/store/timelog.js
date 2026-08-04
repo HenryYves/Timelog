@@ -123,15 +123,6 @@ export function todayLocalToStorage(s, en) {
   return { start: s + DAY_MIN, end: en + DAY_MIN }
 }
 
-/** 存储坐标 → 本地时间（纯帧检测） */
-export function storageToLocal(start, end) {
-  if (start >= DAY_MIN && start < 2 * DAY_MIN)
-    return { start: start - DAY_MIN, end: end - DAY_MIN }
-  if (start >= 2 * DAY_MIN)
-    return { start: start - 2 * DAY_MIN, end: end - 2 * DAY_MIN }
-  return { start, end }
-}
-
 /** 统一坐标 → 存储（纯帧检测，不换算） */
 export function unifiedToStorage(x) { return x }
 
