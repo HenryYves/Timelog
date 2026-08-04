@@ -185,6 +185,7 @@ let dragStartY = 0
 const selRect = ref(null)
 let selPending = null
 let selMoved = false
+const suppressContextMenu = ref(false)
 
 // --- Gutter hover (cut/glue preview) ---
 const hoverLine = ref(null)
@@ -560,6 +561,7 @@ function onMouseUp(e) {
 
   dragPending = null
   selPending = null
+  const hadSelMoved = selMoved
   selMoved = false
   if (selRect.value) {
     const sr = selRect.value
@@ -584,6 +586,10 @@ function onMouseUp(e) {
     })
     if (selectedBlocks.size > 0) {
       toast(STR.toast.contextSelected(selectedBlocks.size))
+    }
+    if (hadSelMoved) {
+      suppressContextMenu.value = true
+      setTimeout(() => { suppressContextMenu.value = false }, 10)
     }
   }
   overGrid.value = false
@@ -632,6 +638,7 @@ function onGutterLeave() {
 }
 
 function onTodayRightClick(e) {
+  if (suppressContextMenu.value) return
   if (!availableDirs.value.length) return
   const min = yToMinute(e.clientY, dayRef.value)
   const localMin = Math.max(0, Math.min(DAY_MIN, min - DAY_MIN))
@@ -640,6 +647,7 @@ function onTodayRightClick(e) {
 }
 
 function onGluePrevRightClick() {
+  if (suppressContextMenu.value) return
   const sourceDate = store._cutMeta?.fromPrev?.sourceDate
   if (!sourceDate) return
   glueTarget.value = sourceDate
@@ -647,6 +655,7 @@ function onGluePrevRightClick() {
 }
 
 function onGlueNextRightClick() {
+  if (suppressContextMenu.value) return
   const sourceDate = store._cutMeta?.fromNext?.sourceDate
   if (!sourceDate) return
   glueTarget.value = sourceDate
