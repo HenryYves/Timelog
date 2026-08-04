@@ -180,4 +180,35 @@ describe('computeUnrecorded', () => {
     // Day 1: 1320 unrecorded, Day 2: 1440 unrecorded (no blocks), Total: 2760
     expect(computeUnrecorded(days, blocksByDay)).toBe(2760)
   })
+
+  it('clamps cross-boundary blocks to day boundary (end > 1440)', () => {
+    const days = ['2026-07-24']
+    const blocksByDay = [[
+      { start: 1380, end: 1500 },  // Block extending beyond day boundary
+    ]]
+    // Should clamp to [1380, 1440), recorded: 60 minutes, unrecorded: 1380
+    expect(computeUnrecorded(days, blocksByDay)).toBe(1380)
+  })
+
+  it('clamps multiple cross-boundary blocks correctly', () => {
+    const days = ['2026-07-24']
+    const blocksByDay = [[
+      { start: 480, end: 600 },    // Normal block: 120 min
+      { start: 1380, end: 1500 },  // Crosses boundary: clamps to 60 min
+      { start: 1200, end: 1260 },  // Normal block: 60 min
+    ]]
+    // Recorded: 120 + 60 + 60 = 240 minutes, unrecorded: 1200
+    expect(computeUnrecorded(days, blocksByDay)).toBe(1200)
+  })
+
+  it('handles cross-boundary block that overlaps with normal block', () => {
+    const days = ['2026-07-24']
+    const blocksByDay = [[
+      { start: 1350, end: 1410 },  // Normal block: 60 min [1350, 1410)
+      { start: 1380, end: 1500 },  // Crosses boundary: clamps to [1380, 1440)
+    ]]
+    // Union after clamping: [1350, 1410) ∪ [1380, 1440) = [1350, 1440) = 90 min
+    // Unrecorded: 1440 - 90 = 1350
+    expect(computeUnrecorded(days, blocksByDay)).toBe(1350)
+  })
 })

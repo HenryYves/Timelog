@@ -124,7 +124,10 @@ export function computeUnrecorded(days, blocksByDay) {
 
     // Filter to only blocks in the "today" frame [0, 1440) for this day
     // (excludes glue blocks from other days which use extended coordinates)
-    const todayBlocks = blocks.filter(b => b.start >= 0 && b.start < MINUTES_PER_DAY)
+    // Clamp end coordinate to prevent counting minutes beyond the day boundary
+    const todayBlocks = blocks
+      .filter(b => b.start >= 0 && b.start < MINUTES_PER_DAY)
+      .map(b => ({ ...b, end: Math.min(b.end, MINUTES_PER_DAY) }))
 
     const recordedMinutes = unionMinutes(todayBlocks)
     const unrecordedMinutes = MINUTES_PER_DAY - recordedMinutes
