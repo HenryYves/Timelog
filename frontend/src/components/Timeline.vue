@@ -257,10 +257,11 @@ function layout(list) {
     grp.forEach(ev => (ev._cols = cols.length))
 
     // Calculate span: how many consecutive columns each block can expand into
+    // Note: ev.start, ev.end are unified frame coordinates (昨天 [0,1440), 今天 [1440,2880), 明天 [2880,4320))
     grp.forEach(ev => {
       let span = 1
       for (let c = ev._col + 1; c < cols.length; c++) {
-        // Check if column c is free during [ev.start, ev.end)
+        // Check if column c is free during [ev.start, ev.end) using unified frame coordinates
         const occupied = grp.some(other => other._col === c && other.start < ev.end && other.end > ev.start)
         if (occupied) break
         span++
