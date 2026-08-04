@@ -4219,7 +4219,7 @@ dependencies = [
 
 [[package]]
 name = "timelog"
-version = "0.10.0"
+version = "0.10.9"
 dependencies = [
  "base64 0.22.1",
  "reqwest 0.12.28",

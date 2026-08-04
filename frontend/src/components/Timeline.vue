@@ -255,6 +255,19 @@ function layout(list) {
       }
     })
     grp.forEach(ev => (ev._cols = cols.length))
+
+    // Calculate span: how many consecutive columns each block can expand into
+    grp.forEach(ev => {
+      let span = 1
+      for (let c = ev._col + 1; c < cols.length; c++) {
+        // Check if column c is free during [ev.start, ev.end)
+        const occupied = grp.some(other => other._col === c && other.start < ev.end && other.end > ev.start)
+        if (occupied) break
+        span++
+      }
+      ev._span = span
+    })
+
     i = j + 1
   }
   return evs
@@ -336,13 +349,15 @@ function computeBlockStyle(ev) {
   const c0 = colorOf(has ? ev.tags[0] : null)
   const top = blockTop(ev)
   const height = (ev.end - ev.start) * PX_MIN
-  const w = 100 / (ev._cols || 1)
-  const left = (ev._col || 0) * w
+  const colW = 100 / (ev._cols || 1)
+  const left = (ev._col || 0) * colW
+  const span = ev._span || 1
+  const width = span * colW
   return {
     top: top + 'px',
     height: height + 'px',
     left: `calc(${left}% + 2px)`,
-    width: `calc(${w}% - 4px)`,
+    width: `calc(${width}% - 4px)`,
     background: c0.bg,
     '--block-bg': c0.bg,
     color: '#2C2C2B',
