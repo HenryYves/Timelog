@@ -99,6 +99,7 @@ function onSortAlpha() {
 function onDragStart(e, index) {
   draggedIndex = index
   e.dataTransfer.effectAllowed = 'move'
+  e.currentTarget.classList.add('dragging')
 }
 
 function onDragOver(e, index) {
@@ -113,8 +114,9 @@ function onDrop(e, targetIndex) {
   draggedIndex = null
 }
 
-function onDragEnd() {
+function onDragEnd(e) {
   draggedIndex = null
+  e.currentTarget.classList.remove('dragging')
 }
 
 async function onDeleteTag(index) {
