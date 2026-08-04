@@ -180,6 +180,7 @@ const suppressClick = ref(false)
 let dragPending = null
 let dragStartX = 0
 let dragStartY = 0
+let blockClickPending = false  // Track if block click might be a drag
 
 // --- Right-drag selection ---
 const selRect = ref(null)
@@ -512,6 +513,9 @@ function onBlockMouseDown(e, ev) {
       el,
     }
     applyDrag()
+  } else {
+    // Not on edge - mark as potential click (will be cancelled if mouse moves 3px)
+    blockClickPending = true
   }
 }
 
@@ -527,9 +531,18 @@ function onMouseMove(e) {
       const s = yToMinute(dragStartY, dragPending.dayEl)
       adrag = { type: 'create', anchor: s, cur: yToMinute(e.clientY, dragPending.dayEl), dayEl: dragPending.dayEl }
       dragPending = null
+      blockClickPending = false  // Cancel block click if drag starts
       applyDrag()
     }
     return
+  }
+  // If mouse moves while block click is pending, cancel it
+  if (blockClickPending) {
+    const dy = Math.abs(e.clientY - dragStartY)
+    const dx = Math.abs(e.clientX - dragStartX)
+    if (dy > 3 || dx > 3) {
+      blockClickPending = false
+    }
   }
   if (selPending) {
     const dy = Math.abs(e.clientY - selPending.clientY)
@@ -560,6 +573,7 @@ function onMouseUp(e) {
   if (adrag) { endDrag(true) }
 
   dragPending = null
+  blockClickPending = false  // Reset on mouse up
   selPending = null
   const hadSelMoved = selMoved
   selMoved = false
@@ -602,6 +616,8 @@ function onBlockClick(e, ev) {
     suppressClick.value = false
     return
   }
+  // Only open editor if it was a real click (not a drag)
+  if (!blockClickPending) return
   emit('edit-block', ev)
 }
 
