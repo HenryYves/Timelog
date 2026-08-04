@@ -1,6 +1,11 @@
 // ---------- Timeline ----------
 export const PX_MIN = 1
 export const DAY_MIN = 1440
+export const DAY_OFFSET = {
+  prev: 0,
+  today: DAY_MIN,
+  next: 2 * DAY_MIN,
+};
 export const EDGE = 6
 
 // ---------- Backup ----------

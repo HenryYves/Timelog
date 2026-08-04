@@ -21,7 +21,7 @@
  * `_cutMeta` 由 timelog store 的 cutDay/glueBack 维护，包含 4 种剪切/胶水信息：
  *
  * - **fromPrev**：从昨天末尾剪来胶到今天页面顶部
- *   - `cutAt`：昨天的剪切点（统一帧坐标，范围 [0, 1440)）
+ *   - `cutAt`：昨天的剪切点（本地分钟，范围 [0, 1440)）
  *   - 胶水区高度 = 1440 - cutAt
  *   - 示例：cutAt=1380 表示昨天 23:00 之后的内容（60分钟）胶到今天
  *
@@ -40,7 +40,7 @@
  *
  * ## 坐标系统注意事项
  *
- * - fromPrev.cutAt 是**统一帧坐标**（昨天帧 [0, 1440)）
+ * - fromPrev.cutAt 是**本地坐标**（昨天帧 [0, 1440)）
  * - fromNext.cutAt 是**本地分钟**（明天的本地时间 [0, 1440)）
  * - toPrev.cutAt 和 toNext.cutAt 都是**本地分钟**（今天的本地时间 [0, 1440)）
  *
@@ -49,7 +49,18 @@
 import { computed } from 'vue'
 import { useTimelogStore } from '../store/timelog.js'
 import { useSettingsStore } from '../store/settings.js'
-import { PX_MIN } from '../constants.js'
+import { DAY_MIN, PX_MIN, DAY_OFFSET } from '../constants.js'
+
+
+/**
+ * 将本地分钟转化为统一帧,用来增强代码可读性,和语义正确
+ * @param {number} min 本地分钟数
+ * @param {"prev" | "today" | "next"} [day="today"] 日期"prev"表示来自前一天,"next"表示来自后一天,"today"(默认)表示来自今天
+ * @return {number} 统一帧
+ */
+export function localMinToUnified(day, min) {
+  return min + DAY_OFFSET[day];
+}
 
 /**
  * 坐标转换 composable
@@ -73,7 +84,7 @@ export function useCoordConverter() {
   const gutterHeights = computed(() => {
     // 昨天胶水区高度 = 昨天被剪下的部分
     // 如果没有 fromPrev，高度为 0
-    const prev = cutMeta.value.fromPrev ? 1440 - cutMeta.value.fromPrev.cutAt : 0
+    const prev = cutMeta.value.fromPrev ? DAY_MIN - cutMeta.value.fromPrev.cutAt : 0
 
     // 明天胶水区高度 = 明天被剪下的部分
     // 如果没有 fromNext，高度为 0
@@ -82,8 +93,8 @@ export function useCoordConverter() {
     // 今天显示区高度 = 今天实际显示的时间范围
     // todayStart：今天显示的起点（本地分钟）
     // todayEnd：今天显示的终点（本地分钟）
-    const todayStart = cutMeta.value.toPrev ? cutMeta.value.toPrev.cutAt : 0
-    const todayEnd = cutMeta.value.toNext ? cutMeta.value.toNext.cutAt : 1440
+    const todayStart = cutMeta.value.toPrev ? cutMeta.value.toPrev.cutAt + DAY_MIN : (DAY_MIN - prev)
+    const todayEnd = cutMeta.value.toNext ? cutMeta.value.toNext.cutAt + DAY_MIN : 2 * DAY_MIN
     const today = todayEnd - todayStart
 
     return { prev, today, next }
@@ -99,36 +110,6 @@ export function useCoordConverter() {
   const totalHeight = computed(() =>
     gutterHeights.value.prev + gutterHeights.value.today + gutterHeights.value.next
   )
-
-  /**
-   * 今天区段在统一帧中的起点
-   *
-   * 为什么是 toPrev.cutAt + 1440？
-   * - toPrev.cutAt 是今天显示的起点（本地分钟）
-   * - 加 1440 转换为统一帧坐标（今天帧 [1440, 2880)）
-   *
-   * 注意：这个值用于 blockTop 和 minuteToY 的今天区段计算
-   */
-  const todayStart = computed(() => (cutMeta.value.toPrev ? cutMeta.value.toPrev.cutAt : 0) + 1440)
-
-  /**
-   * 今天区段的本地分钟范围
-   *
-   * 为什么用本地分钟而不是统一帧？
-   * - 用于判断"当前本地时间"（0-1439）是否在今天显示范围内
-   * - nowMin（当前时间）是本地分钟，所以 todayRange 也必须是本地分钟才能比较
-   * - 例如：现在是 15:00（localMin=900），判断是否在 [toPrev, toNext] 范围内
-   *
-   * 为什么不能用统一帧？
-   * - 如果改成统一帧，就要先把 nowMin 转成统一帧（1440+900=2340）
-   * - 但这个转换本身就需要知道 nowMin 是否在今天区段、昨天胶水、还是明天胶水
-   * - 陷入循环依赖：判断在哪个区段需要 todayRange，但计算统一帧又需要先知道在哪个区段
-   * - 所以 todayRange 必须保持本地分钟，作为第一步判断的依据
-   */
-  const todayRange = computed(() => ({
-    start: todayStart.value - 1440,  // 转回本地分钟
-    end: cutMeta.value.toNext ? cutMeta.value.toNext.cutAt : 1440,
-  }))
 
   /**
    * 页面可见的统一帧区间 [lo, hi)
@@ -152,12 +133,12 @@ export function useCoordConverter() {
     // 计算起点 (lo)
     // 如果有 fromPrev：昨天胶水区的起点就是页面起点
     // 否则：今天区段的起点（1440 + toPrev.cutAt）就是页面起点
-    const lo = fromPrev ? fromPrev.cutAt : 1440 + (toPrev?.cutAt ?? 0)
+    const lo = fromPrev ? fromPrev.cutAt : DAY_OFFSET.today + (toPrev?.cutAt ?? 0)
 
     // 计算终点 (hi)
     // 如果有 fromNext：明天胶水区的终点（2880 + cutAt）就是页面终点
     // 否则：今天区段的终点（1440 + toNext.cutAt）就是页面终点
-    const hi = fromNext ? 2880 + fromNext.cutAt : 1440 + (toNext?.cutAt ?? 1440)
+    const hi = fromNext ? DAY_OFFSET.next + fromNext.cutAt : DAY_OFFSET.today + (toNext?.cutAt ?? DAY_MIN)
 
     return { lo, hi }
   })
@@ -168,30 +149,10 @@ export function useCoordConverter() {
    * @param {Object} block - 块对象，包含 start 和 end（统一帧坐标）
    * @returns {number} 渲染 top 像素位置
    *
-   * 为什么要分三个区间处理？
-   * - 块的统一帧坐标不直接对应像素位置
-   * - 需要根据块在哪个区域（昨天胶水/今天/明天胶水），使用不同的计算公式
-   *
-   * 计算公式：
-   * - 昨天胶水区 [0, 1440)：(start - fromPrev.cutAt) * PX_MIN
-   *   - 为什么减 cutAt？因为昨天胶水区从 cutAt 开始，而渲染从 0 开始
-   * - 今天区段 [1440, 2880)：prev高度 + (start - todayStart) * PX_MIN
-   *   - 为什么减 todayStart？因为今天可能从 toPrev.cutAt 开始，不是从 1440 开始
-   * - 明天胶水区 [2880, 4320)：prev高度 + today高度 + (start - 2880) * PX_MIN
-   *   - 为什么减 2880？因为明天帧从 2880 开始
+   * 剪去偏移量(今天的起点)
    */
   function blockTop(block) {
-    if (block.start < 1440) {
-      // 昨天胶水区
-      const cutAt = cutMeta.value.fromPrev?.cutAt || 0
-      return (block.start - cutAt) * PX_MIN
-    } else if (block.start < 2880) {
-      // 今天区段
-      return gutterHeights.value.prev + (block.start - todayStart.value) * PX_MIN
-    } else {
-      // 明天胶水区
-      return gutterHeights.value.prev + gutterHeights.value.today + (block.start - 2880) * PX_MIN
-    }
+    return (block.start - pageRange.value.lo) * PX_MIN
   }
 
   /**
@@ -219,17 +180,7 @@ export function useCoordConverter() {
     const localY = (y - r.top) / z  // 转换为缩放前的像素
     const localMin = Math.round(localY / PX_MIN)  // 像素转分钟
 
-    if (localMin < gutterHeights.value.prev) {
-      // 昨天胶水区
-      const cutAt = cutMeta.value.fromPrev?.cutAt || 0
-      return cutAt + localMin
-    } else if (localMin < gutterHeights.value.prev + gutterHeights.value.today) {
-      // 今天区段
-      return todayStart.value + (localMin - gutterHeights.value.prev)
-    } else {
-      // 明天胶水区
-      return 2880 + (localMin - gutterHeights.value.prev - gutterHeights.value.today)
-    }
+    return pageRange.value.lo + localMin
   }
 
   /**
@@ -246,23 +197,13 @@ export function useCoordConverter() {
    * 计算公式与 blockTop 相同，只是输入格式不同
    */
   function minuteToY(minute) {
-    if (minute < 1440) {
-      // 昨天胶水区
-      const cutAt = cutMeta.value.fromPrev?.cutAt || 0
-      return (minute - cutAt) * PX_MIN
-    } else if (minute < 2880) {
-      // 今天区段
-      return gutterHeights.value.prev + (minute - todayStart.value) * PX_MIN
-    } else {
-      // 明天胶水区
-      return gutterHeights.value.prev + gutterHeights.value.today + (minute - 2880) * PX_MIN
-    }
+    const localMin = minute - pageRange.value.lo
+    return localMin * PX_MIN
   }
 
   return {
     gutterHeights,
     totalHeight,
-    todayRange,
     pageRange,
     blockTop,
     yToMinute,
