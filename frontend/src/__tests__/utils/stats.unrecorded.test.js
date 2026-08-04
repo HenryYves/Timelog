@@ -154,11 +154,12 @@ describe('computeUnrecorded', () => {
   it('filters out glue blocks from yesterday (coordinates < 0)', () => {
     const days = ['2026-07-24']
     const blocksByDay = [[
-      { start: -60, end: 60 },     // Glue block crossing midnight: should be ignored for unrecorded calc
+      { start: -60, end: 60 },     // Glue block crossing midnight: clamps to [0, 60] = 60 min
       { start: 480, end: 600 },    // Today block: 120 minutes
     ]]
-    // Only today blocks count, unrecorded: 1440 - 120 = 1320
-    expect(computeUnrecorded(days, blocksByDay)).toBe(1320)
+    // Total recorded: 60 (from clipped glue) + 120 (today) = 180
+    // Unrecorded: 1440 - 180 = 1260
+    expect(computeUnrecorded(days, blocksByDay)).toBe(1260)
   })
 
   it('handles edge case with block at day boundary', () => {

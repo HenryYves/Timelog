@@ -108,29 +108,32 @@ export function unionMinutes(blocks) {
 
 /**
  * Compute total unrecorded minutes across multiple days.
- * 统一帧坐标：每天 1440 分钟 [0, 1440)。
+ * 统一帧坐标：每天可能包含胶水区，使用传入的范围计算。
  * @param {Array<string>} days - array of date strings
  * @param {Array<Array>} blocksByDay - array of block arrays, one per day
+ * @param {Array<Object>} rangesByDay - optional array of {lo, hi} ranges per day (统一帧坐标)
  * @returns {number} total unrecorded minutes
  */
-export function computeUnrecorded(days, blocksByDay) {
+export function computeUnrecorded(days, blocksByDay, rangesByDay = null) {
   if (!days || days.length === 0) return 0
 
-  const MINUTES_PER_DAY = 1440
   let totalUnrecorded = 0
 
   for (let i = 0; i < days.length; i++) {
     const blocks = blocksByDay[i] || []
+    const range = rangesByDay?.[i] || { lo: 0, hi: 1440 }
 
-    // Filter to only blocks in the "today" frame [0, 1440) for this day
-    // (excludes glue blocks from other days which use extended coordinates)
-    // Clamp end coordinate to prevent counting minutes beyond the day boundary
-    const todayBlocks = blocks
-      .filter(b => b.start >= 0 && b.start < MINUTES_PER_DAY)
-      .map(b => ({ ...b, end: Math.min(b.end, MINUTES_PER_DAY) }))
+    // Filter to blocks within this day's visible range and clamp to range boundaries
+    const visibleBlocks = blocks
+      .filter(b => b.start < range.hi && b.end > range.lo)
+      .map(b => ({
+        start: Math.max(b.start, range.lo),
+        end: Math.min(b.end, range.hi)
+      }))
 
-    const recordedMinutes = unionMinutes(todayBlocks)
-    const unrecordedMinutes = MINUTES_PER_DAY - recordedMinutes
+    const recordedMinutes = unionMinutes(visibleBlocks)
+    const totalVisible = range.hi - range.lo
+    const unrecordedMinutes = totalVisible - recordedMinutes
 
     totalUnrecorded += unrecordedMinutes
   }
@@ -146,13 +149,27 @@ export function computeUnrecorded(days, blocksByDay) {
  * @param {Object} tagStore - Pinia tag store (has .colorOf method + .tags array)
  * @param {Object} STR - stats strings (needs .untagged)
  * @param {Object} timeRangeState - { timeRange, customStart, customEnd }
+ * @param {Object} cutMetaByDay - optional map of dateKey -> cutMeta for computing ranges
  * @returns {Object} map of cardId -> [{tag, minutes, color}]
  */
-export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, customStart, customEnd }) {
+export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, customStart, customEnd }, cutMetaByDay = {}) {
   const days = getDaysInRange(timeRange, customStart, customEnd)
   const blocksByDay = days.map(d => loadDayBlocks(d))
   const PAL = ['#A1AFC9','#F0C7C1','#C4E0D4','#B5D8A8','#FCE38A','#F36838','#9370DB','#20B2AA','#FF7F50','#87CEEB']
   const map = {}
+
+  // Compute visible range for each day (统一帧坐标)
+  const rangesByDay = days.map(dateKey => {
+    const cutMeta = cutMetaByDay[dateKey]
+    if (!cutMeta) {
+      // No scissors/glue - default to calendar day [0, 1440)
+      return { lo: 0, hi: 1440 }
+    }
+    // Calculate pageRange for this day (same logic as useCoordConverter)
+    const lo = cutMeta.fromPrev ? cutMeta.fromPrev.cutAt : 1440 + (cutMeta.toPrev?.cutAt ?? 0)
+    const hi = cutMeta.fromNext ? 2880 + cutMeta.fromNext.cutAt : 1440 + (cutMeta.toNext?.cutAt ?? 1440)
+    return { lo, hi }
+  })
 
   for (const card of cards) {
     const tagMap = {}
@@ -160,8 +177,16 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
     const groups = card.filterGroups?.length > 0 ? new Set(card.filterGroups) : null
 
     for (let di = 0; di < days.length; di++) {
+      const range = rangesByDay[di]
       for (const b of blocksByDay[di]) {
-        const dur = b.end - b.start
+        // Only count blocks within the visible range
+        if (b.start >= range.hi || b.end <= range.lo) continue
+
+        // Clamp block to visible range
+        const clampedStart = Math.max(b.start, range.lo)
+        const clampedEnd = Math.min(b.end, range.hi)
+        const dur = clampedEnd - clampedStart
+
         const tags = card.onlyFirstTag
           ? [b.tags[0]].filter(Boolean)
           : (b.tags || [])
@@ -181,7 +206,7 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
 
     // Add unrecorded time if enabled
     if (card.includeUnrecorded) {
-      const unrecordedMinutes = computeUnrecorded(days, blocksByDay)
+      const unrecordedMinutes = computeUnrecorded(days, blocksByDay, rangesByDay)
       if (unrecordedMinutes > 0) {
         tagMap[STR.unrecorded] = unrecordedMinutes
       }

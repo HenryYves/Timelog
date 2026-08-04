@@ -141,6 +141,7 @@
 import { ref, computed, watch } from 'vue'
 import { STR } from '../strings.js'
 import { useTagStore } from '../store/tags.js'
+import { useTimelogStore, dkey } from '../store/timelog.js'
 import { computeCardsData, buildPieChart, fmtDur, pctOf } from '../utils/stats.js'
 import PieChart from './PieChart.vue'
 import BarChart from './BarChart.vue'
@@ -149,6 +150,7 @@ const props = defineProps({ show: Boolean })
 const emit = defineEmits(['close', 'export-image', 'export-card'])
 const statsRoot = ref(null)
 
+const store = useTimelogStore()
 const tagStore = useTagStore()
 const tagGroups = computed(() => [...new Set(tagStore.tags.map(t => t.group).filter(Boolean))])
 function tagGroup(name) { const t = tagStore.tags.find(x => x.name === name); return t?.group || '' }
@@ -318,10 +320,24 @@ function exportCard(cardId) {
 }
 
 // ── Data ──
-const cardTagData = computed(() => computeCardsData(
-  cards.value, tagGroup, tagStore, STR.stats,
-  { timeRange: timeRange.value, customStart: customStart.value, customEnd: customEnd.value }
-))
+const cardTagData = computed(() => {
+  // Build cutMetaByDay for proper range calculation
+  const cutMetaByDay = {}
+
+  // For 'today', use current store's cutMeta
+  if (timeRange.value === 'today') {
+    cutMetaByDay[store.dateKey] = store._cutMeta
+  }
+  // For other days, we can't easily access their cutMeta from localStorage
+  // So we'll default to [0, 1440) for non-current days
+  // This is a limitation: historical scissors/glue won't be reflected in stats
+
+  return computeCardsData(
+    cards.value, tagGroup, tagStore, STR.stats,
+    { timeRange: timeRange.value, customStart: customStart.value, customEnd: customEnd.value },
+    cutMetaByDay
+  )
+})
 
 const pieCharts = computed(() => {
   const map = {}
