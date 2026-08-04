@@ -26,6 +26,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { useTimelogStore, dkey, fmtSigned, unifiedToStorage } from '../store/timelog.js'
 import { useSettingsStore } from '../store/settings.js'
+import { useCoordConverter } from '../composables/useCoordConverter.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
 import { STR } from '../strings.js'
@@ -36,6 +37,7 @@ const emit = defineEmits(['close'])
 
 const store = useTimelogStore()
 const settings = useSettingsStore()
+const { pageRange } = useCoordConverter()
 const { showConfirm } = useConfirm()
 const { toast } = useToast()
 
@@ -130,7 +132,9 @@ function parseChunk(chunk, prevEnd) {
     }
   }
   if (end == null) {
-    const cap = start < 1440 ? 1440 : start < 2880 ? 2880 : 4320
+    // 使用统一帧坐标：昨天 [0,1440)，今天 [1440,2880)，明天 [2880,4320)
+    // cap 截断到本页可见终点，防止溢出到不可见区域
+    const cap = pageRange.value.hi
     end = Math.min(start + 30, cap)
   } else if (end <= start) {
     // User only provided end time, but start >= end → all-day warning

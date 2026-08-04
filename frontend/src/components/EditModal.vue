@@ -77,6 +77,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { useTimelogStore, fmt, toInput, todayStorageBase, addDays } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { useSettingsStore } from '../store/settings.js'
+import { useCoordConverter } from '../composables/useCoordConverter.js'
 import { useToast } from '../composables/useToast.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { STR } from '../strings.js'
@@ -92,6 +93,7 @@ const emit = defineEmits(['close', 'manage-tags'])
 const timelogStore = useTimelogStore()
 const tagStore = useTagStore()
 const settings = useSettingsStore()
+const { pageRange } = useCoordConverter()
 const { toast } = useToast()
 const { showConfirm } = useConfirm()
 
@@ -274,21 +276,24 @@ async function save() {
   if (en <= s) en = s + 1
   const newId = props.editingBlock?.id || ('b' + Date.now() + Math.random().toString(36).slice(2, 6))
   // 穿界 split：溢出段用统一坐标存入相邻天（可同时穿上下界）
+  // 使用统一帧坐标：昨天 [0,1440)，今天 [1440,2880)，明天 [2880,4320)
   const splitKeys = []
   {
     const us = sp.base + sp.min
     const ue = ep.base + ep.min
-    const tr = { start: timelogStore._cutMeta?.toPrev?.cutAt || 0, end: timelogStore._cutMeta?.toNext?.cutAt || 1440 }
-    const todayUStart = 1440 + tr.start
-    const todayUEnd = 1440 + tr.end
+    const todayUStart = pageRange.value.lo  // 本页可见起点（统一帧坐标）
+    const todayUEnd = pageRange.value.hi    // 本页可见终点（统一帧坐标）
+    // 计算本地分钟用于提示（从今天帧 1440 偏移）
+    const localStart = todayUStart >= 1440 && todayUStart < 2880 ? todayUStart - 1440 : 0
+    const localEnd = todayUEnd >= 1440 && todayUEnd < 2880 ? todayUEnd - 1440 : 1440
     if (us < todayUStart && ue > todayUStart) {
-      const ok = await showConfirm(`时间跨越区段边界，${fmt(tr.start)}之前的部分将存入昨天。确认？`)
+      const ok = await showConfirm(`时间跨越区段边界，${fmt(localStart)}之前的部分将存入昨天。确认？`)
       if (!ok) return
       splitKeys.push({ dateKey: addDays(timelogStore.dateKey, -1), start: us + 1440, end: todayUStart + 1440 })
       s = todayUStart
     }
     if (us < todayUEnd && ue > todayUEnd) {
-      const ok = await showConfirm(`时间跨越区段边界，${fmt(tr.end)}之后的部分将存入明天。确认？`)
+      const ok = await showConfirm(`时间跨越区段边界，${fmt(localEnd)}之后的部分将存入明天。确认？`)
       if (!ok) return
       splitKeys.push({ dateKey: addDays(timelogStore.dateKey, 1), start: todayUEnd - 1440, end: ue - 1440 })
       en = todayUEnd
