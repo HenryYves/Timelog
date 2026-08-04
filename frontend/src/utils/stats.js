@@ -2,11 +2,22 @@
 // Stats data computation — pure functions, no Vue dependency.
 // Shared by StatsPanel.vue and ExportImagePanel (stats mode).
 
+//TODO: 本文件涉及时间坐标系统转换，需要理解以下概念：
+//TODO: - 本地分钟：0-1439，表示一天内的时间（00:00=0, 23:59=1439）
+//TODO: - 统一帧坐标：昨天[0,1440)，今天[1440,2880)，明天[2880,4320)
+//TODO: - cutMeta：剪刀/胶水元数据，fromPrev.cutAt是统一帧，其他是本地分钟
+//TODO: 详见 TIME_COORDINATE_TODO.md
+
 import { KEY_PREFIX } from '../constants.js'
 import { extractBlocks } from './dayStorage.js'
 
 // ---- Date helpers ----
 
+/**
+ * 格式化日期为 YYYY-MM-DD
+ * @param {Date} d - Date 对象
+ * @returns {string} 格式化的日期字符串
+ */
 function fmtDate(d) {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -14,17 +25,32 @@ function fmtDate(d) {
   return `${y}-${m}-${day}`
 }
 
+/**
+ * 根据时间范围返回日期数组
+ *
+ * @param {string} timeRange - 时间范围类型
+ * @param {string} customStart - 自定义起始日期
+ * @param {string} customEnd - 自定义结束日期
+ * @returns {string[]} 日期字符串数组
+ *
+ * //TODO: 需要详细说明
+ * - 为什么 24h/168h 返回多个日期？因为统计需要跨越多天数据
+ * - getDaysInRange 返回的是"需要加载数据的日期"，不是"统计范围"
+ * - 24h 可能跨越今天和昨天，所以返回两个日期
+ */
 export function getDaysInRange(timeRange, customStart, customEnd) {
-  const now = new Date()
+  const now = new Date() //TODO: 当前时间
   const days = []
   const r = timeRange
   if (r === 'today') {
     days.push(fmtDate(now))
   } else if (r === '24h') {
+    //TODO: 24h 需要今天和昨天的数据
     days.push(fmtDate(now))
-    const y = new Date(now.getTime() - 86400000)
+    const y = new Date(now.getTime() - 86400000) //TODO: 24小时前
     if (fmtDate(y) !== fmtDate(now)) days.push(fmtDate(y))
   } else if (r === 'week') {
+    //TODO: 本周从周一到今天
     const dow = now.getDay() || 7
     for (let i = 0; i < dow; i++) {
       const d = new Date(now)
@@ -32,23 +58,27 @@ export function getDaysInRange(timeRange, customStart, customEnd) {
       days.push(fmtDate(d))
     }
   } else if (r === '168h') {
+    //TODO: 最近 168 小时（7天）
     for (let i = 0; i < 7; i++) {
       const d = new Date(now.getTime() - i * 86400000)
       days.push(fmtDate(d))
     }
   } else if (r === '7d') {
+    //TODO: 最近 7 个日历天
     for (let i = 0; i < 7; i++) {
       const d = new Date(now)
       d.setDate(d.getDate() - i)
       days.push(fmtDate(d))
     }
   } else if (r === 'month') {
+    //TODO: 本月 1 号到今天
     const m = now.getMonth()
     const y = now.getFullYear()
     for (let d = 1; d <= now.getDate(); d++) {
       days.push(fmtDate(new Date(y, m, d)))
     }
   } else if (r === 'custom') {
+    //TODO: 自定义日期范围
     if (customStart && customEnd) {
       const s = new Date(customStart)
       const e = new Date(customEnd)
@@ -60,11 +90,22 @@ export function getDaysInRange(timeRange, customStart, customEnd) {
   return [...new Set(days)]
 }
 
+/**
+ * 加载指定日期的块数据
+ *
+ * @param {string} dateKey - 日期字符串 "YYYY-MM-DD"
+ * @returns {Array} 块数组，每个块包含 start/end（统一帧坐标）
+ *
+ * //TODO: 重要
+ * - 块的 start/end 使用统一帧坐标存储
+ * - 昨天块：[0, 1440)，今天块：[1440, 2880)，明天块：[2880, 4320)
+ * - 跨天块会有统一帧跨越 1440 边界的情况（如 [1380, 1500]）
+ */
 export function loadDayBlocks(dateKey) {
   const raw = localStorage.getItem(KEY_PREFIX + dateKey)
   if (!raw) return []
   try {
-    return extractBlocks(JSON.parse(raw))
+    return extractBlocks(JSON.parse(raw)) //TODO: extractBlocks 提取统一帧坐标的块
   } catch { return [] }
 }
 
@@ -72,45 +113,74 @@ export function loadDayBlocks(dateKey) {
 
 /**
  * 将日历日期+时间转换为统一帧坐标（考虑剪刀/胶水）
- * 逻辑同 Timeline 红线：如果坐标超出当天范围，移到相邻天
- *
- * 关键：溢出必然可以在相邻天找到（因为是剪刀/胶水导致的溢出）
- * - 往前溢出 → 昨天把这段胶水给了今天（fromPrev）
- * - 往后溢出 → 今天把这段剪走给了明天（toNext）
  *
  * @param {string} dateKey - 日历日期 "YYYY-MM-DD"
  * @param {number} localMin - 本地分钟数 [0, 1439]
  * @param {Function} getCutMeta - (dateKey) => cutMeta
  * @returns {Object} { dateKey, unifiedMin } - 实际日期 + 统一帧坐标
+ *
+ * //TODO: 核心时间转换函数
+ * 为什么需要？24h/168h 统计需要将日历时间转为统一帧坐标
+ * 例如：昨天 17:06 需要知道在哪个日期的哪个统一帧位置
+ * 如果昨天有剪刀/胶水，17:06 可能溢出到今天的数据中
+ *
+ * 为什么无 cutMeta 时直接返回 localMin？
+ * - 无 cutMeta = 纯日历天，范围是 [0, 1440)
+ * - 本地分钟不会溢出
+ *
+ * 溢出逻辑（+1440/-1440）：
+ * - 溢出到昨天：从今天帧变成昨天的"明天帧" (+1440)
+ * - 溢出到明天：从今天帧变成明天的"昨天帧" (-1440)
  */
 export function calendarTimeToUnified(dateKey, localMin, getCutMeta) {
-  const cutMeta = getCutMeta(dateKey)
+  const cutMeta = getCutMeta(dateKey) //TODO: 获取剪刀/胶水元数据
+
+  console.log('[calendarTimeToUnified]', {
+    input: { dateKey, localMin }, //TODO: localMin 是本地分钟 [0-1439]
+    cutMeta
+  })
+
+  // No scissors/glue - pure calendar day, use local coordinates directly
+  //TODO: 无剪刀/胶水，直接使用本地坐标
+  if (!cutMeta) {
+    console.log('[calendarTimeToUnified] → no cutMeta, using localMin', { dateKey, unifiedMin: localMin })
+    return { dateKey, unifiedMin: localMin }
+  }
 
   // Calculate this day's visible range (same as useCoordConverter.pageRange)
-  const lo = cutMeta?.fromPrev
-    ? cutMeta.fromPrev.cutAt
-    : 1440 + (cutMeta?.toPrev?.cutAt ?? 0)
-  const hi = cutMeta?.fromNext
-    ? 2880 + cutMeta.fromNext.cutAt
-    : 1440 + (cutMeta?.toNext?.cutAt ?? 1440)
+  //TODO: 计算 pageRange（统一帧坐标）
+  const lo = cutMeta.fromPrev
+    ? cutMeta.fromPrev.cutAt  //TODO: fromPrev.cutAt 是昨天帧的统一坐标 [0,1440)
+    : 1440 + (cutMeta.toPrev?.cutAt ?? 0)  //TODO: toPrev.cutAt 是本地分钟
+  const hi = cutMeta.fromNext
+    ? 2880 + cutMeta.fromNext.cutAt  //TODO: fromNext.cutAt 是本地分钟（需加2880）
+    : 1440 + (cutMeta.toNext?.cutAt ?? 1440)  //TODO: toNext.cutAt 是本地分钟
 
   // Attempt to place in today's frame
-  const unifiedMin = 1440 + localMin
+  const unifiedMin = 1440 + localMin  //TODO: 尝试放在今天帧（1440是今天帧起点）
+
+  console.log('[calendarTimeToUnified]', {
+    range: { lo, hi },  //TODO: pageRange 边界（统一帧）
+    unifiedMin  //TODO: 今天帧的坐标
+  })
 
   if (unifiedMin >= lo && unifiedMin < hi) {
     // Within today's visible range
+    console.log('[calendarTimeToUnified] → in range', { dateKey, unifiedMin })
     return { dateKey, unifiedMin }
   } else if (unifiedMin < lo) {
     // Before today's range - must be in yesterday's glue area
     // From yesterday's perspective: today frame → tomorrow frame (+1440)
     const yesterday = addDays(dateKey, -1)
     const yesterdayUnified = unifiedMin + 1440  // 1440+localMin → 2880+localMin
+    console.log('[calendarTimeToUnified] → overflow to yesterday', { yesterday, yesterdayUnified })
     return { dateKey: yesterday, unifiedMin: yesterdayUnified }
   } else {
     // After today's range - must be in tomorrow's glue area
     // From tomorrow's perspective: today frame → yesterday frame (-1440)
     const tomorrow = addDays(dateKey, 1)
     const tomorrowUnified = unifiedMin - 1440  // 1440+localMin → localMin
+    console.log('[calendarTimeToUnified] → overflow to tomorrow', { tomorrow, tomorrowUnified })
     return { dateKey: tomorrow, unifiedMin: tomorrowUnified }
   }
 }
@@ -176,6 +246,8 @@ export function unionMinutes(blocks) {
 export function computeUnrecorded(days, blocksByDay, rangesByDay = null) {
   if (!days || days.length === 0) return 0
 
+  console.log('[computeUnrecorded] days:', days)
+
   let totalUnrecorded = 0
 
   for (let i = 0; i < days.length; i++) {
@@ -194,9 +266,19 @@ export function computeUnrecorded(days, blocksByDay, rangesByDay = null) {
     const totalVisible = range.hi - range.lo
     const unrecordedMinutes = totalVisible - recordedMinutes
 
+    console.log('[computeUnrecorded]', days[i], {
+      range,
+      totalVisible,
+      blocksCount: blocks.length,
+      visibleBlocksCount: visibleBlocks.length,
+      recordedMinutes,
+      unrecordedMinutes
+    })
+
     totalUnrecorded += unrecordedMinutes
   }
 
+  console.log('[computeUnrecorded] TOTAL:', totalUnrecorded)
   return totalUnrecorded
 }
 
@@ -224,6 +306,12 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
     const hours = timeRange === '24h' ? 24 : 168
     const startTime = new Date(nowDate.getTime() - hours * 3600000)
 
+    console.log('[24h/168h window]', {
+      nowDate: nowDate.toISOString(),
+      startTime: startTime.toISOString(),
+      hours
+    })
+
     const getCutMeta = (dk) => cutMetaByDay[dk] || null
 
     // Convert calendar times to unified coordinates
@@ -241,6 +329,8 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
       endDate: endUnified.dateKey,
       endMin: endUnified.unifiedMin
     }
+
+    console.log('[24h/168h timeWindow]', timeWindow)
   }
 
   // Compute visible range for each day (统一帧坐标)
@@ -282,6 +372,7 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
           : 1440 + (cutMeta?.toNext?.cutAt ?? 1440)
       }
 
+      console.log('[rangesByDay]', dateKey, { lo, hi, duration: hi - lo })
       return { lo, hi }
     }
 
