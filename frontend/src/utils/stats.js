@@ -68,6 +68,59 @@ export function loadDayBlocks(dateKey) {
   } catch { return [] }
 }
 
+// ---- Calendar time to unified coordinate conversion ----
+
+/**
+ * 将日历日期+时间转换为统一帧坐标（考虑剪刀/胶水）
+ * 逻辑同 Timeline 红线：如果坐标超出当天范围，递归到相邻天查找
+ *
+ * @param {string} dateKey - 日历日期 "YYYY-MM-DD"
+ * @param {number} localMin - 本地分钟数 [0, 1439]
+ * @param {Function} getCutMeta - (dateKey) => cutMeta
+ * @returns {Object} { dateKey, unifiedMin } - 实际日期 + 统一帧坐标
+ */
+export function calendarTimeToUnified(dateKey, localMin, getCutMeta) {
+  const cutMeta = getCutMeta(dateKey)
+
+  // Calculate this day's visible range (same as useCoordConverter.pageRange)
+  const lo = cutMeta?.fromPrev
+    ? cutMeta.fromPrev.cutAt
+    : 1440 + (cutMeta?.toPrev?.cutAt ?? 0)
+  const hi = cutMeta?.fromNext
+    ? 2880 + cutMeta.fromNext.cutAt
+    : 1440 + (cutMeta?.toNext?.cutAt ?? 1440)
+
+  // Attempt to place in today's frame
+  const unifiedMin = 1440 + localMin
+
+  if (unifiedMin >= lo && unifiedMin < hi) {
+    // Within today's visible range
+    return { dateKey, unifiedMin }
+  } else if (unifiedMin < lo) {
+    // Before today's range - recurse to yesterday
+    const yesterday = addDays(dateKey, -1)
+    // Wrap to yesterday's frame: unified - 1440
+    return calendarTimeToUnified(yesterday, localMin, getCutMeta)
+  } else {
+    // After today's range - recurse to tomorrow
+    const tomorrow = addDays(dateKey, 1)
+    // Wrap to tomorrow's frame: unified - 1440
+    return calendarTimeToUnified(tomorrow, localMin, getCutMeta)
+  }
+}
+
+/**
+ * Helper: add days to a date string
+ * @param {string} dateKey - "YYYY-MM-DD"
+ * @param {number} days - number of days to add (can be negative)
+ * @returns {string} new date string
+ */
+function addDays(dateKey, days) {
+  const d = new Date(dateKey)
+  d.setDate(d.getDate() + days)
+  return fmtDate(d)
+}
+
 // ---- Unrecorded time computation ----
 
 /**
@@ -158,42 +211,70 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
   const PAL = ['#A1AFC9','#F0C7C1','#C4E0D4','#B5D8A8','#FCE38A','#F36838','#9370DB','#20B2AA','#FF7F50','#87CEEB']
   const map = {}
 
-  // For 24h/168h, compute exact time window
-  let absoluteWindow = null
+  // For 24h/168h, compute exact time window using unified coordinates
+  let timeWindow = null
   if (timeRange === '24h' || timeRange === '168h') {
     const nowDate = now || new Date()
     const hours = timeRange === '24h' ? 24 : 168
     const startTime = new Date(nowDate.getTime() - hours * 3600000)
 
-    absoluteWindow = {
-      startDate: fmtDate(startTime),
-      startMin: startTime.getHours() * 60 + startTime.getMinutes(),
-      endDate: fmtDate(nowDate),
-      endMin: nowDate.getHours() * 60 + nowDate.getMinutes()
+    const getCutMeta = (dk) => cutMetaByDay[dk] || null
+
+    // Convert calendar times to unified coordinates
+    const startDateKey = fmtDate(startTime)
+    const startLocalMin = startTime.getHours() * 60 + startTime.getMinutes()
+    const startUnified = calendarTimeToUnified(startDateKey, startLocalMin, getCutMeta)
+
+    const endDateKey = fmtDate(nowDate)
+    const endLocalMin = nowDate.getHours() * 60 + nowDate.getMinutes()
+    const endUnified = calendarTimeToUnified(endDateKey, endLocalMin, getCutMeta)
+
+    timeWindow = {
+      startDate: startUnified.dateKey,
+      startMin: startUnified.unifiedMin,
+      endDate: endUnified.dateKey,
+      endMin: endUnified.unifiedMin
     }
   }
 
   // Compute visible range for each day (统一帧坐标)
   const rangesByDay = days.map((dateKey, idx) => {
     // For absolute time windows (24h/168h), compute precise boundaries
-    if (absoluteWindow) {
+    if (timeWindow) {
+      // Default: not in window
       let lo = 0
-      let hi = 1440
+      let hi = 0
 
-      if (dateKey === absoluteWindow.startDate && dateKey === absoluteWindow.endDate) {
+      if (dateKey === timeWindow.startDate && dateKey === timeWindow.endDate) {
         // Same day: [startMin, endMin)
-        lo = absoluteWindow.startMin
-        hi = absoluteWindow.endMin
-      } else if (dateKey === absoluteWindow.startDate) {
-        // Start day: [startMin, 1440)
-        lo = absoluteWindow.startMin
-        hi = 1440
-      } else if (dateKey === absoluteWindow.endDate) {
-        // End day: [0, endMin)
-        lo = 0
-        hi = absoluteWindow.endMin
+        lo = timeWindow.startMin
+        hi = timeWindow.endMin
+      } else if (dateKey === timeWindow.startDate) {
+        // Start day: [startMin, ∞) - need to find where this day ends
+        const cutMeta = cutMetaByDay[dateKey]
+        const dayHi = cutMeta?.fromNext
+          ? 2880 + cutMeta.fromNext.cutAt
+          : 1440 + (cutMeta?.toNext?.cutAt ?? 1440)
+        lo = timeWindow.startMin
+        hi = dayHi
+      } else if (dateKey === timeWindow.endDate) {
+        // End day: [0, endMin) - need to find where this day starts
+        const cutMeta = cutMetaByDay[dateKey]
+        const dayLo = cutMeta?.fromPrev
+          ? cutMeta.fromPrev.cutAt
+          : 1440 + (cutMeta?.toPrev?.cutAt ?? 0)
+        lo = dayLo
+        hi = timeWindow.endMin
+      } else {
+        // Middle days: use full visible range
+        const cutMeta = cutMetaByDay[dateKey]
+        lo = cutMeta?.fromPrev
+          ? cutMeta.fromPrev.cutAt
+          : 1440 + (cutMeta?.toPrev?.cutAt ?? 0)
+        hi = cutMeta?.fromNext
+          ? 2880 + cutMeta.fromNext.cutAt
+          : 1440 + (cutMeta?.toNext?.cutAt ?? 1440)
       }
-      // else: middle days use full [0, 1440)
 
       return { lo, hi }
     }
