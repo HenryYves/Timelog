@@ -173,6 +173,7 @@ import StatsPanel from './components/StatsPanel.vue'
 import ExportImagePanel from './components/ExportImagePanel.vue'
 import { useToast } from './composables/useToast.js'
 import { useConfirm } from './composables/useConfirm.js'
+import { useCoordConverter } from './composables/useCoordConverter.js'
 import { logger } from './utils/log.js'
 
 const store = useTimelogStore()
@@ -181,6 +182,7 @@ const tagStore = useTagStore()
 
 const { toast } = useToast()
 const { confirmVisible, confirmMessage, confirmType, resolveConfirm } = useConfirm()
+const { pageRange } = useCoordConverter()
 
 const exportMode = ref('export')
 
@@ -667,36 +669,58 @@ function onWindowKeyDown(e) {
     const now = new Date()
     const isToday = dkey(now) === store.dateKey
     const nowMin = now.getHours() * 60 + now.getMinutes()
-    // 扫描所有块（含胶水区），用显示坐标找最后一个末尾
-    const maxUnified = store.blocks.length ? Math.max(...store.blocks.map(b => b.end)) : 0
-    const fromPrevCut = store._cutMeta?.fromPrev?.cutAt ?? null
-    const toPrevCut = store._cutMeta?.toPrev?.cutAt
+    const nowUnified = 1440 + nowMin  // 当前时间的统一帧坐标（今天帧 [1440,2880)）
 
-    let s, isPrevFrame
-    if (maxUnified > 0) {
-      // 有块：从最后一个显示末尾开始
-      if (maxUnified < DAY_MIN) { s = maxUnified; isPrevFrame = true }       // glue-prev
-      else if (maxUnified < 2 * DAY_MIN) { s = maxUnified - DAY_MIN; isPrevFrame = false }  // 今天
-      else { s = maxUnified - 2 * DAY_MIN; isPrevFrame = false }              // glue-next
-      if (isToday && s > nowMin) s = nowMin  // 今天且块末尾在未来 → 用当前时间
+    // 获取页面可见范围（统一帧坐标）
+    const { lo: pageStart, hi: pageEnd } = pageRange.value
+
+    // 计算起始时间（统一帧坐标）
+    let startUnified
+    if (store.blocks.length > 0) {
+      // 有块：从最后一个块的末尾开始（blocks 中的 end 已是统一帧坐标）
+      const maxEnd = Math.max(...store.blocks.map(b => b.end))
+      startUnified = maxEnd
+      // 如果是今天且块末尾在未来，用当前时间
+      if (isToday && startUnified > nowUnified) {
+        startUnified = nowUnified
+      }
     } else {
-      // 无块：页面最早可用时间
-      if (fromPrevCut != null) { s = fromPrevCut; isPrevFrame = true }
-      else { s = toPrevCut || 0; isPrevFrame = false }
+      // 无块：从页面起点开始
+      startUnified = pageStart
+      // 如果是今天且起点在未来，用当前时间
+      if (isToday && startUnified > nowUnified) {
+        startUnified = nowUnified
+      }
     }
-    if (s > 1380) s = 1380
-    // end: endTimeAtNow 在同一帧内可用；胶水帧 nowMin 也在该帧时生效
-    let end
-    const nowInSameFrame = isPrevFrame ? (nowMin >= s && nowMin < DAY_MIN) : (nowMin >= s)
+
+    // 限制 startUnified 不超过 23:00（根据所在帧计算）
+    // 昨天帧 [0,1440): 限制到 1380
+    // 今天帧 [1440,2880): 限制到 2820
+    // 明天帧 [2880,4320): 限制到 4260
+    if (startUnified < 1440) {
+      startUnified = Math.min(startUnified, 1380)
+    } else if (startUnified < 2880) {
+      startUnified = Math.min(startUnified, 2820)
+    } else {
+      startUnified = Math.min(startUnified, 4260)
+    }
+
+    // 计算结束时间（统一帧坐标）
+    let endUnified
+    // 判断当前时间是否与起始时间在同一帧且在有效范围内
+    const startFrame = startUnified < 1440 ? 0 : startUnified < 2880 ? 1440 : 2880
+    const frameEnd = startFrame + 1440
+    const nowInSameFrame = isToday && nowUnified >= startUnified && nowUnified < frameEnd
+
     if (settings.endTimeAtNow && nowInSameFrame) {
-      end = nowMin
+      endUnified = nowUnified
     } else {
-      end = Math.min(s + settings.defaultDuration, DAY_MIN)
+      endUnified = Math.min(startUnified + settings.defaultDuration, frameEnd)
     }
+
+    // createTimes 使用统一帧坐标（存储坐标）
     editingBlock.value = null
-    createTimes.value = isPrevFrame
-      ? { start: s, end }
-      : todayLocalToStorage(s, end)
+    createTimes.value = { start: startUnified, end: endUnified }
     showModal.value = true
   }
   if (e.key === 'n' || e.key === 'N') {
