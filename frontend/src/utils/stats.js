@@ -72,7 +72,11 @@ export function loadDayBlocks(dateKey) {
 
 /**
  * 将日历日期+时间转换为统一帧坐标（考虑剪刀/胶水）
- * 逻辑同 Timeline 红线：如果坐标超出当天范围，递归到相邻天查找
+ * 逻辑同 Timeline 红线：如果坐标超出当天范围，移到相邻天
+ *
+ * 关键：溢出必然可以在相邻天找到（因为是剪刀/胶水导致的溢出）
+ * - 往前溢出 → 昨天把这段胶水给了今天（fromPrev）
+ * - 往后溢出 → 今天把这段剪走给了明天（toNext）
  *
  * @param {string} dateKey - 日历日期 "YYYY-MM-DD"
  * @param {number} localMin - 本地分钟数 [0, 1439]
@@ -97,15 +101,17 @@ export function calendarTimeToUnified(dateKey, localMin, getCutMeta) {
     // Within today's visible range
     return { dateKey, unifiedMin }
   } else if (unifiedMin < lo) {
-    // Before today's range - recurse to yesterday
+    // Before today's range - must be in yesterday's glue area
+    // From yesterday's perspective: today frame → tomorrow frame (+1440)
     const yesterday = addDays(dateKey, -1)
-    // Wrap to yesterday's frame: unified - 1440
-    return calendarTimeToUnified(yesterday, localMin, getCutMeta)
+    const yesterdayUnified = unifiedMin + 1440  // 1440+localMin → 2880+localMin
+    return { dateKey: yesterday, unifiedMin: yesterdayUnified }
   } else {
-    // After today's range - recurse to tomorrow
+    // After today's range - must be in tomorrow's glue area
+    // From tomorrow's perspective: today frame → yesterday frame (-1440)
     const tomorrow = addDays(dateKey, 1)
-    // Wrap to tomorrow's frame: unified - 1440
-    return calendarTimeToUnified(tomorrow, localMin, getCutMeta)
+    const tomorrowUnified = unifiedMin - 1440  // 1440+localMin → localMin
+    return { dateKey: tomorrow, unifiedMin: tomorrowUnified }
   }
 }
 
