@@ -17,6 +17,7 @@
         >
           <span class="drag-handle" title="拖拽排序">⋮⋮</span>
           <input type="color" v-model="tag.color">
+          <input type="text" class="hex" v-model="tag.color" @blur="tag.color = tagStore.normColor(tag.color)" placeholder="#RRGGBB" maxlength="7">
           <input type="text" class="tn" v-model="tag.name" placeholder="标签名称">
           <input type="text" class="tg" v-model="tag.group" placeholder="分组">
           <button class="del" @click="onDeleteTag(i)">删除</button>
@@ -212,6 +213,7 @@ async function onSave() {
 .tagrow.dragging { opacity: 0.5; }
 .drag-handle { cursor: grab; user-select: none; color: #999; font-size: 14px; line-height: 1; }
 .drag-handle:active { cursor: grabbing; }
+.hex { width: 70px; font-family: monospace; font-size: 12px; }
 </style>
 
 
