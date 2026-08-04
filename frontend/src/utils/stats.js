@@ -68,6 +68,73 @@ export function loadDayBlocks(dateKey) {
   } catch { return [] }
 }
 
+// ---- Unrecorded time computation ----
+
+/**
+ * Compute the union of block intervals (total covered minutes).
+ * 使用统一帧坐标进行区间合并计算。
+ * @param {Array} blocks - array of {start, end} objects
+ * @returns {number} total minutes covered by union of intervals
+ */
+export function unionMinutes(blocks) {
+  if (!blocks || blocks.length === 0) return 0
+
+  // Sort by start time
+  const sorted = [...blocks].sort((a, b) => a.start - b.start)
+
+  let totalMinutes = 0
+  let currentStart = sorted[0].start
+  let currentEnd = sorted[0].end
+
+  for (let i = 1; i < sorted.length; i++) {
+    const block = sorted[i]
+
+    if (block.start <= currentEnd) {
+      // Overlapping or adjacent - merge
+      currentEnd = Math.max(currentEnd, block.end)
+    } else {
+      // Gap found - add current interval to total
+      totalMinutes += currentEnd - currentStart
+      currentStart = block.start
+      currentEnd = block.end
+    }
+  }
+
+  // Add the last interval
+  totalMinutes += currentEnd - currentStart
+
+  return totalMinutes
+}
+
+/**
+ * Compute total unrecorded minutes across multiple days.
+ * 统一帧坐标：每天 1440 分钟 [0, 1440)。
+ * @param {Array<string>} days - array of date strings
+ * @param {Array<Array>} blocksByDay - array of block arrays, one per day
+ * @returns {number} total unrecorded minutes
+ */
+export function computeUnrecorded(days, blocksByDay) {
+  if (!days || days.length === 0) return 0
+
+  const MINUTES_PER_DAY = 1440
+  let totalUnrecorded = 0
+
+  for (let i = 0; i < days.length; i++) {
+    const blocks = blocksByDay[i] || []
+
+    // Filter to only blocks in the "today" frame [0, 1440) for this day
+    // (excludes glue blocks from other days which use extended coordinates)
+    const todayBlocks = blocks.filter(b => b.start >= 0 && b.start < MINUTES_PER_DAY)
+
+    const recordedMinutes = unionMinutes(todayBlocks)
+    const unrecordedMinutes = MINUTES_PER_DAY - recordedMinutes
+
+    totalUnrecorded += unrecordedMinutes
+  }
+
+  return totalUnrecorded
+}
+
 // ---- Card data aggregation ----
 
 /**
@@ -106,6 +173,14 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
         if (!counted && card.includeUntagged) {
           tagMap[STR.untagged] = (tagMap[STR.untagged] || 0) + dur
         }
+      }
+    }
+
+    // Add unrecorded time if enabled
+    if (card.includeUnrecorded) {
+      const unrecordedMinutes = computeUnrecorded(days, blocksByDay)
+      if (unrecordedMinutes > 0) {
+        tagMap[STR.unrecorded] = unrecordedMinutes
       }
     }
 

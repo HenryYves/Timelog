@@ -109,6 +109,7 @@
         </select>
         <label><input type="checkbox" v-model="configOnlyFirst">{{ STR.stats.onlyFirstTag }}</label>
         <label><input type="checkbox" v-model="configIncludeUntagged">{{ STR.stats.includeUntagged }}</label>
+        <label><input type="checkbox" v-model="configIncludeUnrecorded">{{ STR.stats.includeUnrecorded }}</label>
         <label>{{ STR.stats.excludeTags }}
           <input type="text" v-model="configExcludeTags" class="tag-input" />
         </label>
@@ -201,6 +202,7 @@ const configName = ref('')
 const configType = ref('pie')
 const configOnlyFirst = ref(true)
 const configIncludeUntagged = ref(false)
+const configIncludeUnrecorded = ref(false)
 const configExcludeTags = ref('')
 const configFilterGroups = ref([])
 const configShowLegend = ref(true)
@@ -216,6 +218,7 @@ function openSettings(idx) {
   configType.value = c.type
   configOnlyFirst.value = c.onlyFirstTag
   configIncludeUntagged.value = c.includeUntagged || false
+  configIncludeUnrecorded.value = c.includeUnrecorded || false
   configExcludeTags.value = (c.excludeTags || []).join(',')
   configFilterGroups.value = c.filterGroups || []
   configShowLegend.value = c.showLegend
@@ -250,6 +253,7 @@ function saveConfig() {
     type: configType.value,
     onlyFirstTag: configOnlyFirst.value,
     includeUntagged: configIncludeUntagged.value,
+    includeUnrecorded: configIncludeUnrecorded.value,
     excludeTags: configExcludeTags.value ? configExcludeTags.value.split(/[,，]/).map(s => s.trim()).filter(Boolean) : [],
     filterGroups: configFilterGroups.value,
     showLegend: configShowLegend.value,
