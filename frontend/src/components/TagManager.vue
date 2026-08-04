@@ -5,7 +5,17 @@
       <div class="sub">点左侧色块自定义颜色；相同"分组"的标签会归类显示（如"很自律"与"自律"放同一组）。</div>
 
       <div id="tagList">
-        <div v-for="(tag, i) in tagDraft" :key="i" class="tagrow">
+        <div
+          v-for="(tag, i) in tagDraft"
+          :key="tag._uid"
+          class="tagrow"
+          draggable="true"
+          @dragstart="onDragStart($event, i)"
+          @dragover.prevent="onDragOver($event, i)"
+          @drop="onDrop($event, i)"
+          @dragend="onDragEnd"
+        >
+          <span class="drag-handle" title="拖拽排序">⋮⋮</span>
           <input type="color" v-model="tag.color">
           <input type="text" class="tn" v-model="tag.name" placeholder="标签名称">
           <input type="text" class="tg" v-model="tag.group" placeholder="分组">
@@ -13,7 +23,10 @@
         </div>
       </div>
 
-      <button style="margin-top:8px" @click="onAddTag">＋ 新增标签</button>
+      <div style="margin-top:8px; display:flex; gap:8px;">
+        <button @click="onAddTag">＋ 新增标签</button>
+        <button @click="onSortAlpha">按名称排序</button>
+      </div>
 
       <div class="actions">
         <span class="spacer"></span>
@@ -40,8 +53,10 @@ const { showConfirm } = useConfirm()
 
 const tagDraft = ref([])
 const modalEl = ref(null)
-const origNames = ref([])
+const origNames = ref(new Map())
 const deletedNames = ref(new Set())
+let nextUid = 0
+let draggedIndex = null
 
 function trapFocus(e) {
   if (e.key !== 'Tab') return
@@ -63,24 +78,55 @@ function trapFocus(e) {
 
 watch(() => props.show, (val) => {
   if (!val) return
-  tagDraft.value = tagStore.tags.map(t => ({ ...t }))
-  origNames.value = tagStore.tags.map(t => t.name)
+  nextUid = 0
+  tagDraft.value = tagStore.tags.map(t => ({ ...t, _uid: nextUid++ }))
+  origNames.value = new Map(tagDraft.value.map(t => [t._uid, t.name]))
   deletedNames.value = new Set()
 }, { immediate: true })
 
 function onAddTag() {
-  tagDraft.value.push({ name: '', color: '#4C9AE0', group: '' })
+  tagDraft.value.push({ name: '', color: '#4C9AE0', group: '', _uid: nextUid++ })
+}
+
+function onSortAlpha() {
+  tagDraft.value.sort((a, b) => {
+    const an = a.name.trim().toLowerCase()
+    const bn = b.name.trim().toLowerCase()
+    return an.localeCompare(bn, 'zh-CN')
+  })
+}
+
+function onDragStart(e, index) {
+  draggedIndex = index
+  e.dataTransfer.effectAllowed = 'move'
+}
+
+function onDragOver(e, index) {
+  if (draggedIndex === null || draggedIndex === index) return
+  e.dataTransfer.dropEffect = 'move'
+}
+
+function onDrop(e, targetIndex) {
+  if (draggedIndex === null || draggedIndex === targetIndex) return
+  const [item] = tagDraft.value.splice(draggedIndex, 1)
+  tagDraft.value.splice(targetIndex, 0, item)
+  draggedIndex = null
+}
+
+function onDragEnd() {
+  draggedIndex = null
 }
 
 async function onDeleteTag(index) {
-  const name = tagDraft.value[index].name.trim()
+  const tag = tagDraft.value[index]
+  const name = tag.name.trim()
   if (name) {
     const ok = await showConfirm(STR.confirm.deleteTag(name))
     if (!ok) { modalEl.value?.querySelector('button')?.focus(); return }
     deletedNames.value.add(name)
   }
+  origNames.value.delete(tag._uid)
   tagDraft.value.splice(index, 1)
-  origNames.value.splice(index, 1)
 }
 
 function onCancel() {
@@ -138,13 +184,13 @@ async function onSave() {
     if (tn) removeTagFromBlocksAll(tn)
   }
 
-  // Handle renames: compare original names with current names at same indices
-  for (let i = 0; i < tagDraft.value.length && i < origNames.value.length; i++) {
-    const on = origNames.value[i]
-    const nn = tagDraft.value[i].name.trim()
-    if (on && nn && on !== nn) {
-      const ok = await showConfirm(STR.confirm.renameTag(on, nn))
-      if (ok) { tagStore.replaceTagInBlocks(on, nn) }
+  // Handle renames: compare original names with current names using _uid
+  for (const tag of tagDraft.value) {
+    const origName = origNames.value.get(tag._uid)
+    const newName = tag.name.trim()
+    if (origName && newName && origName !== newName) {
+      const ok = await showConfirm(STR.confirm.renameTag(origName, newName))
+      if (ok) { tagStore.replaceTagInBlocks(origName, newName) }
       else { modalEl.value?.querySelector('button')?.focus() }
     }
   }
@@ -160,6 +206,10 @@ async function onSave() {
 <style scoped>
 .modal { max-height: calc(82vh / var(--zoom, 1)); overflow: auto; }
 #tagList { max-height: 30vh; overflow-y: auto; }
+.tagrow { display: flex; align-items: center; gap: 4px; cursor: move; }
+.tagrow.dragging { opacity: 0.5; }
+.drag-handle { cursor: grab; user-select: none; color: #999; font-size: 14px; line-height: 1; }
+.drag-handle:active { cursor: grabbing; }
 </style>
 
 
