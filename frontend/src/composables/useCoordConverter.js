@@ -63,6 +63,36 @@ export function localMinToUnified(day, min) {
 }
 
 /**
+ * 计算指定日期的页面可见统一帧区间（纯函数版本）
+ * 与 useCoordConverter.pageRange 逻辑相同，但不依赖 Vue
+ *
+ * @param {Object|null} cutMeta - 剪刀/胶水元数据
+ * @returns {Object} { lo, hi } - 统一帧坐标区间 [lo, hi)
+ */
+export function computePageRange(cutMeta) {
+  if (!cutMeta) {
+    return { lo: 0, hi: DAY_MIN }
+  }
+
+  const fromPrev = cutMeta.fromPrev
+  const fromNext = cutMeta.fromNext
+  const toPrev = cutMeta.toPrev
+  const toNext = cutMeta.toNext
+
+  // 计算起点 (lo)
+  // 如果有 fromPrev：昨天胶水区的起点就是页面起点（统一帧坐标）
+  // 否则：今天区段的起点（1440 + toPrev.cutAt）就是页面起点
+  const lo = fromPrev ? fromPrev.cutAt : DAY_OFFSET.today + (toPrev?.cutAt ?? 0)
+
+  // 计算终点 (hi)
+  // 如果有 fromNext：明天胶水区的终点（2880 + cutAt）就是页面终点
+  // 否则：今天区段的终点（1440 + toNext.cutAt）就是页面终点
+  const hi = fromNext ? DAY_OFFSET.next + fromNext.cutAt : DAY_OFFSET.today + (toNext?.cutAt ?? DAY_MIN)
+
+  return { lo, hi }
+}
+
+/**
  * 坐标转换 composable
  *
  * @returns {Object} 坐标转换相关的计算属性和函数
@@ -113,35 +143,8 @@ export function useCoordConverter() {
 
   /**
    * 页面可见的统一帧区间 [lo, hi)
-   *
-   * 为什么需要 pageRange？
-   * - 用于判断"某个统一帧坐标"是否在当前页面显示范围内
-   * - 包含昨天胶水区 + 今天显示区 + 明天胶水区
-   * - 例如：判断一个块 [1380, 1500] 是否在本页（可能跨越昨天胶水和今天区段）
-   *
-   * 为什么 lo 和 hi 的计算不对称？
-   * - fromPrev.cutAt 是统一帧坐标（昨天帧 [0, 1440)），可以直接作为 lo
-   * - fromNext.cutAt 是本地分钟（明天的本地时间），需要加 2880 转成统一帧
-   * - 这是历史原因导致的不一致，改动成本太高
    */
-  const pageRange = computed(() => {
-    const fromPrev = cutMeta.value.fromPrev
-    const fromNext = cutMeta.value.fromNext
-    const toPrev = cutMeta.value.toPrev
-    const toNext = cutMeta.value.toNext
-
-    // 计算起点 (lo)
-    // 如果有 fromPrev：昨天胶水区的起点就是页面起点
-    // 否则：今天区段的起点（1440 + toPrev.cutAt）就是页面起点
-    const lo = fromPrev ? fromPrev.cutAt : DAY_OFFSET.today + (toPrev?.cutAt ?? 0)
-
-    // 计算终点 (hi)
-    // 如果有 fromNext：明天胶水区的终点（2880 + cutAt）就是页面终点
-    // 否则：今天区段的终点（1440 + toNext.cutAt）就是页面终点
-    const hi = fromNext ? DAY_OFFSET.next + fromNext.cutAt : DAY_OFFSET.today + (toNext?.cutAt ?? DAY_MIN)
-
-    return { lo, hi }
-  })
+  const pageRange = computed(() => computePageRange(cutMeta.value))
 
   /**
    * 将块（统一帧坐标）转换为渲染 top 像素

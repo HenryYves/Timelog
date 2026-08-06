@@ -2,13 +2,8 @@
 // Stats data computation — pure functions, no Vue dependency.
 // Shared by StatsPanel.vue and ExportImagePanel (stats mode).
 
-//TODO: 本文件涉及时间坐标系统转换，需要理解以下概念：
-//TODO: - 本地分钟：0-1439，表示一天内的时间（00:00=0, 23:59=1439）
-//TODO: - 统一帧坐标：昨天[0,1440)，今天[1440,2880)，明天[2880,4320)
-//TODO: - cutMeta：剪刀/胶水元数据，fromPrev.cutAt是统一帧，其他是本地分钟
-//TODO: 详见 TIME_COORDINATE_TODO.md
-
-import { KEY_PREFIX } from '../constants.js'
+import { KEY_PREFIX, DAY_MIN, DAY_OFFSET, MIN_PER_HOUR, HOURS_PER_DAY, DAYS_PER_WEEK, HOURS_PER_WEEK, MS_PER_HOUR, MS_PER_DAY } from '../constants.js'
+import { localMinToUnified, computePageRange } from '../composables/useCoordConverter.js'
 import { extractBlocks } from './dayStorage.js'
 
 // ---- Date helpers ----
@@ -33,24 +28,22 @@ function fmtDate(d) {
  * @param {string} customEnd - 自定义结束日期
  * @returns {string[]} 日期字符串数组
  *
- * //TODO: 需要详细说明
  * - 为什么 24h/168h 返回多个日期？因为统计需要跨越多天数据
  * - getDaysInRange 返回的是"需要加载数据的日期"，不是"统计范围"
  * - 24h 可能跨越今天和昨天，所以返回两个日期
  */
 export function getDaysInRange(timeRange, customStart, customEnd) {
-  const now = new Date() //TODO: 当前时间
+  const now = new Date()
   const days = []
   const r = timeRange
   if (r === 'today') {
     days.push(fmtDate(now))
   } else if (r === '24h') {
-    //TODO: 24h 需要今天和昨天的数据
     days.push(fmtDate(now))
-    const y = new Date(now.getTime() - 86400000) //TODO: 24小时前
+    const y = new Date(now.getTime() - MS_PER_DAY)
     if (fmtDate(y) !== fmtDate(now)) days.push(fmtDate(y))
   } else if (r === 'week') {
-    //TODO: 本周从周一到今天
+
     const dow = now.getDay() || 7
     for (let i = 0; i < dow; i++) {
       const d = new Date(now)
@@ -58,27 +51,27 @@ export function getDaysInRange(timeRange, customStart, customEnd) {
       days.push(fmtDate(d))
     }
   } else if (r === '168h') {
-    //TODO: 最近 168 小时（7天）
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(now.getTime() - i * 86400000)
+
+    for (let i = 0; i < DAYS_PER_WEEK; i++) {
+      const d = new Date(now.getTime() - i * MS_PER_DAY)
       days.push(fmtDate(d))
     }
   } else if (r === '7d') {
-    //TODO: 最近 7 个日历天
-    for (let i = 0; i < 7; i++) {
+
+    for (let i = 0; i < DAYS_PER_WEEK; i++) {
       const d = new Date(now)
       d.setDate(d.getDate() - i)
       days.push(fmtDate(d))
     }
   } else if (r === 'month') {
-    //TODO: 本月 1 号到今天
+
     const m = now.getMonth()
     const y = now.getFullYear()
     for (let d = 1; d <= now.getDate(); d++) {
       days.push(fmtDate(new Date(y, m, d)))
     }
   } else if (r === 'custom') {
-    //TODO: 自定义日期范围
+
     if (customStart && customEnd) {
       const s = new Date(customStart)
       const e = new Date(customEnd)
@@ -96,7 +89,7 @@ export function getDaysInRange(timeRange, customStart, customEnd) {
  * @param {string} dateKey - 日期字符串 "YYYY-MM-DD"
  * @returns {Array} 块数组，每个块包含 start/end（统一帧坐标）
  *
- * //TODO: 重要
+ *
  * - 块的 start/end 使用统一帧坐标存储
  * - 昨天块：[0, 1440)，今天块：[1440, 2880)，明天块：[2880, 4320)
  * - 跨天块会有统一帧跨越 1440 边界的情况（如 [1380, 1500]）
@@ -105,7 +98,7 @@ export function loadDayBlocks(dateKey) {
   const raw = localStorage.getItem(KEY_PREFIX + dateKey)
   if (!raw) return []
   try {
-    return extractBlocks(JSON.parse(raw)) //TODO: extractBlocks 提取统一帧坐标的块
+    return extractBlocks(JSON.parse(raw))
   } catch { return [] }
 }
 
@@ -119,47 +112,38 @@ export function loadDayBlocks(dateKey) {
  * @param {Function} getCutMeta - (dateKey) => cutMeta
  * @returns {Object} { dateKey, unifiedMin } - 实际日期 + 统一帧坐标
  *
- * //TODO: 核心时间转换函数
- * 为什么需要？24h/168h 统计需要将日历时间转为统一帧坐标
- * 例如：昨天 17:06 需要知道在哪个日期的哪个统一帧位置
- * 如果昨天有剪刀/胶水，17:06 可能溢出到今天的数据中
- *
- * 为什么无 cutMeta 时直接返回 localMin？
- * - 无 cutMeta = 纯日历天，范围是 [0, 1440)
- * - 本地分钟不会溢出
- *
- * 溢出逻辑（+1440/-1440）：
- * - 溢出到昨天：从今天帧变成昨天的"明天帧" (+1440)
- * - 溢出到明天：从今天帧变成明天的"昨天帧" (-1440)
+ * 核心逻辑：
+ * 1. 无剪刀/胶水：直接返回本地分钟作为统一坐标
+ * 2. 有剪刀/胶水：先假设在今天帧 (DAY_OFFSET.today + localMin)，检查是否在 pageRange 内
+ * 3. 如果溢出 pageRange，需要找到实际所属的日期：
+ *    - 小于 lo：溢出到昨天的明天帧
+ *    - 大于等于 hi：溢出到明天的昨天帧
  */
 export function calendarTimeToUnified(dateKey, localMin, getCutMeta) {
-  const cutMeta = getCutMeta(dateKey) //TODO: 获取剪刀/胶水元数据
+  const cutMeta = getCutMeta(dateKey)
 
-  //TODO: 无剪刀/胶水，直接使用本地坐标
+  // 无剪刀/胶水，直接使用今天帧坐标
   if (!cutMeta) {
-    return { dateKey, unifiedMin: localMin }
+    return { dateKey, unifiedMin: DAY_OFFSET.today + localMin }
   }
 
-  //TODO: 计算 pageRange（统一帧坐标）
-  const lo = cutMeta.fromPrev
-    ? cutMeta.fromPrev.cutAt  //TODO: fromPrev.cutAt 是昨天帧的统一坐标 [0,1440)
-    : 1440 + (cutMeta.toPrev?.cutAt ?? 0)  //TODO: toPrev.cutAt 是本地分钟
-  const hi = cutMeta.fromNext
-    ? 2880 + cutMeta.fromNext.cutAt  //TODO: fromNext.cutAt 是本地分钟（需加2880）
-    : 1440 + (cutMeta.toNext?.cutAt ?? 1440)  //TODO: toNext.cutAt 是本地分钟
+  const { lo, hi } = computePageRange(cutMeta)
 
-  // Attempt to place in today's frame
-  const unifiedMin = 1440 + localMin  //TODO: 尝试放在今天帧（1440是今天帧起点）
+  // 假设在今天帧 (DAY_OFFSET.today + localMin)
+  const unifiedMin = DAY_OFFSET.today + localMin
 
   if (unifiedMin >= lo && unifiedMin < hi) {
+    // 在当前日期的 pageRange 内
     return { dateKey, unifiedMin }
   } else if (unifiedMin < lo) {
+    // 溢出到昨天：从今天帧变成昨天的"明天帧" (+DAY_MIN)
     const yesterday = addDays(dateKey, -1)
-    const yesterdayUnified = unifiedMin + 1440  // 1440+localMin → 2880+localMin
+    const yesterdayUnified = unifiedMin + DAY_MIN
     return { dateKey: yesterday, unifiedMin: yesterdayUnified }
   } else {
+    // 溢出到明天：从今天帧变成明天的"昨天帧" (-DAY_MIN)
     const tomorrow = addDays(dateKey, 1)
-    const tomorrowUnified = unifiedMin - 1440  // 1440+localMin → localMin
+    const tomorrowUnified = unifiedMin - DAY_MIN
     return { dateKey: tomorrow, unifiedMin: tomorrowUnified }
   }
 }
@@ -229,7 +213,7 @@ export function computeUnrecorded(days, blocksByDay, rangesByDay = null) {
 
   for (let i = 0; i < days.length; i++) {
     const blocks = blocksByDay[i] || []
-    const range = rangesByDay?.[i] || { lo: 0, hi: 1440 }
+    const range = rangesByDay?.[i] || { lo: 0, hi: DAY_MIN }
 
     // Filter to blocks within this day's visible range and clamp to range boundaries
     const visibleBlocks = blocks
@@ -263,25 +247,25 @@ export function computeUnrecorded(days, blocksByDay, rangesByDay = null) {
 export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, customStart, customEnd, now }, cutMetaByDay = {}) {
   const days = getDaysInRange(timeRange, customStart, customEnd)
   const blocksByDay = days.map(d => loadDayBlocks(d))
-  const PAL = ['#A1AFC9','#F0C7C1','#C4E0D4','#B5D8A8','#FCE38A','#F36838','#9370DB','#20B2AA','#FF7F50','#87CEEB']
+  const PAL = ['#A1AFC9', '#F0C7C1', '#C4E0D4', '#B5D8A8', '#FCE38A', '#F36838', '#9370DB', '#20B2AA', '#FF7F50', '#87CEEB']
   const map = {}
 
   // For 24h/168h, compute exact time window using unified coordinates
   let timeWindow = null
   if (timeRange === '24h' || timeRange === '168h') {
     const nowDate = now || new Date()
-    const hours = timeRange === '24h' ? 24 : 168
-    const startTime = new Date(nowDate.getTime() - hours * 3600000)
+    const hours = timeRange === '24h' ? HOURS_PER_DAY : HOURS_PER_WEEK
+    const startTime = new Date(nowDate.getTime() - hours * MS_PER_HOUR)
 
     const getCutMeta = (dk) => cutMetaByDay[dk] || null
 
     // Convert calendar times to unified coordinates
     const startDateKey = fmtDate(startTime)
-    const startLocalMin = startTime.getHours() * 60 + startTime.getMinutes()
+    const startLocalMin = startTime.getHours() * MIN_PER_HOUR + startTime.getMinutes()
     const startUnified = calendarTimeToUnified(startDateKey, startLocalMin, getCutMeta)
 
     const endDateKey = fmtDate(nowDate)
-    const endLocalMin = nowDate.getHours() * 60 + nowDate.getMinutes()
+    const endLocalMin = nowDate.getHours() * MIN_PER_HOUR + nowDate.getMinutes()
     const endUnified = calendarTimeToUnified(endDateKey, endLocalMin, getCutMeta)
 
     timeWindow = {
@@ -404,9 +388,9 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
 // ---- Formatting ----
 
 export function fmtDur(min) {
-  if (min >= 60) {
-    const h = Math.floor(min / 60)
-    const m = min % 60
+  if (min >= MIN_PER_HOUR) {
+    const h = Math.floor(min / MIN_PER_HOUR)
+    const m = min % MIN_PER_HOUR
     return m > 0 ? `${h}h ${m}m` : `${h}h`
   }
   return `${min}m`

@@ -103,6 +103,8 @@ src-tauri/src/
 - **构建/前端命令必须在 frontend 目录下执行** — 工作目录是 repo 根 `D:\a_my\project\html\Timelog`，git 操作后 cwd 停留在根。`npx vite build`、`npm test`、`npm install` 等所有前端命令都必须 `cd /d/a_my/project/html/Timelog/frontend &&` 前缀，否则 `npx` 找不到本地 `node_modules` 里的 vite，会去全局 cache 拉另一个版本在错误目录下跑（静默失败或报 `UNRESOLVED_ENTRY`）。
 - **命令报错时优先 `pwd` 确认并矫正目录** — Bash 命令执行失败（如 `fatal: pathspec did not match`、`Missing script`、路径找不到），且不确定原因时，优先用 `pwd` 确认当前工作目录，然后 `cd` 到正确目录再重试，不要只输出当前目录或在错误目录下盲目重试。
 - **Vue scoped CSS 不对 JS 创建的元素生效** — `document.createElement` / `v-html` 产生的元素不带 `data-v-xxx` 属性，scoped 样式不会命中。即使写 `.parent .child` 后代选择器理论上能穿透，实际也遇到过不生效。这类样式一律放全局 `style.css`。
+- **函数职能与文件职能一致性** — 添加函数（尤其是共享/导出函数）前，必须确认函数职能与所在文件职能一致。例如：坐标转换函数属于 `useCoordConverter.js`，不应放在 `stats.js`（统计计算）中。共享逻辑应提取到职能匹配的文件并导出，避免在多处重复实现。
+- **文件职能声明** — 创建新文件时，必须在文件顶部用规范注释声明文件职能（`@fileoverview` 或文件头注释），说明该文件负责什么功能、导出什么、适用场景。参考 `useCoordConverter.js`、`stats.js` 的文件头注释格式。
 
 ## 行为约束
 

@@ -8,6 +8,17 @@ export const DAY_OFFSET = {
 };
 export const EDGE = 6
 
+// ---------- Time ----------
+export const MS_PER_SECOND = 1000
+export const SECONDS_PER_MINUTE = 60
+export const MIN_PER_HOUR = 60
+export const HOURS_PER_DAY = 24
+export const DAYS_PER_WEEK = 7
+export const HOURS_PER_WEEK = DAYS_PER_WEEK * HOURS_PER_DAY
+export const MS_PER_MINUTE = MS_PER_SECOND * SECONDS_PER_MINUTE
+export const MS_PER_HOUR = MS_PER_MINUTE * MIN_PER_HOUR
+export const MS_PER_DAY = HOURS_PER_DAY * MS_PER_HOUR
+
 // ---------- Backup ----------
 export const MAX_BACKUP_COUNT = 4
 export const DATA_DIR = 'timelog_data'
