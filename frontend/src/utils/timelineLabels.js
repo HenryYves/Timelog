@@ -36,13 +36,13 @@ export function buildGluePrevLabels(cutAt) {
  */
 export function buildTodayLabels(lo, hi) {
   const labels = []
-  const firstHour = Math.ceil(lo / 60) * 60
+  const firstHour = Math.max(Math.ceil(lo / 60) * 60, DAY_OFFSET.today)
   const clampedEnd = Math.min(hi, DAY_OFFSET.next)
   for (let min = firstHour; min <= clampedEnd; min += 60) {
     labels.push({
       min,
       text: fmt(min - DAY_OFFSET.today),
-      top: (min - lo) * PX_MIN,
+      top: (min - Math.max(lo, DAY_OFFSET.today)) * PX_MIN,
     })
   }
   return labels

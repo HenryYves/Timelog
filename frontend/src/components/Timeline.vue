@@ -146,7 +146,13 @@ const nowMin = ref(0)//现在时间(统一帧)
 let nowTimer = null//定时器句柄,每60s更新nowMin让时间红线走动
 // 当前时间是否落在本页显示范围内（today 优先于 glue-prev/glue-next）
 const nowInToday = computed(() => {
-  if (nowMin.value >= pageRange.value.lo && nowMin.value < pageRange.value.hi) {
+  console.log('[nowInToday]', {
+    nowMin: nowMin.value,
+    'pageRange.lo': pageRange.value.lo,
+    'pageRange.hi': pageRange.value.hi,
+    result: nowMin.value >= pageRange.value.lo && nowMin.value < pageRange.value.hi || nowMin.value == 0
+  })
+  if (nowMin.value >= pageRange.value.lo && nowMin.value < pageRange.value.hi && nowMin.value != 0) {
     return true
   }
   return false
@@ -154,7 +160,9 @@ const nowInToday = computed(() => {
 // now 线在 .day 中的 y 坐标（today 优先）.
 function nowLineY() {
   if (!nowInToday.value) return 0
-  return (nowMin.value - pageRange.value.lo) * PX_MIN
+  const y = (nowMin.value - pageRange.value.lo) * PX_MIN
+  console.log('[nowLineY]', { nowMin: nowMin.value, 'pageRange.lo': pageRange.value.lo, 'pageRange.hi': pageRange.value.hi, y })
+  return y
 }
 
 function updateNowMin() {
@@ -171,6 +179,13 @@ function updateNowMin() {
   } else {
     nowMin.value = 0
   }
+  console.log('[updateNowMin]', {
+    localMin, todayKey, pageDate: store.dateKey,
+    cutMeta: store._cutMeta,
+    'pageRange.lo': pageRange.value.lo,
+    'pageRange.hi': pageRange.value.hi,
+    nowMin: nowMin.value
+  })
 }
 
 // 诚实存储：storage = display，无需转换函数
@@ -764,7 +779,7 @@ function scrollToNow() {
   if (nowInToday.value) {
     main.scrollTop = Math.max(0, nowLineY() - 160)
   } else {
-    main.scrollTop = Math.max(0, minuteToY(DAY_MIN) - 160)
+    main.scrollTop = Math.max(0, minuteToY(pageRange.value.lo) - 160)
   }
 }
 

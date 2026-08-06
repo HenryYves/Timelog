@@ -90,11 +90,11 @@ export function useCoordConverter() {
     // 如果没有 fromNext，高度为 0
     const next = cutMeta.value.fromNext ? cutMeta.value.fromNext.cutAt : 0
 
-    // 今天显示区高度 = 今天实际显示的时间范围
-    // todayStart：今天显示的起点（本地分钟）
-    // todayEnd：今天显示的终点（本地分钟）
-    const todayStart = cutMeta.value.toPrev ? cutMeta.value.toPrev.cutAt + DAY_MIN : (DAY_MIN - prev)
-    const todayEnd = cutMeta.value.toNext ? cutMeta.value.toNext.cutAt + DAY_MIN : 2 * DAY_MIN
+    // gutter today显示区高度 = gutter today实际显示的时间范围
+    // todayStart：显示的起点
+    // todayEnd：显示的终点
+    const todayStart = cutMeta.value.toPrev ? localMinToUnified('today', cutMeta.value.toPrev.cutAt) : localMinToUnified('today', 0)
+    const todayEnd = cutMeta.value.toNext ? localMinToUnified('today', cutMeta.value.toNext.cutAt) : localMinToUnified('today', DAY_MIN)
     const today = todayEnd - todayStart
 
     return { prev, today, next }
