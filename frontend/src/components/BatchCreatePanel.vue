@@ -24,6 +24,8 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
+import { DAY_MIN, DAY_OFFSET } from '../constants.js'
+import { localMinToUnified } from '../composables/useCoordConverter.js'
 import { useTimelogStore, dkey, fmtSigned, unifiedToStorage } from '../store/timelog.js'
 import { useSettingsStore } from '../store/settings.js'
 import { useCoordConverter } from '../composables/useCoordConverter.js'
@@ -77,10 +79,10 @@ function parseTimeToken(tok) {
   const m = tok.match(/^([+-]?)(\d{2})(\d{2})$/)
   if (!m) return null
   const min = parseInt(m[2]) * 60 + parseInt(m[3])
-  if (min > 1440) return null
-  if (m[1] === '-') return min
-  if (m[1] === '+') return 2880 + min
-  return 1440 + min
+  if (min > DAY_MIN) return null
+  if (m[1] === '-') return localMinToUnified('prev', min)
+  if (m[1] === '+') return localMinToUnified('next', min)
+  return localMinToUnified('today', min)
 }
 
 function parseChunk(chunk, prevEnd) {
@@ -94,7 +96,7 @@ function parseChunk(chunk, prevEnd) {
   const timeStr = lines.length > 2 ? (lines[2] || '').trim() : ''
   const note = lines.length > 3 ? lines.slice(3).join('\n').trimEnd() : ''
 
-  const allDay = () => ({ title, tags, start: 1440, end: 2880, note })
+  const allDay = () => ({ title, tags, start: DAY_OFFSET.today, end: DAY_OFFSET.next, note })
 
   let start, end
   if (timeStr) {
@@ -123,7 +125,7 @@ function parseChunk(chunk, prevEnd) {
       const now = new Date()
       if (dkey(now) === store.dateKey) {
         const nowMin = now.getHours() * 60 + now.getMinutes()
-        const prevLocal = prevEnd >= 1440 && prevEnd < 2880 ? prevEnd - 1440 : null
+        const prevLocal = prevEnd >= DAY_OFFSET.today && prevEnd < DAY_OFFSET.next ? prevEnd - DAY_OFFSET.today : null
         if (prevLocal != null && prevLocal > nowMin) return allDay()
       }
     } else {

@@ -1,10 +1,12 @@
 <template>
   <div id="app-container">
     <header @mousedown="onHeaderMouseDown" @dblclick="onHeaderDblClick">
-      <h1><img src="/icons/icon.svg" class="logo" alt=""><img src="/icons/timelog.svg" class="logo-text" alt="Timelog"></h1>
+      <h1><img src="/icons/icon.svg" class="logo" alt=""><img src="/icons/timelog.svg" class="logo-text" alt="Timelog">
+      </h1>
       <div class="datenav">
         <button class="icon" @click="store.goPrevDay()">‹</button>
-        <span class="date" @click.stop="showDateMenu = !showDateMenu" @dblclick.stop="showDateJump = true; showDateMenu = false">{{ dateLabel }}</span>
+        <span class="date" @click.stop="showDateMenu = !showDateMenu"
+          @dblclick.stop="showDateJump = true; showDateMenu = false">{{ dateLabel }}</span>
         <div class="date-popover" v-if="showDateMenu" @mousedown.stop @keydown.escape.stop="showDateMenu = false">
           <input type="date" :value="fmtDateInput(store.curDate)" @change="onDatePick($event.target.value)" />
         </div>
@@ -18,127 +20,88 @@
       <span class="spacer"></span>
       <span class="version">{{ APP_VERSION }}</span>
       <div class="more-wrap">
-        <button class="more-btn" id="moreBtn" title="更多" @click="showMore = !showMore"><img src="/icons/more.svg" alt="更多"></button>
-        <div class="dropdown" :class="{ open: showMore }" @keydown.escape.stop="showMore = false" @keydown="trapMoreFocus">
-          <button class="dropdown-item" @click="showSettings = true; showMore = false"><img src="/icons/settings.svg" alt="">设置</button>
-          <button class="dropdown-item" @click="showStats = true; showMore = false"><img src="/icons/stats.svg" alt="">统计</button>
-          <button class="dropdown-item" @click="showTagMgr = true; showMore = false"><img src="/icons/tag.svg" alt="">标签</button>
+        <button class="more-btn" id="moreBtn" title="更多" @click="showMore = !showMore"><img src="/icons/more.svg"
+            alt="更多"></button>
+        <div class="dropdown" :class="{ open: showMore }" @keydown.escape.stop="showMore = false"
+          @keydown="trapMoreFocus">
+          <button class="dropdown-item" @click="showSettings = true; showMore = false"><img src="/icons/settings.svg"
+              alt="">设置</button>
+          <button class="dropdown-item" @click="showStats = true; showMore = false"><img src="/icons/stats.svg"
+              alt="">统计</button>
+          <button class="dropdown-item" @click="showTagMgr = true; showMore = false"><img src="/icons/tag.svg"
+              alt="">标签</button>
           <!-- 导出 submenu -->
           <div class="submenu-wrap">
-            <button class="dropdown-item submenu-trigger" @click.stop="showExportSub = !showExportSub; showImportSub = false"><img src="/icons/export.svg" alt="">导出 <span class="sub-arrow">▸</span></button>
-            <div class="submenu-drop" :class="{ open: showExportSub }" @mouseleave="showExportSub = false" @keydown.escape.stop="showExportSub = false" @keydown="trapSubFocus">
-              <button class="dropdown-item" @click="showExportImage = true; showMore = false"><img src="/icons/export-image.svg" alt="">导出切图</button>
-              <button class="dropdown-item" @click="showExport = true; exportMode = 'export'; showMore = false"><img src="/icons/export-text.svg" alt="">导出文本</button>
-              <button class="dropdown-item" @click="showExport = true; exportMode = 'json-export'; showMore = false"><img src="/icons/export-json.svg" alt="">导出JSON</button>
+            <button class="dropdown-item submenu-trigger"
+              @click.stop="showExportSub = !showExportSub; showImportSub = false"><img src="/icons/export.svg" alt="">导出
+              <span class="sub-arrow">▸</span></button>
+            <div class="submenu-drop" :class="{ open: showExportSub }" @mouseleave="showExportSub = false"
+              @keydown.escape.stop="showExportSub = false" @keydown="trapSubFocus">
+              <button class="dropdown-item" @click="showExportImage = true; showMore = false"><img
+                  src="/icons/export-image.svg" alt="">导出切图</button>
+              <button class="dropdown-item" @click="showExport = true; exportMode = 'export'; showMore = false"><img
+                  src="/icons/export-text.svg" alt="">导出文本</button>
+              <button class="dropdown-item"
+                @click="showExport = true; exportMode = 'json-export'; showMore = false"><img
+                  src="/icons/export-json.svg" alt="">导出JSON</button>
             </div>
           </div>
 
           <!-- 导入 submenu -->
           <div class="submenu-wrap">
-            <button class="dropdown-item submenu-trigger" @click.stop="showImportSub = !showImportSub; showExportSub = false"><img src="/icons/import.svg" alt="">导入 <span class="sub-arrow">▸</span></button>
-            <div class="submenu-drop" :class="{ open: showImportSub }" @mouseleave="showImportSub = false" @keydown.escape.stop="showImportSub = false" @keydown="trapSubFocus">
-              <button class="dropdown-item" @click="doImport(); showMore = false"><img src="/icons/import-json.svg" alt="">导入JSON备份</button>
-              <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><img src="/icons/text-import.svg" alt="">文本导入</button>
+            <button class="dropdown-item submenu-trigger"
+              @click.stop="showImportSub = !showImportSub; showExportSub = false"><img src="/icons/import.svg" alt="">导入
+              <span class="sub-arrow">▸</span></button>
+            <div class="submenu-drop" :class="{ open: showImportSub }" @mouseleave="showImportSub = false"
+              @keydown.escape.stop="showImportSub = false" @keydown="trapSubFocus">
+              <button class="dropdown-item" @click="doImport(); showMore = false"><img src="/icons/import-json.svg"
+                  alt="">导入JSON备份</button>
+              <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><img
+                  src="/icons/text-import.svg" alt="">文本导入</button>
             </div>
           </div>
-          <button class="dropdown-item" @click="showDataMgr = true; showMore = false"><img src="/icons/data.svg" alt="">管理数据</button>
-          <button class="dropdown-item" @click="doBackupNow(); showMore = false"><img src="/icons/backup.svg" alt="">立即备份<span class="dot" :class="bkStatusClass"></span></button>
-          <div class="dropdown-footer"><span>{{ bkStatusText }}</span><button class="dropdown-item btn-help-mini" @click="showHelp = true; showMore = false">help</button></div>
+          <button class="dropdown-item" @click="showDataMgr = true; showMore = false"><img src="/icons/data.svg"
+              alt="">管理数据</button>
+          <button class="dropdown-item" @click="doBackupNow(); showMore = false"><img src="/icons/backup.svg"
+              alt="">立即备份<span class="dot" :class="bkStatusClass"></span></button>
+          <div class="dropdown-footer"><span>{{ bkStatusText }}</span><button class="dropdown-item btn-help-mini"
+              @click="showHelp = true; showMore = false">help</button></div>
         </div>
       </div>
-<span class="win-ctrls" :class="{ on: winCtrlActive }" id="winCtrls">
+      <span class="win-ctrls" :class="{ on: winCtrlActive }" id="winCtrls">
         <button class="win-btn" id="winMin" title="最小化" @click="onWinMin"><img src="/icons/win-min.svg" alt=""></button>
-        <button class="win-btn" id="winMax" :title="isMaximized ? '还原' : '最大化'" @click="onWinMax"><img :src="isMaximized ? '/icons/win-restore.svg' : '/icons/win-max.svg'" alt=""></button>
-        <button class="win-btn close" id="winClose" title="关闭" @click="onWinClose"><img src="/icons/win-close.svg" alt=""></button>
+        <button class="win-btn" id="winMax" :title="isMaximized ? '还原' : '最大化'" @click="onWinMax"><img
+            :src="isMaximized ? '/icons/win-restore.svg' : '/icons/win-max.svg'" alt=""></button>
+        <button class="win-btn close" id="winClose" title="关闭" @click="onWinClose"><img src="/icons/win-close.svg"
+            alt=""></button>
       </span>
     </header>
     <main id="scroller" tabindex="-1">
-      <Timeline
-        :modal-open="showModal"
-        @edit-block="onEditBlock"
-        @create-block="onCreateBlock"
-      />
+      <Timeline :modal-open="showModal" @edit-block="onEditBlock" @create-block="onCreateBlock" />
     </main>
-    <EditModal
-      v-if="showModal"
-      :show="showModal"
-      :editing-block="editingBlock"
-      :create-times="createTimes"
-      @close="closeModal"
-      @manage-tags="onManageTags"
-    />
-    <SettingsPanel
-      v-if="showSettings"
-      :show="showSettings"
-      @close="showSettings = false"
-      @check-update-result="onCheckUpdateResult"
-    />
-    <ExportPanel
-      v-if="showExport"
-      :show="showExport"
-      :mode="exportMode"
-      :json-import-data="jsonImportData"
-      @close="showExport = false; jsonImportData = null"
-      @export-json="onExportJson"
-    />
-    <TagManager
-      v-if="showTagMgr"
-      :show="showTagMgr"
-      @close="showTagMgr = false"
-      @saved="onTagMgrSaved"
-    />
-    <DataManager
-      v-if="showDataMgr"
-      :show="showDataMgr"
-      @close="showDataMgr = false"
-      @changed="onDataMgrChanged"
-    />
+    <EditModal v-if="showModal" :show="showModal" :editing-block="editingBlock" :create-times="createTimes"
+      @close="closeModal" @manage-tags="onManageTags" />
+    <SettingsPanel v-if="showSettings" :show="showSettings" @close="showSettings = false"
+      @check-update-result="onCheckUpdateResult" />
+    <ExportPanel v-if="showExport" :show="showExport" :mode="exportMode" :json-import-data="jsonImportData"
+      @close="showExport = false; jsonImportData = null" @export-json="onExportJson" />
+    <TagManager v-if="showTagMgr" :show="showTagMgr" @close="showTagMgr = false" @saved="onTagMgrSaved" />
+    <DataManager v-if="showDataMgr" :show="showDataMgr" @close="showDataMgr = false" @changed="onDataMgrChanged" />
 
     <!-- Global UI -->
     <Toast />
-    <ConfirmDialog
-      :show="confirmVisible"
-      :message="confirmMessage"
-      :type="confirmType"
-      @close="resolveConfirm(false)"
-      @confirm="resolveConfirm(true)"
-    />
-    <HelpPanel
-      v-if="showHelp"
-      :show="showHelp"
-      @close="showHelp = false"
-    />
-    <UpdateDialog
-      v-if="showUpdate"
-      :show="showUpdate"
-      :update-info="updateInfo"
-      @close="showUpdate = false"
-      @will-install-on-exit="onWillInstallOnExit"
-    />
-    <BatchCreatePanel
-      v-if="showBatchCreate"
-      :show="showBatchCreate"
-      @close="showBatchCreate = false"
-    />
-    <StatsPanel
-      v-if="showStats"
-      :show="showStats"
-      @close="showStats = false; statsExportCardId = ''"
+    <ConfirmDialog :show="confirmVisible" :message="confirmMessage" :type="confirmType" @close="resolveConfirm(false)"
+      @confirm="resolveConfirm(true)" />
+    <HelpPanel v-if="showHelp" :show="showHelp" @close="showHelp = false" />
+    <UpdateDialog v-if="showUpdate" :show="showUpdate" :update-info="updateInfo" @close="showUpdate = false"
+      @will-install-on-exit="onWillInstallOnExit" />
+    <BatchCreatePanel v-if="showBatchCreate" :show="showBatchCreate" @close="showBatchCreate = false" />
+    <StatsPanel v-if="showStats" :show="showStats" @close="showStats = false; statsExportCardId = ''"
       @export-image="showStatsExport = true; statsExportCardId = ''"
-      @export-card="cardId => { statsExportCardId = cardId; showStatsExport = true }"
-    />
-    <ExportImagePanel
-      v-if="showExportImage"
-      :show="showExportImage"
-      @close="showExportImage = false"
-    />
-    <ExportImagePanel
-      v-if="showStatsExport"
-      :show="showStatsExport"
-      mode="stats"
-      :cardId="statsExportCardId"
-      @close="showStatsExport = false; statsExportCardId = ''"
-    />
+      @export-card="cardId => { statsExportCardId = cardId; showStatsExport = true }" />
+    <ExportImagePanel v-if="showExportImage" :show="showExportImage" @close="showExportImage = false" />
+    <ExportImagePanel v-if="showStatsExport" :show="showStatsExport" mode="stats" :cardId="statsExportCardId"
+      @close="showStatsExport = false; statsExportCardId = ''" />
   </div>
 </template>
 
@@ -152,7 +115,7 @@ import { useTimelogStore, dkey, storeUndo, todayLocalToStorage } from './store/t
 
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
-import { APP_VERSION, compareSemver, DAY_MIN } from './constants.js'
+import { APP_VERSION, compareSemver, DAY_MIN, DAY_OFFSET } from './constants.js'
 import { STR } from './strings.js'
 import {
   bkStatusText, bkStatusClass, setBackupPrefs,
@@ -173,7 +136,7 @@ import StatsPanel from './components/StatsPanel.vue'
 import ExportImagePanel from './components/ExportImagePanel.vue'
 import { useToast } from './composables/useToast.js'
 import { useConfirm } from './composables/useConfirm.js'
-import { useCoordConverter } from './composables/useCoordConverter.js'
+import { useCoordConverter, localMinToUnified } from './composables/useCoordConverter.js'
 import { logger } from './utils/log.js'
 
 const store = useTimelogStore()
@@ -218,7 +181,7 @@ function isRolloutAllowed(version, rollout) {
   }
 
   let cache
-  try { cache = JSON.parse(localStorage.getItem('timelog:rolloutCache')) } catch {}
+  try { cache = JSON.parse(localStorage.getItem('timelog:rolloutCache')) } catch { }
 
   // Recompute if version or threshold changed
   if (!cache || cache.version !== version || cache.threshold !== rollout) {
@@ -235,8 +198,8 @@ function isRolloutAllowed(version, rollout) {
 
 const dateLabel = computed(() => {
   const d = store.curDate
-  const wd = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()]
-  return d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日 ' + wd
+  const wd = STR.stats.weekDays[d.getDay()]
+  return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + wd
 })
 
 function fmtDateInput(d) { return dkey(d) }
@@ -404,7 +367,7 @@ async function doExportJson(opts = {}) {
 
   // Export tags
   if (incTags) {
-    try { data.tags = JSON.parse(localStorage.getItem('timelog:tags')) || [] } catch {}
+    try { data.tags = JSON.parse(localStorage.getItem('timelog:tags')) || [] } catch { }
   }
 
   // Export days
@@ -413,14 +376,14 @@ async function doExportJson(opts = {}) {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i)
       if (k.startsWith('timelog:') && /^\d{4}-\d{2}-\d{2}$/.test(k.slice(7))) {
-        try { data.days[k.slice(7)] = JSON.parse(localStorage.getItem(k)) } catch {}
+        try { data.days[k.slice(7)] = JSON.parse(localStorage.getItem(k)) } catch { }
       }
     }
   }
 
   // Export stats views
   if (incStats) {
-    try { data.statsCards = JSON.parse(localStorage.getItem('timelog:stats-cards') || 'null') } catch {}
+    try { data.statsCards = JSON.parse(localStorage.getItem('timelog:stats-cards') || 'null') } catch { }
     data.statsTimeRange = localStorage.getItem('timelog:stats-time-range') || null
     data.statsCustomStart = localStorage.getItem('timelog:stats-custom-start') || null
     data.statsCustomEnd = localStorage.getItem('timelog:stats-custom-end') || null
@@ -438,7 +401,7 @@ async function doExportJson(opts = {}) {
     }
     data.settings = {}
     settingsKeys.forEach(k => {
-      try { data.settings[k.slice(8)] = localStorage.getItem(k) } catch {}
+      try { data.settings[k.slice(8)] = localStorage.getItem(k) } catch { }
     })
   }
 
@@ -669,7 +632,7 @@ function onWindowKeyDown(e) {
     const now = new Date()
     const isToday = dkey(now) === store.dateKey
     const nowMin = now.getHours() * 60 + now.getMinutes()
-    const nowUnified = 1440 + nowMin  // 当前时间的统一帧坐标（今天帧 [1440,2880)）
+    const nowUnified = localMinToUnified('today', nowMin)
 
     // 获取页面可见范围（统一帧坐标）
     const { lo: pageStart, hi: pageEnd } = pageRange.value
@@ -677,39 +640,18 @@ function onWindowKeyDown(e) {
     // 计算起始时间（统一帧坐标）
     let startUnified
     if (store.blocks.length > 0) {
-      // 有块：从最后一个块的末尾开始（blocks 中的 end 已是统一帧坐标）
       const maxEnd = Math.max(...store.blocks.map(b => b.end))
       startUnified = maxEnd
-      // 如果是今天且块末尾在未来，用当前时间
-      if (isToday && startUnified > nowUnified) {
-        startUnified = nowUnified
-      }
     } else {
-      // 无块：从页面起点开始
       startUnified = pageStart
-      // 如果是今天且起点在未来，用当前时间
-      if (isToday && startUnified > nowUnified) {
-        startUnified = nowUnified
-      }
     }
-
-    // 限制 startUnified 不超过 23:00（根据所在帧计算）
-    // 昨天帧 [0,1440): 限制到 1380
-    // 今天帧 [1440,2880): 限制到 2820
-    // 明天帧 [2880,4320): 限制到 4260
-    if (startUnified < 1440) {
-      startUnified = Math.min(startUnified, 1380)
-    } else if (startUnified < 2880) {
-      startUnified = Math.min(startUnified, 2820)
-    } else {
-      startUnified = Math.min(startUnified, 4260)
+    if (isToday && startUnified > nowUnified) {
+      startUnified = nowUnified
     }
 
     // 计算结束时间（统一帧坐标）
+    const frameEnd = pageEnd
     let endUnified
-    // 判断当前时间是否与起始时间在同一帧且在有效范围内
-    const startFrame = startUnified < 1440 ? 0 : startUnified < 2880 ? 1440 : 2880
-    const frameEnd = startFrame + 1440
     const nowInSameFrame = isToday && nowUnified >= startUnified && nowUnified < frameEnd
 
     if (settings.endTimeAtNow && nowInSameFrame) {
@@ -718,9 +660,8 @@ function onWindowKeyDown(e) {
       endUnified = Math.min(startUnified + settings.defaultDuration, frameEnd)
     }
 
-    // createTimes 使用统一帧坐标（存储坐标）
-    editingBlock.value = null
     createTimes.value = { start: startUnified, end: endUnified }
+    editingBlock.value = null
     showModal.value = true
   }
   if (e.key === 'n' || e.key === 'N') {
@@ -824,7 +765,7 @@ onMounted(async () => {
   // Single-instance: second launch → toast
   listen('second-instance', () => {
     toast(STR.toast.alreadyRunning)
-  }).catch(() => {})
+  }).catch(() => { })
 
   window.addEventListener('keydown', onWindowKeyDown)
   window.addEventListener('backup:restored', onBackupRestored)
@@ -853,7 +794,7 @@ onMounted(async () => {
           isMaximized.value = await win.isMaximized()
         }, 80)
       })
-    } catch {}
+    } catch { }
   }
 
   // Crash recovery: check for pending download
@@ -868,7 +809,7 @@ onMounted(async () => {
       } else {
         localStorage.removeItem('timelog:pendingDownload')
       }
-    } catch {}
+    } catch { }
   }
 
   if (settings.autoUpdate) {

@@ -192,6 +192,7 @@ export const STR = {
     noData: '暂无数据',
     noChart: '点击 [+ 添加视图] 创建第一个图表',
     timeRange: '时间范围',
+    weekDays: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
     timeToday: '今天',
     time24h: '24h',
     timeWeek: '本周',

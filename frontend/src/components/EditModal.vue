@@ -74,6 +74,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
+import { DAY_MIN, DAY_OFFSET } from '../constants.js'
 import { useTimelogStore, fmt, toInput, todayStorageBase, addDays } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 import { useSettingsStore } from '../store/settings.js'
@@ -125,15 +126,15 @@ function parseSignedTime(str) {
   const m = (str || '').trim().match(/^([+-])?(\d{1,2}):(\d{2})$/)
   if (m) {
     const min = parseInt(m[2]) * 60 + parseInt(m[3])
-    if (min > 1440) return null
-    return { base: m[1] === '-' ? 0 : m[1] === '+' ? 2880 : 1440, min }
+    if (min > DAY_MIN) return null
+    return { base: m[1] === '-' ? DAY_OFFSET.prev : m[1] === '+' ? DAY_OFFSET.next : DAY_OFFSET.today, min }
   }
   // HHMM (省略 :)
   const n = (str || '').trim().match(/^([+-])?(\d{2})(\d{2})$/)
   if (n) {
     const min = parseInt(n[2]) * 60 + parseInt(n[3])
-    if (min > 1440) return null
-    return { base: n[1] === '-' ? 0 : n[1] === '+' ? 2880 : 1440, min }
+    if (min > DAY_MIN) return null
+    return { base: n[1] === '-' ? DAY_OFFSET.prev : n[1] === '+' ? DAY_OFFSET.next : DAY_OFFSET.today, min }
   }
   return null
 }
@@ -151,24 +152,24 @@ function onTimeBlur(field) {
 
 function formatSignedTime(local, base) {
   const t = toInput(local)
-  if (base === 0) return '-' + t
-  if (base === 2880) return '+' + t
+  if (base === DAY_OFFSET.prev) return '-' + t
+  if (base === DAY_OFFSET.next) return '+' + t
   return t
 }
 
 // 返回起点坐标所属的帧基准（统一帧坐标）
 function frameOf(x) {
-  if (x < 1440) return 0      // 昨天帧
-  if (x < 2880) return 1440   // 今天帧
-  return 2880                 // 明天帧
+  if (x < DAY_OFFSET.today) return DAY_OFFSET.prev      // 昨天帧
+  if (x < DAY_OFFSET.next) return DAY_OFFSET.today   // 今天帧
+  return DAY_OFFSET.next                 // 明天帧
 }
 
 // 返回终点坐标所属的帧基准（统一帧坐标）
 // 终点使用 <= 判断，1440 算作昨天帧的结束
 function frameOfEnd(x) {
-  if (x <= 1440) return 0     // 昨天帧
-  if (x <= 2880) return 1440  // 今天帧
-  return 2880                 // 明天帧
+  if (x <= DAY_OFFSET.today) return DAY_OFFSET.prev     // 昨天帧
+  if (x <= DAY_OFFSET.next) return DAY_OFFSET.today  // 今天帧
+  return DAY_OFFSET.next                 // 明天帧
 }
 
 watch(
@@ -270,7 +271,7 @@ async function save() {
   const ep = parseSignedTime(mEnd.value)
   if (!sp || !ep) return
   const storeBase = todayStorageBase(timelogStore._cutMeta)
-  const toStorage = (p) => p.base === 1440 ? p.min + storeBase : p.min + p.base
+  const toStorage = (p) => p.base === DAY_OFFSET.today ? p.min + storeBase : p.min + p.base
   let s = toStorage(sp)
   let en = toStorage(ep)
   if (en <= s) en = s + 1
@@ -284,18 +285,18 @@ async function save() {
     const todayUStart = pageRange.value.lo  // 本页可见起点（统一帧坐标）
     const todayUEnd = pageRange.value.hi    // 本页可见终点（统一帧坐标）
     // 计算本地分钟用于提示（从今天帧 1440 偏移）
-    const localStart = todayUStart >= 1440 && todayUStart < 2880 ? todayUStart - 1440 : 0
-    const localEnd = todayUEnd >= 1440 && todayUEnd < 2880 ? todayUEnd - 1440 : 1440
+    const localStart = todayUStart >= DAY_OFFSET.today && todayUStart < DAY_OFFSET.next ? todayUStart - DAY_OFFSET.today : 0
+    const localEnd = todayUEnd >= DAY_OFFSET.today && todayUEnd < DAY_OFFSET.next ? todayUEnd - DAY_OFFSET.today : DAY_MIN
     if (us < todayUStart && ue > todayUStart) {
       const ok = await showConfirm(`时间跨越区段边界，${fmt(localStart)}之前的部分将存入昨天。确认？`)
       if (!ok) return
-      splitKeys.push({ dateKey: addDays(timelogStore.dateKey, -1), start: us + 1440, end: todayUStart + 1440 })
+      splitKeys.push({ dateKey: addDays(timelogStore.dateKey, -1), start: us + DAY_MIN, end: todayUStart + DAY_MIN })
       s = todayUStart
     }
     if (us < todayUEnd && ue > todayUEnd) {
       const ok = await showConfirm(`时间跨越区段边界，${fmt(localEnd)}之后的部分将存入明天。确认？`)
       if (!ok) return
-      splitKeys.push({ dateKey: addDays(timelogStore.dateKey, 1), start: todayUEnd - 1440, end: ue - 1440 })
+      splitKeys.push({ dateKey: addDays(timelogStore.dateKey, 1), start: todayUEnd - DAY_MIN, end: ue - DAY_MIN })
       en = todayUEnd
     }
   }
@@ -371,7 +372,7 @@ function copyBlock() {
   const sp = parseSignedTime(mStart.value)
   const ep = parseSignedTime(mEnd.value)
   const storeBase = todayStorageBase(timelogStore._cutMeta)
-  const toStorage = (p) => p ? (p.base === 1440 ? p.min + storeBase : p.min + p.base) : 0
+  const toStorage = (p) => p ? (p.base === DAY_OFFSET.today ? p.min + storeBase : p.min + p.base) : 0
   timelogStore.clipboard = [{
     start: toStorage(sp),
     end: toStorage(ep),

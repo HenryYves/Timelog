@@ -191,9 +191,9 @@ function _mergeById(blocks) {
     const merged = { ...list[0] }
     for (let i = 1; i < list.length; i++) {
       let p = list[i]
-      if (p.start - merged.end >= 1440) {
-        const k = Math.round((p.start - merged.end) / 1440)
-        p = { ...p, start: p.start - 1440 * k, end: p.end - 1440 * k }
+      if (p.start - merged.end >= DAY_MIN) {
+        const k = Math.round((p.start - merged.end) / DAY_MIN)
+        p = { ...p, start: p.start - DAY_MIN * k, end: p.end - DAY_MIN * k }
       }
       merged.start = Math.min(merged.start, p.start)
       merged.end = Math.max(merged.end, p.end)
