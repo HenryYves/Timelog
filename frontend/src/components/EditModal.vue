@@ -18,9 +18,9 @@
 
       <label>时间（可选 +/- 前缀切换帧：−昨天 / +明天 / 无前缀今天）</label>
       <div class="timerow">
-        <input type="text" id="mStart" v-model="mStart" pattern="[+-]?\d{1,2}:\d{2}" placeholder="-08:00" maxlength="6" autocomplete="off" @keydown.enter.prevent="focusFirstChip" @blur="onTimeBlur('start')">
+        <input type="text" id="mStart" v-model="mStart" pattern="[+\-]?\d{1,2}:\d{2}" placeholder="-08:00" maxlength="6" autocomplete="off" @keydown.enter.prevent="focusFirstChip" @blur="onTimeBlur('start')">
         <span>—</span>
-        <input type="text" id="mEnd" v-model="mEnd" pattern="[+-]?\d{1,2}:\d{2}" placeholder="+08:00" maxlength="6" autocomplete="off" @keydown.enter.prevent="focusFirstChip" @blur="onTimeBlur('end')">
+        <input type="text" id="mEnd" v-model="mEnd" pattern="[+\-]?\d{1,2}:\d{2}" placeholder="+08:00" maxlength="6" autocomplete="off" @keydown.enter.prevent="focusFirstChip" @blur="onTimeBlur('end')">
       </div>
 
       <label>标签</label>
