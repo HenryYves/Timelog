@@ -26,30 +26,35 @@ function fmtDate(d) {
  * @param {string} timeRange - 时间范围类型
  * @param {string} customStart - 自定义起始日期
  * @param {string} customEnd - 自定义结束日期
+ * @param {Object} timeWindow - 24h/168h 的时间窗口 {startDate, endDate}
  * @returns {string[]} 日期字符串数组
  */
-export function getDaysInRange(timeRange, customStart, customEnd) {
+export function getDaysInRange(timeRange, customStart, customEnd, timeWindow = null) {
   const now = new Date()
   const days = []
   const r = timeRange
   if (r === 'today') {
     days.push(fmtDate(now))
-  } else if (r === '24h') {
-    days.push(fmtDate(now))
-    const y = new Date(now.getTime() - MS_PER_DAY)
-    if (fmtDate(y) !== fmtDate(now)) days.push(fmtDate(y))
+  } else if (r === '24h' || r === '168h') {
+    // For 24h/168h, use timeWindow to determine exact date range
+    if (timeWindow) {
+      const start = new Date(timeWindow.startDate)
+      const end = new Date(timeWindow.endDate)
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        days.push(fmtDate(d))
+      }
+    } else {
+      // Fallback if no timeWindow provided
+      days.push(fmtDate(now))
+      const y = new Date(now.getTime() - MS_PER_DAY)
+      if (fmtDate(y) !== fmtDate(now)) days.push(fmtDate(y))
+    }
   } else if (r === 'week') {
 
     const dow = now.getDay() || 7
     for (let i = 0; i < dow; i++) {
       const d = new Date(now)
       d.setDate(d.getDate() - i)
-      days.push(fmtDate(d))
-    }
-  } else if (r === '168h') {
-
-    for (let i = 0; i < DAYS_PER_WEEK; i++) {
-      const d = new Date(now.getTime() - i * MS_PER_DAY)
       days.push(fmtDate(d))
     }
   } else if (r === '7d') {
@@ -241,8 +246,6 @@ export function computeUnrecorded(days, blocksByDay, rangesByDay = null) {
  * @returns {Object} map of cardId -> [{tag, minutes, color}]
  */
 export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, customStart, customEnd, now }, cutMetaByDay = {}) {
-  const days = getDaysInRange(timeRange, customStart, customEnd)
-  const blocksByDay = days.map(d => loadDayBlocks(d))
   const PAL = ['#A1AFC9', '#F0C7C1', '#C4E0D4', '#B5D8A8', '#FCE38A', '#F36838', '#9370DB', '#20B2AA', '#FF7F50', '#87CEEB']
   const map = {}
 
@@ -271,7 +274,22 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
       endMin: endUnified.unifiedMin
     }
 
+    // Diagnostic logging
+    console.log('[24h/168h Diagnostics]', {
+      timeRange,
+      now: nowDate.toISOString(),
+      startTime: startTime.toISOString(),
+      startCalendar: { date: startDateKey, localMin: startLocalMin },
+      startUnified: startUnified,
+      endCalendar: { date: endDateKey, localMin: endLocalMin },
+      endUnified: endUnified,
+      timeWindow
+    })
   }
+
+  // Get days to load (pass timeWindow for 24h/168h)
+  const days = getDaysInRange(timeRange, customStart, customEnd, timeWindow)
+  const blocksByDay = days.map(d => loadDayBlocks(d))
 
   // Compute visible range for each day (统一帧坐标)
   const rangesByDay = days.map((dateKey, idx) => {
@@ -312,6 +330,14 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
     const cutMeta = cutMetaByDay[dateKey]
     return computePageRange(cutMeta)
   })
+
+  // Diagnostic logging for rangesByDay
+  if (timeRange === '24h' || timeRange === '168h') {
+    console.log('[rangesByDay]', days.map((day, i) => ({
+      date: day,
+      range: rangesByDay[i]
+    })))
+  }
 
   for (const card of cards) {
     const tagMap = {}
