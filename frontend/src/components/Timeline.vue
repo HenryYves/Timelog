@@ -234,12 +234,12 @@ const todayLabels = computed(() => {
   const start = pageRange.value.lo
   const end = pageRange.value.hi
   const labels = []
-  const firstHour = Math.max(Math.ceil(start / 60) * 60 - 24, 0)
+  const firstHour = Math.ceil(start / 60) * 60
   const lastHover = Math.min(end, DAY_OFFSET.next)
-  for (let min = firstHour; min <= end; min += 60) {
+  for (let min = firstHour; min <= lastHover; min += 60) {
     labels.push({
       min,
-      text: fmt(min),
+      text: fmt(min - DAY_OFFSET.today),
       top: (min - start) * PX_MIN,
     })
   }
