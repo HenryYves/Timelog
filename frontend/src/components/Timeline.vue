@@ -85,6 +85,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useTimelogStore, fmt, fmtSigned, dkey, cutDay, glueBack, canCutForward, canCutBackward } from '../store/timelog.js'
 import { useSettingsStore } from '../store/settings.js'
 import { mdToHtml } from '../utils/markdown.js'
+import { buildGluePrevLabels, buildTodayLabels, buildGlueNextLabels, mergeAllLabels } from '../utils/timelineLabels.js'
 
 import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH, DAY_OFFSET } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
@@ -213,61 +214,18 @@ function layout(list) {
 
 const layoutBlocks = computed(() => layout(store.blocks.slice()))
 
-// --- Labels ---
-const gluePrevLabels = computed(() => {
-  const cutAt = store._cutMeta?.fromPrev?.cutAt
-  if (cutAt == null) return []
-  const labels = []
-  const firstHour = Math.ceil(cutAt / 60) * 60
-  for (let min = firstHour; min < DAY_MIN; min += 60) {
-    labels.push({
-      min,
-      text: `-${fmt(min)}`,
-      top: (min - cutAt) * PX_MIN,
-    })
-  }
-  return labels
-})
+  // --- Labels ---
+  const gluePrevLabels = computed(() =>
+    buildGluePrevLabels(store._cutMeta?.fromPrev?.cutAt))
 
+  const todayLabels = computed(() =>
+    buildTodayLabels(pageRange.value.lo, pageRange.value.hi))
 
-const todayLabels = computed(() => {
-  const start = pageRange.value.lo
-  const end = pageRange.value.hi
-  const labels = []
-  const firstHour = Math.ceil(start / 60) * 60
-  const lastHover = Math.min(end, DAY_OFFSET.next)
-  for (let min = firstHour; min <= lastHover; min += 60) {
-    labels.push({
-      min,
-      text: fmt(min - DAY_OFFSET.today),
-      top: (min - start) * PX_MIN,
-    })
-  }
-  return labels
-})
+  const glueNextLabels = computed(() =>
+    buildGlueNextLabels(store._cutMeta?.fromNext?.cutAt))
 
-const glueNextLabels = computed(() => {
-  const cutAt = store._cutMeta?.fromNext?.cutAt
-  if (!cutAt) return []
-  const labels = []
-  for (let min = 60; min <= cutAt; min += 60) {
-    labels.push({
-      min,
-      text: `+${fmt(min)}`,
-      top: min * PX_MIN,
-    })
-  }
-  return labels
-})
-
-const allLabels = computed(() => {
-  const gh = gutterHeights.value
-  return [
-    ...gluePrevLabels.value.map(l => ({ ...l, y: l.top })),
-    ...todayLabels.value.map(l => ({ ...l, y: gh.prev * PX_MIN + l.top })),
-    ...glueNextLabels.value.map(l => ({ ...l, y: (gh.prev + gh.today) * PX_MIN + l.top })),
-  ]
-})
+  const allLabels = computed(() =>
+    mergeAllLabels(gluePrevLabels.value, todayLabels.value, glueNextLabels.value, gutterHeights.value))
 
 // --- Cut availability ---
 const canCutFwd = computed(() => canCutForward(store._cutMeta))

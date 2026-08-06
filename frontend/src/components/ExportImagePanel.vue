@@ -297,6 +297,7 @@ import { useToast } from '../composables/useToast.js'
 import { logger } from '../utils/log.js'
 import { tWriteBinary, tEnsureSubDir } from '../utils/tauri.js'
 import { computeCardsData, buildPieChart, fmtDur, pctOf } from '../utils/stats.js'
+import { buildGluePrevLabels, buildTodayLabels, buildGlueNextLabels, mergeAllLabels } from '../utils/timelineLabels.js'
 import PieChart from './PieChart.vue'
 import BarChart from './BarChart.vue'
 
@@ -448,44 +449,21 @@ onMounted(() => {
 })
 
 // ----- Timeline data (v2 unified coordinates via useCoordConverter) -----
-const { gutterHeights, totalHeight, todayRange, blockTop, minuteToY } = useCoordConverter()
+const { gutterHeights, totalHeight, pageRange, blockTop, minuteToY } = useCoordConverter()
 
 const layoutBlocks = computed(() => layoutOverlap(timelogStore.blocks.map(b => ({ ...b }))))
 
-const prevLabels = computed(() => {
-  const cutAt = timelogStore._cutMeta?.fromPrev?.cutAt
-  if (cutAt == null) return []
-  const out = []
-  for (let min = Math.ceil(cutAt / 60) * 60; min < DAY_MIN; min += 60) {
-    out.push({ min, text: `-${fmt(min)}`, top: (min - cutAt) * PX_MIN })
-  }
-  return out
-})
-const todayLabels = computed(() => {
-  const { start, end } = todayRange.value
-  const out = []
-  for (let min = start; min <= end; min += 60) {
-    out.push({ min, text: fmt(min), top: (min - start) * PX_MIN })
-  }
-  return out
-})
-const nextLabels = computed(() => {
-  const cutAt = timelogStore._cutMeta?.fromNext?.cutAt
-  if (!cutAt) return []
-  const out = []
-  for (let min = 60; min <= cutAt; min += 60) {
-    out.push({ min, text: `+${fmt(min)}`, top: min * PX_MIN })
-  }
-  return out
-})
-const allLabels = computed(() => {
-  const gh = gutterHeights.value
-  return [
-    ...prevLabels.value.map(l => ({ ...l, y: l.top })),
-    ...todayLabels.value.map(l => ({ ...l, y: gh.prev * PX_MIN + l.top })),
-    ...nextLabels.value.map(l => ({ ...l, y: (gh.prev + gh.today) * PX_MIN + l.top })),
-  ]
-})
+const prevLabels = computed(() =>
+  buildGluePrevLabels(timelogStore._cutMeta?.fromPrev?.cutAt))
+
+const todayLabels = computed(() =>
+  buildTodayLabels(pageRange.value.lo, pageRange.value.hi))
+
+const nextLabels = computed(() =>
+  buildGlueNextLabels(timelogStore._cutMeta?.fromNext?.cutAt))
+
+const allLabels = computed(() =>
+  mergeAllLabels(prevLabels.value, todayLabels.value, nextLabels.value, gutterHeights.value))
 
 function blockBg(b) {
   if (b.tags?.length) return tagStore.colorOf(b.tags[0]).bg
@@ -759,7 +737,7 @@ async function captureCanvas() {
 /**
  * 解析带符号时间为显示帧坐标，并校验是否落在可截取区段内：
  *   -HH:MM → 昨天帧（须存在 fromPrev 且 cutAt <= min <= 1440）
- *    HH:MM → 今天本地（须 todayStart <= min <= todayEnd）
+ *    HH:MM → 今天本地（须 pageRange.lo <= unifiedMin <= pageRange.hi）
  *   +HH:MM → 明天帧（须存在 fromNext 且 0 <= min <= cutAt）
  * 不合法返回 null。
  */
@@ -778,9 +756,10 @@ function resolveRangeEndpoint(str) {
     if (cutAt == null || min > cutAt) return null
     return 2 * DAY_MIN + min
   }
-  const { start, end } = todayRange.value
-  if (min < start || min > end) return null
-  return DAY_MIN + min - start  // 今天本地 → 显示帧
+  const { lo, hi } = pageRange.value
+  const unifiedMin = DAY_MIN + min
+  if (unifiedMin < lo || unifiedMin > hi) return null
+  return unifiedMin
 }
 
 /**
