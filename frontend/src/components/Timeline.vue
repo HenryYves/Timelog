@@ -473,7 +473,7 @@ function onMouseUp(e) {
   if (adrag) { endDrag(true) }
 
   dragPending = null
-  blockClickPending = false  // Reset on mouse up
+  // Don't reset blockClickPending here - let onBlockClick handle it
   selPending = null
   const hadSelMoved = selMoved
   selMoved = false
