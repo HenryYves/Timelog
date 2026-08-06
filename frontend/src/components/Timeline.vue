@@ -35,7 +35,9 @@
       @contextmenu.prevent>
       <div v-if="selRect" class="selrect" :style="{
         top: Math.min(selRect.top, selRect.bottom) + 'px',
-        height: Math.abs(selRect.bottom - selRect.top) + 'px'
+        height: Math.abs(selRect.bottom - selRect.top) + 'px',
+        left: Math.min(selRect.left, selRect.right) + 'px',
+        width: Math.abs(selRect.right - selRect.left) + 'px'
       }" />
       <div v-for="(label, i) in allLabels" :key="'hl' + i" class="hourline" :style="{ top: label.y + 'px' }" />
       <template v-for="(label, i) in allLabels" :key="'hfl' + i">
@@ -82,6 +84,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useTimelogStore, fmt, fmtSigned, dkey, addDays, cutDay, glueBack, canCutForward, canCutBackward } from '../store/timelog.js'
 import { useSettingsStore } from '../store/settings.js'
 import { mdToHtml } from '../utils/markdown.js'
@@ -101,7 +104,8 @@ const props = defineProps({
 const emit = defineEmits(['edit-block', 'create-block'])
 
 const store = useTimelogStore()
-const { selectedBlocks, colorOf } = store
+const { selectedBlocks } = storeToRefs(store)
+const { colorOf } = store
 const settingsStore = useSettingsStore()
 const { toast } = useToast()
 const { showConfirm } = useConfirm()
@@ -365,7 +369,7 @@ function endDrag(commit) {
 // --- Event handlers ---
 function onDayClick() {
   if (suppressClick.value) return
-  if (selectedBlocks.size > 0) selectedBlocks.clear()
+  if (selectedBlocks.value.size > 0) selectedBlocks.value.clear()
 }
 
 function onDayMouseDown(e) {
@@ -486,20 +490,35 @@ function onMouseUp(e) {
     const selRight = Math.max(sr.left, sr.right)
     const z = settingsStore.zoom / 100
     const dayW = dayRef.value.offsetWidth
+    console.log('[Selection] selRect:', { selTop, selBottom, selLeft, selRight, dayW, zoom: z })
     layoutBlocks.value.forEach(ev => {
       const bTop = blockTop(ev)
       const bBottom = bTop + (ev.end - ev.start) * PX_MIN
-      if (selBottom <= bTop || selTop >= bBottom) return
+      const verticalOverlap = !(selBottom < bTop || selTop > bBottom)
+      if (!verticalOverlap) return
+
       const cols = ev._cols || 1
       const colW = dayW / cols
       const blockLeft = (ev._col || 0) * colW + 2
       const blockRight = blockLeft + colW - 4
-      if (selRight > blockLeft && selLeft < blockRight) {
-        selectedBlocks.add(ev.id)
+      const horizontalOverlap = selRight > blockLeft && selLeft < blockRight
+
+      console.log('[Selection Check]', {
+        title: ev.title || '(无标题)',
+        id: ev.id,
+        bTop, bBottom, verticalOverlap,
+        blockLeft, blockRight, horizontalOverlap,
+        willAdd: horizontalOverlap
+      })
+
+      if (horizontalOverlap) {
+        selectedBlocks.value.add(ev.id)
+        console.log('[Selection Added]', ev.title || '(无标题)', ev.id)
       }
     })
-    if (selectedBlocks.size > 0) {
-      toast(STR.toast.contextSelected(selectedBlocks.size))
+    console.log('[Selection Final] Selected IDs:', Array.from(selectedBlocks.value))
+    if (selectedBlocks.value.size > 0) {
+      toast(STR.toast.contextSelected(selectedBlocks.value.size))
     }
     if (hadSelMoved) {
       suppressContextMenu.value = true
@@ -522,15 +541,15 @@ function onBlockClick(e, ev) {
 }
 
 function onBlockContextMenu(ev) {
-  if (selMoved) return
-  if (selectedBlocks.has(ev.id)) {
-    selectedBlocks.delete(ev.id)
-    if (selectedBlocks.size === 0) {
+  if (selMoved || suppressContextMenu.value) return
+  if (selectedBlocks.value.has(ev.id)) {
+    selectedBlocks.value.delete(ev.id)
+    if (selectedBlocks.value.size === 0) {
       toast(STR.toast.unselected)
     }
   } else {
-    selectedBlocks.add(ev.id)
-    toast(STR.toast.contextSelected(selectedBlocks.size))
+    selectedBlocks.value.add(ev.id)
+    toast(STR.toast.contextSelected(selectedBlocks.value.size))
   }
 }
 
@@ -684,15 +703,15 @@ function onKeyDown(e) {
 
   if (e.key === 'Delete' || e.key === 'Backspace') {
     if (document.querySelector('.overlay')) return
-    if (selectedBlocks.size) {
+    if (selectedBlocks.value.size) {
       e.preventDefault()
       onDeleteSelected()
     }
     return
   }
 
-  if (e.key === 'Escape' && selectedBlocks.size) {
-    selectedBlocks.clear()
+  if (e.key === 'Escape' && selectedBlocks.value.size) {
+    selectedBlocks.value.clear()
     toast(STR.toast.unselected)
     return
   }
@@ -700,9 +719,9 @@ function onKeyDown(e) {
 
 // 剪贴板统一存存储坐标（保留 _cut 以便跨帧块正确换算显示坐标）
 function copySelectedLocal() {
-  if (!selectedBlocks.size) return false
+  if (!selectedBlocks.value.size) return false
   store.clipboard = store.blocks
-    .filter(b => selectedBlocks.has(b.id))
+    .filter(b => selectedBlocks.value.has(b.id))
     .sort((a, b) => a.start - b.start)
     .map(b => ({
       start: b.start, end: b.end,
@@ -714,7 +733,7 @@ function copySelectedLocal() {
 }
 
 async function onDeleteSelected() {
-  const n = selectedBlocks.size
+  const n = selectedBlocks.value.size
   const ok = await showConfirm(STR.confirm.deleteSelected(n))
   if (!ok) return
   store.deleteSelectedBlocks()
