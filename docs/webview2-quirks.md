@@ -1,6 +1,27 @@
-# WebView2 contenteditable 怪异行为
+# WebView2 怪异行为
 
-本文档记录在 Timelog 编辑器开发中发现的 WebView2 contenteditable 行为与标准/直觉不符之处。
+本文档记录在 Timelog 开发中发现的 WebView2 行为与标准/直觉不符之处，包括 contenteditable、拖拽、渲染等各类问题。
+
+## HTML5 Drag and Drop API
+
+### 17. dragover/drop/drag 事件完全不触发
+
+HTML5 拖拽 API 中只有 `dragstart` 和 `dragend` 事件能触发，拖拽过程中的所有事件（`drag`、`dragover`、`dragenter`、`dragleave`、`drop`）完全不触发。
+
+**验证过程**：
+- `@dragover.prevent` 绑定在目标元素上 → 无输出
+- `document.addEventListener('dragover')` 全局监听 → 无输出
+- `e.dataTransfer.setData('text/plain', data)` 设置成功（`types` 正确）
+- `e.dataTransfer.effectAllowed = 'move'` 设置正确
+- `draggable="true"` 正确，`dragstart` 能触发并添加 `dragging` class
+
+**影响**：无法使用 HTML5 Drag and Drop API 实现拖拽排序。用户拖拽时光标显示禁止图标（因为没有 `dragover` 设置 `dropEffect`），松手后无 `drop` 事件，无法执行交换逻辑。
+
+**方案**：必须用 `mousedown` / `mousemove` / `mouseup` 手动实现拖拽。不能依赖 HTML5 Drag and Drop API。
+
+**相关代码**：`frontend/src/components/TagManager.vue` 拖拽排序实现
+
+---
 
 ## 编辑器光标相关
 

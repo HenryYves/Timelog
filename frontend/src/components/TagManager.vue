@@ -9,15 +9,10 @@
           v-for="(tag, i) in tagDraft"
           :key="tag._uid"
           class="tagrow"
-          draggable="true"
-          @dragstart="onDragStart($event, i)"
-          @dragover.prevent="onDragOver($event, i)"
-          @drop="onDrop($event, i)"
-          @dragend="onDragEnd"
+          :data-index="i"
         >
-          <span class="drag-handle" title="拖拽排序">⋮⋮</span>
+          <span class="drag-handle" title="拖拽排序" @mousedown="onMouseDown($event, i)">⋮⋮</span>
           <input type="color" v-model="tag.color">
-          <input type="text" class="hex" v-model="tag.color" @blur="tag.color = tagStore.normColor(tag.color)" placeholder="#RRGGBB" maxlength="7">
           <input type="text" class="tn" v-model="tag.name" placeholder="标签名称">
           <input type="text" class="tg" v-model="tag.group" placeholder="分组">
           <button class="del" @click="onDeleteTag(i)">删除</button>
@@ -27,6 +22,7 @@
       <div style="margin-top:8px; display:flex; gap:8px;">
         <button @click="onAddTag">＋ 新增标签</button>
         <button @click="onSortAlpha">按名称排序</button>
+        <button @click="onSortByGroup">按分组排序</button>
       </div>
 
       <div class="actions">
@@ -58,6 +54,9 @@ const origNames = ref(new Map())
 const deletedNames = ref(new Set())
 let nextUid = 0
 let draggedIndex = null
+let dragTargetIndex = null
+let isDragging = false
+let startY = 0
 
 function trapFocus(e) {
   if (e.key !== 'Tab') return
@@ -97,27 +96,96 @@ function onSortAlpha() {
   })
 }
 
-function onDragStart(e, index) {
+function onSortByGroup() {
+  tagDraft.value.sort((a, b) => {
+    const ag = a.group.trim()
+    const bg = b.group.trim()
+    // Empty groups go last
+    if (!ag && bg) return 1
+    if (ag && !bg) return -1
+    // Compare groups
+    if (ag !== bg) return ag.localeCompare(bg, 'zh-CN')
+    // Same group, compare names
+    const an = a.name.trim().toLowerCase()
+    const bn = b.name.trim().toLowerCase()
+    return an.localeCompare(bn, 'zh-CN')
+  })
+}
+
+function onMouseDown(e, index) {
   draggedIndex = index
-  e.dataTransfer.effectAllowed = 'move'
-  e.currentTarget.classList.add('dragging')
+  startY = e.clientY
+  isDragging = false
+
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+  e.preventDefault() // Prevent text selection
 }
 
-function onDragOver(e, index) {
-  if (draggedIndex === null || draggedIndex === index) return
-  e.dataTransfer.dropEffect = 'move'
+function onMouseMove(e) {
+  if (draggedIndex === null) return
+
+  // Start dragging after 3px movement threshold
+  if (!isDragging && Math.abs(e.clientY - startY) > 3) {
+    isDragging = true
+    const draggedRow = document.querySelector(`.tagrow[data-index="${draggedIndex}"]`)
+    if (draggedRow) draggedRow.classList.add('dragging')
+    // Set cursor globally during drag
+    document.body.style.cursor = 'url(/src/assets/paw.svg) 16 16, grabbing'
+  }
+
+  if (!isDragging) return
+
+  // Find target row under cursor
+  const element = document.elementFromPoint(e.clientX, e.clientY)
+  if (!element) {
+    clearDragOver()
+    return
+  }
+
+  const tagrow = element.closest('.tagrow')
+  if (!tagrow) {
+    clearDragOver()
+    return
+  }
+
+  const targetIndex = parseInt(tagrow.dataset.index)
+  if (isNaN(targetIndex) || targetIndex === draggedIndex) {
+    clearDragOver()
+    return
+  }
+
+  dragTargetIndex = targetIndex
+
+  // Highlight target row
+  document.querySelectorAll('.tagrow.drag-over').forEach(el => {
+    if (el !== tagrow) el.classList.remove('drag-over')
+  })
+  tagrow.classList.add('drag-over')
 }
 
-function onDrop(e, targetIndex) {
-  if (draggedIndex === null || draggedIndex === targetIndex) return
-  const [item] = tagDraft.value.splice(draggedIndex, 1)
-  tagDraft.value.splice(targetIndex, 0, item)
+function onMouseUp(e) {
+  document.removeEventListener('mousemove', onMouseMove)
+  document.removeEventListener('mouseup', onMouseUp)
+
+  if (isDragging && draggedIndex !== null && dragTargetIndex !== null && draggedIndex !== dragTargetIndex) {
+    // Perform swap
+    const [item] = tagDraft.value.splice(draggedIndex, 1)
+    tagDraft.value.splice(dragTargetIndex, 0, item)
+  }
+
+  // Cleanup
+  document.querySelectorAll('.tagrow.dragging').forEach(el => el.classList.remove('dragging'))
+  clearDragOver()
+  document.body.style.cursor = '' // Reset global cursor
   draggedIndex = null
+  dragTargetIndex = null
+  isDragging = false
 }
 
-function onDragEnd(e) {
-  draggedIndex = null
-  e.currentTarget.classList.remove('dragging')
+function clearDragOver() {
+  dragTargetIndex = null
+  document.querySelectorAll('.tagrow.drag-over').forEach(el => el.classList.remove('drag-over'))
 }
 
 async function onDeleteTag(index) {
@@ -209,11 +277,41 @@ async function onSave() {
 <style scoped>
 .modal { max-height: calc(82vh / var(--zoom, 1)); overflow: auto; }
 #tagList { max-height: 30vh; overflow-y: auto; }
-.tagrow { display: flex; align-items: center; gap: 4px; cursor: move; }
-.tagrow.dragging { opacity: 0.5; }
-.drag-handle { cursor: grab; user-select: none; color: #999; font-size: 14px; line-height: 1; }
-.drag-handle:active { cursor: grabbing; }
-.hex { width: 70px; font-family: monospace; font-size: 12px; }
+.tagrow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+  padding: 4px;
+  margin: 2px 0;
+  border-radius: 4px;
+}
+.tagrow.dragging {
+  opacity: 0.4;
+  transform: scale(0.95);
+}
+.tagrow.drag-over {
+  background: rgba(66, 153, 225, 0.1);
+  border: 2px dashed #4299E1;
+  transform: translateY(-2px);
+}
+.drag-handle {
+  cursor: url('../assets/paw.svg') 16 16, grab;
+  user-select: none;
+  color: #999;
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px;
+}
+.drag-handle:active { cursor: url('../assets/paw.svg') 16 16, grabbing; }
+.tagrow input,
+.tagrow button {
+  cursor: default;
+}
+.tagrow.dragging {
+  opacity: 0.4;
+  cursor: url('../assets/paw.svg') 16 16, grabbing;
+}
 </style>
 
 
