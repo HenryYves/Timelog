@@ -59,11 +59,11 @@ describe('useCoordConverter', () => {
     const timelogStore = useTimelogStore()
     timelogStore._cutMeta = null
 
-    const { gutterHeights, totalHeight, todayRange, blockTop, minuteToY } = useCoordConverter()
+    const { gutterHeights, totalHeight, pageRange, blockTop, minuteToY } = useCoordConverter()
 
     expect(gutterHeights.value).toEqual({ prev: 0, today: 1440, next: 0 })
     expect(totalHeight.value).toBe(1440)
-    expect(todayRange.value).toEqual({ start: 0, end: 1440 })
+    expect(pageRange.value).toEqual({ lo: 1440, hi: 2880 })
     expect(blockTop({ start: 1500, end: 1560 })).toBe(60)
     expect(minuteToY(1500)).toBe(60)
   })
