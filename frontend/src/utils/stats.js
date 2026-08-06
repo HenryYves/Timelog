@@ -135,19 +135,11 @@ export function loadDayBlocks(dateKey) {
 export function calendarTimeToUnified(dateKey, localMin, getCutMeta) {
   const cutMeta = getCutMeta(dateKey) //TODO: 获取剪刀/胶水元数据
 
-  console.log('[calendarTimeToUnified]', {
-    input: { dateKey, localMin }, //TODO: localMin 是本地分钟 [0-1439]
-    cutMeta
-  })
-
-  // No scissors/glue - pure calendar day, use local coordinates directly
   //TODO: 无剪刀/胶水，直接使用本地坐标
   if (!cutMeta) {
-    console.log('[calendarTimeToUnified] → no cutMeta, using localMin', { dateKey, unifiedMin: localMin })
     return { dateKey, unifiedMin: localMin }
   }
 
-  // Calculate this day's visible range (same as useCoordConverter.pageRange)
   //TODO: 计算 pageRange（统一帧坐标）
   const lo = cutMeta.fromPrev
     ? cutMeta.fromPrev.cutAt  //TODO: fromPrev.cutAt 是昨天帧的统一坐标 [0,1440)
@@ -159,28 +151,15 @@ export function calendarTimeToUnified(dateKey, localMin, getCutMeta) {
   // Attempt to place in today's frame
   const unifiedMin = 1440 + localMin  //TODO: 尝试放在今天帧（1440是今天帧起点）
 
-  console.log('[calendarTimeToUnified]', {
-    range: { lo, hi },  //TODO: pageRange 边界（统一帧）
-    unifiedMin  //TODO: 今天帧的坐标
-  })
-
   if (unifiedMin >= lo && unifiedMin < hi) {
-    // Within today's visible range
-    console.log('[calendarTimeToUnified] → in range', { dateKey, unifiedMin })
     return { dateKey, unifiedMin }
   } else if (unifiedMin < lo) {
-    // Before today's range - must be in yesterday's glue area
-    // From yesterday's perspective: today frame → tomorrow frame (+1440)
     const yesterday = addDays(dateKey, -1)
     const yesterdayUnified = unifiedMin + 1440  // 1440+localMin → 2880+localMin
-    console.log('[calendarTimeToUnified] → overflow to yesterday', { yesterday, yesterdayUnified })
     return { dateKey: yesterday, unifiedMin: yesterdayUnified }
   } else {
-    // After today's range - must be in tomorrow's glue area
-    // From tomorrow's perspective: today frame → yesterday frame (-1440)
     const tomorrow = addDays(dateKey, 1)
     const tomorrowUnified = unifiedMin - 1440  // 1440+localMin → localMin
-    console.log('[calendarTimeToUnified] → overflow to tomorrow', { tomorrow, tomorrowUnified })
     return { dateKey: tomorrow, unifiedMin: tomorrowUnified }
   }
 }
@@ -246,8 +225,6 @@ export function unionMinutes(blocks) {
 export function computeUnrecorded(days, blocksByDay, rangesByDay = null) {
   if (!days || days.length === 0) return 0
 
-  console.log('[computeUnrecorded] days:', days)
-
   let totalUnrecorded = 0
 
   for (let i = 0; i < days.length; i++) {
@@ -266,19 +243,9 @@ export function computeUnrecorded(days, blocksByDay, rangesByDay = null) {
     const totalVisible = range.hi - range.lo
     const unrecordedMinutes = totalVisible - recordedMinutes
 
-    console.log('[computeUnrecorded]', days[i], {
-      range,
-      totalVisible,
-      blocksCount: blocks.length,
-      visibleBlocksCount: visibleBlocks.length,
-      recordedMinutes,
-      unrecordedMinutes
-    })
-
     totalUnrecorded += unrecordedMinutes
   }
 
-  console.log('[computeUnrecorded] TOTAL:', totalUnrecorded)
   return totalUnrecorded
 }
 
@@ -306,12 +273,6 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
     const hours = timeRange === '24h' ? 24 : 168
     const startTime = new Date(nowDate.getTime() - hours * 3600000)
 
-    console.log('[24h/168h window]', {
-      nowDate: nowDate.toISOString(),
-      startTime: startTime.toISOString(),
-      hours
-    })
-
     const getCutMeta = (dk) => cutMetaByDay[dk] || null
 
     // Convert calendar times to unified coordinates
@@ -330,7 +291,6 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
       endMin: endUnified.unifiedMin
     }
 
-    console.log('[24h/168h timeWindow]', timeWindow)
   }
 
   // Compute visible range for each day (统一帧坐标)
@@ -372,7 +332,6 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
           : 1440 + (cutMeta?.toNext?.cutAt ?? 1440)
       }
 
-      console.log('[rangesByDay]', dateKey, { lo, hi, duration: hi - lo })
       return { lo, hi }
     }
 
