@@ -3,113 +3,67 @@
     <div class="gutter-container">
       <!-- Glue-prev gutter -->
       <div v-if="gutterHeights.prev" class="glue-from-prev">
-        <div
-          class="gutter glue-prev"
+        <div class="gutter glue-prev"
           :style="{ width: GUTTER_WIDTH + 'px', height: gutterHeights.prev * PX_MIN + 'px' }"
-          @contextmenu.prevent="onGluePrevRightClick"
-          @mousemove="onGutterHover"
-          @mouseleave="onGutterLeave"
-        >
-          <div
-            v-for="label in gluePrevLabels"
-            :key="label.min"
-            class="hlabel"
-            :style="{ top: label.top + 'px' }"
-          >{{ label.text }}</div>
+          @contextmenu.prevent="onGluePrevRightClick" @mousemove="onGutterHover" @mouseleave="onGutterLeave">
+          <div v-for="label in gluePrevLabels" :key="label.min" class="hlabel" :style="{ top: label.top + 'px' }">{{
+            label.text }}</div>
         </div>
       </div>
 
       <!-- Today gutter -->
-      <div
-        class="gutter today"
-        :style="{ width: GUTTER_WIDTH + 'px', height: gutterHeights.today * PX_MIN + 'px' }"
-        @contextmenu.prevent="onTodayRightClick"
-        @mousemove="onGutterHover"
-        @mouseleave="onGutterLeave"
-      >
-        <div
-          v-for="label in todayLabels"
-          :key="label.min"
-          class="hlabel"
-          :style="{ top: label.top + 'px' }"
-        >{{ label.text }}</div>
+      <div class="gutter today" :style="{ width: GUTTER_WIDTH + 'px', height: gutterHeights.today * PX_MIN + 'px' }"
+        @contextmenu.prevent="onTodayRightClick" @mousemove="onGutterHover" @mouseleave="onGutterLeave">
+        <div v-for="label in todayLabels" :key="label.min" class="hlabel" :style="{ top: label.top + 'px' }">{{
+          label.text }}</div>
       </div>
 
       <!-- Glue-next gutter -->
       <div v-if="gutterHeights.next" class="glue-from-next">
-        <div
-          class="gutter glue-next"
+        <div class="gutter glue-next"
           :style="{ width: GUTTER_WIDTH + 'px', height: gutterHeights.next * PX_MIN + 'px' }"
-          @contextmenu.prevent="onGlueNextRightClick"
-          @mousemove="onGutterHover"
-          @mouseleave="onGutterLeave"
-        >
-          <div
-            v-for="label in glueNextLabels"
-            :key="label.min"
-            class="hlabel"
-            :style="{ top: label.top + 'px' }"
-          >{{ label.text }}</div>
+          @contextmenu.prevent="onGlueNextRightClick" @mousemove="onGutterHover" @mouseleave="onGutterLeave">
+          <div v-for="label in glueNextLabels" :key="label.min" class="hlabel" :style="{ top: label.top + 'px' }">{{
+            label.text }}</div>
         </div>
       </div>
     </div>
 
     <!-- Single day area -->
-    <div
-      class="day"
-      ref="dayRef"
-      :style="{ height: totalHeight * PX_MIN + 'px' }"
-      @mousedown="onDayMouseDown"
-      @mousemove="onMouseMove"
-      @mouseup="onMouseUp"
-      @mouseleave="onMouseUp"
-      @click.self="onDayClick"
-      @contextmenu.prevent
-    >
-      <div
-        v-if="selRect"
-        class="selrect"
-        :style="{
-          top: Math.min(selRect.top, selRect.bottom) + 'px',
-          height: Math.abs(selRect.bottom - selRect.top) + 'px'
-        }"
-      />
-      <div
-        v-for="(label, i) in allLabels"
-        :key="'hl' + i"
-        class="hourline"
-        :style="{ top: label.y + 'px' }"
-      />
+    <div class="day" ref="dayRef" :style="{ height: totalHeight * PX_MIN + 'px' }" @mousedown="onDayMouseDown"
+      @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseUp" @click.self="onDayClick"
+      @contextmenu.prevent>
+      <div v-if="selRect" class="selrect" :style="{
+        top: Math.min(selRect.top, selRect.bottom) + 'px',
+        height: Math.abs(selRect.bottom - selRect.top) + 'px'
+      }" />
+      <div v-for="(label, i) in allLabels" :key="'hl' + i" class="hourline" :style="{ top: label.y + 'px' }" />
       <template v-for="(label, i) in allLabels" :key="'hfl' + i">
-        <div
-          v-if="i < allLabels.length - 1"
-          class="halfline"
-          :style="{ top: label.y + 30 * PX_MIN + 'px' }"
-        />
+        <div v-if="i < allLabels.length - 1" class="halfline" :style="{ top: label.y + 30 * PX_MIN + 'px' }" />
       </template>
-      <div
-        v-for="ev in layoutBlocks"
-        :key="ev.id"
-        class="block"
-        :class="{ bsel: selectedBlocks.has(ev.id) }"
-        :style="computeBlockStyle(ev)"
-        :title="blockTitle(ev)"
-        @mousemove="onBlockMouseMove($event, ev)"
-        @mousedown.left="onBlockMouseDown($event, ev)"
-        @click="onBlockClick($event, ev)"
-        @contextmenu.prevent="onBlockContextMenu(ev)"
-      >
+      <div v-for="ev in layoutBlocks" :key="ev.id" class="block" :class="{ bsel: selectedBlocks.has(ev.id) }"
+        :style="computeBlockStyle(ev)" :title="blockTitle(ev)" @mousemove="onBlockMouseMove($event, ev)"
+        @mousedown.left="onBlockMouseDown($event, ev)" @click="onBlockClick($event, ev)"
+        @contextmenu.prevent="onBlockContextMenu(ev)">
         <div v-if="settingsStore.showBlockColorBar" class="cbar">
           <i v-for="(t, ti) in (ev.tags || [])" :key="ti" :style="{ background: colorOf(t).hex }" />
           <i v-if="!ev.tags || !ev.tags.length" style="background:#C4C3C0" />
         </div>
         <div v-if="settingsStore.showBlockTitle" class="bt">{{ ev.title || '(未命名)' }}</div>
-        <div v-if="settingsStore.showBlockTime && (ev.end - ev.start) * PX_MIN >= 32" class="bs">{{ fmtSigned(ev.start) }}–{{ fmtSigned(ev.end) }}</div>
-        <div v-if="settingsStore.showBlockTags && (ev.end - ev.start) * PX_MIN >= 18 && ev.tags && ev.tags.length" class="btags">
-          <span v-for="t in ev.tags" :key="t"><span class="tdot" :style="{ background: colorOf(t).hex }" />{{ t }}</span>
+        <div v-if="settingsStore.showBlockTime && (ev.end - ev.start) * PX_MIN >= 32" class="bs">{{ fmtSigned(ev.start)
+        }}–{{
+            fmtSigned(ev.end) }}</div>
+        <div v-if="settingsStore.showBlockTags && (ev.end - ev.start) * PX_MIN >= 18 && ev.tags && ev.tags.length"
+          class="btags">
+          <span v-for="t in ev.tags" :key="t"><span class="tdot" :style="{ background: colorOf(t).hex }" />{{ t
+          }}</span>
         </div>
-        <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= 16 && settingsStore.renderNoteMarkdown" class="bnote" v-html="mdToHtml(ev.note)" />
-        <div v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && !settingsStore.renderNoteMarkdown" class="bnote" style="white-space: pre-wrap">{{ ev.note }}</div>
+        <div
+          v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= 16 && settingsStore.renderNoteMarkdown"
+          class="bnote" v-html="mdToHtml(ev.note)" />
+        <div
+          v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && !settingsStore.renderNoteMarkdown"
+          class="bnote" style="white-space: pre-wrap">{{ ev.note }}</div>
         <div v-if="settingsStore.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
       </div>
 
@@ -120,19 +74,10 @@
     </div>
   </div>
 
-  <CutConfirm
-    :show="showCutConfirm"
-    :initialMin="cutInitialMin"
-    :availableDirs="availableDirs"
-    @confirm="onCutConfirm"
-    @close="showCutConfirm = false"
-  />
-  <GlueConfirm
-    :show="showGlueConfirm"
-    :sourceDate="glueTarget"
-    @confirm="onGlueBackConfirm"
-    @close="showGlueConfirm = false; glueTarget = null"
-  />
+  <CutConfirm :show="showCutConfirm" :initialMin="cutInitialMin" :availableDirs="availableDirs" @confirm="onCutConfirm"
+    @close="showCutConfirm = false" />
+  <GlueConfirm :show="showGlueConfirm" :sourceDate="glueTarget" @confirm="onGlueBackConfirm"
+    @close="showGlueConfirm = false; glueTarget = null" />
 </template>
 
 <script setup>
@@ -141,7 +86,7 @@ import { useTimelogStore, fmt, fmtSigned, dkey, cutDay, glueBack, canCutForward,
 import { useSettingsStore } from '../store/settings.js'
 import { mdToHtml } from '../utils/markdown.js'
 
-import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH } from '../constants.js'
+import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH, DAY_OFFSET } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { STR } from '../strings.js'
@@ -160,7 +105,7 @@ const settingsStore = useSettingsStore()
 const { toast } = useToast()
 const { showConfirm } = useConfirm()
 
-const { gutterHeights, totalHeight, todayRange, blockTop, yToMinute, minuteToY } = useCoordConverter()
+const { gutterHeights, totalHeight, pageRange, blockTop, yToMinute, minuteToY } = useCoordConverter()
 
 const TOTAL_MIN = DAY_MIN * 3
 
@@ -196,37 +141,24 @@ const lastHoverMin = ref(0)
 const overGrid = ref(false)
 
 // --- Now line ---
-const isToday = computed(() => dkey(new Date()) === store.dateKey)
-const nowMin = ref(0)
-let nowTimer = null
+const nowMin = ref(0)//现在时间(统一帧)
+let nowTimer = null//定时器句柄,每60s更新nowMin让时间红线走动
 // 当前时间是否落在本页显示范围内（today 优先于 glue-prev/glue-next）
 const nowInToday = computed(() => {
-  const n = nowMin.value
-  // 今天区段优先（仅日历当天）
-  if (isToday.value && n >= todayRange.value.start && n <= todayRange.value.end) return true
-  const prevCut = store._cutMeta?.fromPrev?.cutAt
-  if (prevCut != null && n >= prevCut && n < DAY_MIN) return true
-  const nextCut = store._cutMeta?.fromNext?.cutAt
-  if (nextCut != null && n <= nextCut) return true
+  if (nowMin.value >= pageRange.value.lo && nowMin.value < pageRange.value.hi) {
+    return true
+  }
   return false
 })
-// now 线在 .day 中的 y 坐标（today 优先）
+// now 线在 .day 中的 y 坐标（today 优先）.
 function nowLineY() {
-  const n = nowMin.value
-  if (isToday.value && n >= todayRange.value.start && n <= todayRange.value.end)
-    return minuteToY(DAY_MIN + n)
-  const prevCut = store._cutMeta?.fromPrev?.cutAt
-  if (prevCut != null && n >= prevCut && n < DAY_MIN)
-    return (n - prevCut) * PX_MIN
-  const nextCut = store._cutMeta?.fromNext?.cutAt
-  if (nextCut != null && n <= nextCut)
-    return minuteToY(2 * DAY_MIN + n)
-  return 0
+  if (!nowInToday.value) return 0
+  return (nowMin.value - pageRange.value.lo) * PX_MIN
 }
 
 function updateNowMin() {
   const now = new Date()
-  nowMin.value = now.getHours() * 60 + now.getMinutes()
+  nowMin.value = now.getHours() * 60 + now.getMinutes() + DAY_OFFSET.today
 }
 
 // 诚实存储：storage = display，无需转换函数
@@ -297,10 +229,13 @@ const gluePrevLabels = computed(() => {
   return labels
 })
 
+
 const todayLabels = computed(() => {
-  const { start, end } = todayRange.value
+  const start = pageRange.value.lo
+  const end = pageRange.value.hi
   const labels = []
-  const firstHour = Math.ceil(start / 60) * 60
+  const firstHour = Math.max(Math.ceil(start / 60) * 60 - 24, 0)
+  const lastHover = Math.min(end, DAY_OFFSET.next)
   for (let min = firstHour; min <= end; min += 60) {
     labels.push({
       min,
@@ -407,7 +342,7 @@ function showDLabel(min, text) {
   if (!dlabel) {
     dlabel = document.createElement('div')
     dlabel.className = 'dlabel'
-    ;(adrag?.dayEl || dayRef.value).appendChild(dlabel)
+      ; (adrag?.dayEl || dayRef.value).appendChild(dlabel)
   }
   dlabel.style.top = minuteToY(min) + 'px'
   dlabel.textContent = text
@@ -424,7 +359,7 @@ function applyDrag() {
     if (!ghost) {
       ghost = document.createElement('div')
       ghost.className = 'ghost'
-      ;(adrag?.dayEl || dayRef.value).appendChild(ghost)
+        ; (adrag?.dayEl || dayRef.value).appendChild(ghost)
     }
     ghost.style.top = minuteToY(b.s) + 'px'
     ghost.style.height = Math.max((b.en - b.s) * PX_MIN, 2) + 'px'
@@ -905,18 +840,23 @@ watch(() => store.dateKey, () => {
   position: relative;
   display: flex;
 }
+
 .gutter-container {
   display: flex;
   flex-direction: column;
   flex: none;
 }
+
 .gutter {
   flex: none;
   position: relative;
 }
+
 .gutter.today {
-  z-index: 1; /* 24:00 标签 translateY(-50%) 不被后渲染的 glue-next 背景盖住 */
+  z-index: 1;
+  /* 24:00 标签 translateY(-50%) 不被后渲染的 glue-next 背景盖住 */
 }
+
 .gutter .hlabel {
   position: absolute;
   right: 8px;
@@ -924,6 +864,7 @@ watch(() => store.dateKey, () => {
   font-size: 12px;
   color: var(--text2);
 }
+
 .day {
   position: relative;
   flex: 1;
@@ -931,18 +872,21 @@ watch(() => store.dateKey, () => {
   user-select: none;
   cursor: default;
 }
+
 .hourline {
   position: absolute;
   left: 0;
   right: 0;
   border-top: 1px solid var(--border);
 }
+
 .halfline {
   position: absolute;
   left: 0;
   right: 0;
   border-top: 1px dashed #F0EFED;
 }
+
 .selrect {
   position: absolute;
   background: var(--blue-soft);
@@ -951,6 +895,7 @@ watch(() => store.dateKey, () => {
   z-index: 2;
   pointer-events: none;
 }
+
 .block {
   position: absolute;
   border-radius: 6px;
@@ -958,18 +903,21 @@ watch(() => store.dateKey, () => {
   overflow: hidden;
   font-size: 12.5px;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .05);
 }
+
 .block.bsel {
   outline: 2.5px solid var(--blue);
   outline-offset: 1px;
   box-shadow: 0 0 0 3px var(--blue-soft);
 }
+
 .block.resizing {
   opacity: .92;
   z-index: 40;
-  box-shadow: 0 3px 10px rgba(0,0,0,.22);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .22);
 }
+
 .block .cbar {
   position: absolute;
   left: 0;
@@ -980,20 +928,24 @@ watch(() => store.dateKey, () => {
   flex-direction: column;
   overflow: hidden;
 }
+
 .block .cbar i {
   flex: 1;
   display: block;
 }
+
 .block .bt {
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .block .bs {
   opacity: .7;
   font-size: 11px;
 }
+
 .block .btags {
   margin-top: 2px;
   font-size: 10.5px;
@@ -1002,6 +954,7 @@ watch(() => store.dateKey, () => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .block .bnote {
   margin-top: 3px;
   font-size: 11px;
@@ -1009,6 +962,7 @@ watch(() => store.dateKey, () => {
   opacity: .9;
   overflow: hidden;
 }
+
 .nowline {
   position: absolute;
   left: 0;
@@ -1018,6 +972,7 @@ watch(() => store.dateKey, () => {
   z-index: 5;
   pointer-events: none;
 }
+
 .nowline::before {
   content: '';
   position: absolute;
