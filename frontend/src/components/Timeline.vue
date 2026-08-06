@@ -82,7 +82,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useTimelogStore, fmt, fmtSigned, dkey, cutDay, glueBack, canCutForward, canCutBackward } from '../store/timelog.js'
+import { useTimelogStore, fmt, fmtSigned, dkey, addDays, cutDay, glueBack, canCutForward, canCutBackward } from '../store/timelog.js'
 import { useSettingsStore } from '../store/settings.js'
 import { mdToHtml } from '../utils/markdown.js'
 import { buildGluePrevLabels, buildTodayLabels, buildGlueNextLabels, mergeAllLabels } from '../utils/timelineLabels.js'
@@ -91,7 +91,7 @@ import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH, DAY_OFFSET } from '../constants.js
 import { useToast } from '../composables/useToast.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { STR } from '../strings.js'
-import { useCoordConverter } from '../composables/useCoordConverter.js'
+import { useCoordConverter, localMinToUnified } from '../composables/useCoordConverter.js'
 import CutConfirm from './CutConfirm.vue'
 import GlueConfirm from './GlueConfirm.vue'
 
@@ -159,7 +159,18 @@ function nowLineY() {
 
 function updateNowMin() {
   const now = new Date()
-  nowMin.value = now.getHours() * 60 + now.getMinutes() + DAY_OFFSET.today
+  const localMin = now.getHours() * 60 + now.getMinutes()
+  const todayKey = dkey(now)
+
+  if (store.dateKey === todayKey) {
+    nowMin.value = localMinToUnified('today', localMin)
+  } else if (store.dateKey === addDays(todayKey, -1)) {
+    nowMin.value = localMinToUnified('next', localMin)
+  } else if (store.dateKey === addDays(todayKey, 1)) {
+    nowMin.value = localMinToUnified('prev', localMin)
+  } else {
+    nowMin.value = 0
+  }
 }
 
 // 诚实存储：storage = display，无需转换函数
@@ -214,18 +225,18 @@ function layout(list) {
 
 const layoutBlocks = computed(() => layout(store.blocks.slice()))
 
-  // --- Labels ---
-  const gluePrevLabels = computed(() =>
-    buildGluePrevLabels(store._cutMeta?.fromPrev?.cutAt))
+// --- Labels ---
+const gluePrevLabels = computed(() =>
+  buildGluePrevLabels(store._cutMeta?.fromPrev?.cutAt))
 
-  const todayLabels = computed(() =>
-    buildTodayLabels(pageRange.value.lo, pageRange.value.hi))
+const todayLabels = computed(() =>
+  buildTodayLabels(pageRange.value.lo, pageRange.value.hi))
 
-  const glueNextLabels = computed(() =>
-    buildGlueNextLabels(store._cutMeta?.fromNext?.cutAt))
+const glueNextLabels = computed(() =>
+  buildGlueNextLabels(store._cutMeta?.fromNext?.cutAt))
 
-  const allLabels = computed(() =>
-    mergeAllLabels(gluePrevLabels.value, todayLabels.value, glueNextLabels.value, gutterHeights.value))
+const allLabels = computed(() =>
+  mergeAllLabels(gluePrevLabels.value, todayLabels.value, glueNextLabels.value, gutterHeights.value))
 
 // --- Cut availability ---
 const canCutFwd = computed(() => canCutForward(store._cutMeta))
