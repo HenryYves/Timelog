@@ -27,10 +27,6 @@ function fmtDate(d) {
  * @param {string} customStart - 自定义起始日期
  * @param {string} customEnd - 自定义结束日期
  * @returns {string[]} 日期字符串数组
- *
- * - 为什么 24h/168h 返回多个日期？因为统计需要跨越多天数据
- * - getDaysInRange 返回的是"需要加载数据的日期"，不是"统计范围"
- * - 24h 可能跨越今天和昨天，所以返回两个日期
  */
 export function getDaysInRange(timeRange, customStart, customEnd) {
   const now = new Date()
@@ -290,44 +286,31 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
         lo = timeWindow.startMin
         hi = timeWindow.endMin
       } else if (dateKey === timeWindow.startDate) {
-        // Start day: [startMin, ∞) - need to find where this day ends
+        // Start day: [startMin, dayEnd)
         const cutMeta = cutMetaByDay[dateKey]
-        const dayHi = cutMeta?.fromNext
-          ? 2880 + cutMeta.fromNext.cutAt
-          : 1440 + (cutMeta?.toNext?.cutAt ?? 1440)
+        const pageRange = computePageRange(cutMeta)
         lo = timeWindow.startMin
-        hi = dayHi
+        hi = pageRange.hi
       } else if (dateKey === timeWindow.endDate) {
-        // End day: [0, endMin) - need to find where this day starts
+        // End day: [dayStart, endMin)
         const cutMeta = cutMetaByDay[dateKey]
-        const dayLo = cutMeta?.fromPrev
-          ? cutMeta.fromPrev.cutAt
-          : 1440 + (cutMeta?.toPrev?.cutAt ?? 0)
-        lo = dayLo
+        const pageRange = computePageRange(cutMeta)
+        lo = pageRange.lo
         hi = timeWindow.endMin
       } else {
         // Middle days: use full visible range
         const cutMeta = cutMetaByDay[dateKey]
-        lo = cutMeta?.fromPrev
-          ? cutMeta.fromPrev.cutAt
-          : 1440 + (cutMeta?.toPrev?.cutAt ?? 0)
-        hi = cutMeta?.fromNext
-          ? 2880 + cutMeta.fromNext.cutAt
-          : 1440 + (cutMeta?.toNext?.cutAt ?? 1440)
+        const pageRange = computePageRange(cutMeta)
+        lo = pageRange.lo
+        hi = pageRange.hi
       }
 
       return { lo, hi }
     }
 
+    // For other time ranges, use full pageRange for each day
     const cutMeta = cutMetaByDay[dateKey]
-    if (!cutMeta) {
-      // No scissors/glue - default to calendar day [0, 1440)
-      return { lo: 0, hi: 1440 }
-    }
-    // Calculate pageRange for this day (same logic as useCoordConverter)
-    const lo = cutMeta.fromPrev ? cutMeta.fromPrev.cutAt : 1440 + (cutMeta.toPrev?.cutAt ?? 0)
-    const hi = cutMeta.fromNext ? 2880 + cutMeta.fromNext.cutAt : 1440 + (cutMeta.toNext?.cutAt ?? 1440)
-    return { lo, hi }
+    return computePageRange(cutMeta)
   })
 
   for (const card of cards) {
