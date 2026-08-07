@@ -106,6 +106,7 @@ const mEnd = ref('')
 const selectedTags = ref([])
 const mTagsRef = ref(null)
 const modalEl = ref(null)
+const _lastDeselect = ref(null)
 
 // Snapshot on open — used to skip confirm when nothing changed
 const original = ref({ title: '', note: '', start: '', end: '', tags: [] })
@@ -230,11 +231,21 @@ const duration = computed(() => {
   return toInput(Math.max(me - ms, 0))
 })
 
-// Tag toggle
+// Tag toggle — 快速取消再选中（800ms 内）→ 提升到第一位（作为主标签）
 function toggleTag(name) {
   const idx = selectedTags.value.indexOf(name)
-  if (idx === -1) selectedTags.value.push(name)
-  else selectedTags.value.splice(idx, 1)
+  if (idx === -1) {
+    const d = _lastDeselect.value
+    if (d && d.name === name && Date.now() - d.time < 800) {
+      selectedTags.value.unshift(name)
+    } else {
+      selectedTags.value.push(name)
+    }
+    _lastDeselect.value = null
+  } else {
+    selectedTags.value.splice(idx, 1)
+    _lastDeselect.value = { name, time: Date.now() }
+  }
 }
 
 // Chip keyboard navigation
