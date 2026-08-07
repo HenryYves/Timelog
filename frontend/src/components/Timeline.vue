@@ -696,7 +696,7 @@ function onKeyDown(e) {
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault()
       adrag.cur = Math.max(0, Math.min(TOTAL_MIN,
-        adrag.cur + (e.key === 'ArrowUp' ? -1 : 1)))
+        adrag.cur + (e.ctrlKey ? 5 : 1) * (e.key === 'ArrowUp' ? -1 : 1)))
       applyDrag()
       return
     }
@@ -734,15 +734,16 @@ function onKeyDown(e) {
 
   if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && selectedBlocks.value.size) {
     e.preventDefault()
-    const delta = e.key === 'ArrowUp' ? -1 : 1
+    const step = e.ctrlKey ? 5 : 1
+    const delta = (e.key === 'ArrowUp' ? -1 : 1) * step
     const sel = store.blocks.filter(b => selectedBlocks.value.has(b.id))
     let minStart = Infinity, maxEnd = -Infinity
     for (const b of sel) {
       if (b.start < minStart) minStart = b.start
       if (b.end > maxEnd) maxEnd = b.end
     }
-    if (delta < 0 && minStart <= pageRange.value.lo) return
-    if (delta > 0 && maxEnd >= pageRange.value.hi) return
+    if (delta < 0 && minStart + delta < pageRange.value.lo) return
+    if (delta > 0 && maxEnd + delta > pageRange.value.hi) return
     sel.forEach(b => store.updateBlock({ ...b, start: b.start + delta, end: b.end + delta }))
     return
   }
