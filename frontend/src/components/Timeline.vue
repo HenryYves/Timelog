@@ -114,6 +114,7 @@ const { showConfirm } = useConfirm()
 const { gutterHeights, totalHeight, pageRange, blockTop, yToMinute, minuteToY } = useCoordConverter()
 
 const TOTAL_MIN = DAY_MIN * 3
+const ARROW_CTRL_MULT = 10  // Ctrl+↑↓ 加速倍数
 
 const dayRef = ref(null)
 
@@ -696,7 +697,7 @@ function onKeyDown(e) {
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault()
       adrag.cur = Math.max(0, Math.min(TOTAL_MIN,
-        adrag.cur + (e.ctrlKey ? 5 : 1) * (e.key === 'ArrowUp' ? -1 : 1)))
+        adrag.cur + (e.ctrlKey ? ARROW_CTRL_MULT : 1) * (e.key === 'ArrowUp' ? -1 : 1)))
       applyDrag()
       return
     }
@@ -734,7 +735,7 @@ function onKeyDown(e) {
 
   if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && selectedBlocks.value.size) {
     e.preventDefault()
-    const step = e.ctrlKey ? 5 : 1
+    const step = e.ctrlKey ? ARROW_CTRL_MULT : 1
     const delta = (e.key === 'ArrowUp' ? -1 : 1) * step
     const sel = store.blocks.filter(b => selectedBlocks.value.has(b.id))
     let minStart = Infinity, maxEnd = -Infinity
