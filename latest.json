@@ -1,11 +1,11 @@
 {
-  "version": "v0.10.9",
-  "notes": "新增：时间输入[-+]hh:mm自由切换帧、blur格式+区段校验、胶水区endTimeAtNow\n变更：glue-next背景色#e0ebaf、红线全页面感知、goToday自动跳转、导出单起止输入\n修复：非整点标签、ref误用.value、resize dayEl、EditModal坐标偏移、T键胶水帧适配、空胶水区粘回、DataManager四向清理、标签key冲突、槽位独立约束\n158 tests",
-  "pub_date": "2026-07-31T00:00:00Z",
+  "version": "v0.10.27",
+  "notes": "新增：标签分组排序、拖拽排序、时间常量区块\n变更：computePageRange纯函数、timelineLabels共享函数、坐标转换统一pageRange\n修复：正则表达式、WebView2拖拽API、右键框选contextMenu误触发、选择框渲染偏移、统计视图剪刀/胶水信息丢失和日期范围错误、selectedBlocks响应式丢失、computePageRange本地坐标错误\n220 tests",
+  "pub_date": "2026-08-07T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUZYUHlaNUgvc29MMmt6bVY3Qys1bm1YK2syaEFhWlhxak5sc0JSWkVabGJ2QWJyOS9yR0J2MzNEVEoxOTZwQVhOcWQvenNtSHJuN0dYTlA3eG1YZmdNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg1NDg1Mzc0CWZpbGU6dGltZWxvZ18wLjEwLjlfeDY0X2VuLVVTLm1zaQo5SWt4ekVzN1ZobGRrclhnOFhDbmxmbEEvUEt1UWJQOW5GT1hLanY4NEtmT2x1eHhWWHJ3bjMyaWVWQ25hRXZseUpSM3FtanUvT2ZRSTNYYXNqMEdCQT09Cg==",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.10.9/timelog_0.10.9_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUdoeTZNMnZwbmNnRXNsdEt5c1JnRC9SZGU1L1oxKzFkWk9IaHB5VENmQWltSEw4TVNFVDhOZ1IxYWFiNS84QVUwYmhHK2JuZVZaU2g5QjNsRVltMXc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2MDY4NDE0CWZpbGU6dGltZWxvZ18wLjEwLjI3X3g2NF9lbi1VUy5tc2kKeUp4Kys1OU1wbXJabEJ4SkwydTNXek8vcUFubmQrejJibTFXeDVmMnBLcllOQ0N1QXYzT3F3TWFFU3VwRU9pdUVkZnZaYkQ4NExIREplN2VzK2wwQ1E9PQo=",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.10.27/timelog_0.10.27_x64_en-US.msi"
     }
   }
 }
