@@ -88,7 +88,7 @@ import { storeToRefs } from 'pinia'
 import { useTimelogStore, fmt, fmtSigned, dkey, addDays, cutDay, glueBack, canCutForward, canCutBackward } from '../store/timelog.js'
 import { useSettingsStore } from '../store/settings.js'
 import { mdToHtml } from '../utils/markdown.js'
-import { autoScrollByEdge } from '../utils/autoScroll.js'
+import { createAutoScroll } from '../utils/autoScroll.js'
 import { buildGluePrevLabels, buildTodayLabels, buildGlueNextLabels, mergeAllLabels } from '../utils/timelineLabels.js'
 
 import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH, DAY_OFFSET } from '../constants.js'
@@ -134,9 +134,20 @@ let dragStartY = 0
 let blockClickPending = false  // Track if block click might be a drag
 
 // --- Auto-scroll during drag ---
-let _rafId = 0
-let _lastClientX = 0
-let _lastClientY = 0
+const _as = createAutoScroll(
+  () => document.querySelector('main'),
+  (x, y) => {
+    if (adrag) {
+      adrag.cur = yToMinute(y, adrag.dayEl || dayRef.value)
+      applyDrag()
+    }
+    if (selRect.value) {
+      const r = dayRef.value.getBoundingClientRect()
+      const z = settingsStore.zoom / 100
+      selRect.value = { ...selRect.value, bottom: (y - r.top) / z, right: (x - r.left) / z }
+    }
+  },
+)
 
 // --- Right-drag selection ---
 const selRect = ref(null)
@@ -349,29 +360,9 @@ function applyDrag() {
   showDLabel(activeMin(), fmtSigned(b.s) + ' – ' + fmtSigned(b.en) + '（' + (b.en - b.s) + 'm，↑↓微调）')
 }
 
-function _rafLoop() {
-  _rafId = 0
-  if (!adrag && !selRect.value) return
-  const main = document.querySelector('main')
-  if (!main) return
-  autoScrollByEdge(main, _lastClientY)
-  // 自动滚动后重算拖拽/框选坐标
-  if (adrag) {
-    adrag.cur = yToMinute(_lastClientY, adrag.dayEl || dayRef.value)
-    applyDrag()
-  }
-  if (selRect.value) {
-    const r = dayRef.value.getBoundingClientRect()
-    const z = settingsStore.zoom / 100
-    selRect.value = { ...selRect.value, bottom: (_lastClientY - r.top) / z, right: (_lastClientX - r.left) / z }
-  }
-  _rafId = requestAnimationFrame(_rafLoop)
-}
-
 function endDrag(commit) {
   if (!adrag) return
-  cancelAnimationFrame(_rafId)
-  _rafId = 0
+  _as.stop()
   const b = dragBounds()
   const { type, id, el } = adrag
   if (ghost) { ghost.remove(); ghost = null }
@@ -451,14 +442,11 @@ function onBlockMouseDown(e, ev) {
 }
 
 function onMouseMove(e) {
-  _lastClientX = e.clientX
-  _lastClientY = e.clientY
+  _as.updatePos(e.clientX, e.clientY)
   if (adrag) {
     adrag.cur = yToMinute(e.clientY, adrag.dayEl || dayRef.value)
     applyDrag()
-    if (!_rafId) {
-      _rafId = requestAnimationFrame(_rafLoop)
-    }
+    _as.start()
   }
   if (dragPending) {
     const dy = Math.abs(e.clientY - dragStartY)
@@ -500,16 +488,14 @@ function onMouseMove(e) {
     const r = e.currentTarget.getBoundingClientRect()
     const z = settingsStore.zoom / 100
     selRect.value = { ...selRect.value, bottom: (e.clientY - r.top) / z, right: (e.clientX - r.left) / z }
-    if (!_rafId) {
-      _rafId = requestAnimationFrame(_rafLoop)
-    }
+    _as.start()
   }
   lastHoverMin.value = yToMinute(e.clientY, e.currentTarget)
   overGrid.value = true
 }
 
 function onMouseUp(e) {
-  if (_rafId) { cancelAnimationFrame(_rafId); _rafId = 0 }
+  _as.stop()
   if (adrag) { endDrag(true) }
 
   dragPending = null

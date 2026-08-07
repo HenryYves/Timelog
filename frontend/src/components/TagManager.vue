@@ -40,6 +40,7 @@ import { useTagStore } from '../store/tags.js'
 import { KEY_PREFIX } from '../constants.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { STR } from '../strings.js'
+import { createAutoScroll } from '../utils/autoScroll.js'
 import { extractBlocks, extractCutMeta } from '../utils/dayStorage.js'
 
 const props = defineProps({ show: Boolean })
@@ -57,6 +58,29 @@ let draggedIndex = null
 let dragTargetIndex = null
 let isDragging = false
 let startY = 0
+
+// 滚动后重算拖拽目标行
+function _retarget(x, y) {
+  const el = document.elementFromPoint(x, y)
+  if (!el) { clearDragOver(); return }
+  const tagrow = el.closest('.tagrow')
+  if (!tagrow) { clearDragOver(); return }
+  const idx = parseInt(tagrow.dataset.index)
+  if (isNaN(idx) || idx === draggedIndex) { clearDragOver(); return }
+  dragTargetIndex = idx
+  document.querySelectorAll('.tagrow.drag-over').forEach(r => {
+    if (r !== tagrow) r.classList.remove('drag-over')
+  })
+  tagrow.classList.add('drag-over')
+}
+
+const _as = createAutoScroll(
+  () => document.getElementById('tagList'),
+  (x, y) => _retarget(x, y),
+)
+let _rafId = 0
+let _lastClientX = 0
+let _lastClientY = 0
 
 function trapFocus(e) {
   if (e.key !== 'Tab') return
@@ -136,35 +160,13 @@ function onMouseMove(e) {
 
   if (!isDragging) return
 
-  // Find target row under cursor
-  const element = document.elementFromPoint(e.clientX, e.clientY)
-  if (!element) {
-    clearDragOver()
-    return
-  }
-
-  const tagrow = element.closest('.tagrow')
-  if (!tagrow) {
-    clearDragOver()
-    return
-  }
-
-  const targetIndex = parseInt(tagrow.dataset.index)
-  if (isNaN(targetIndex) || targetIndex === draggedIndex) {
-    clearDragOver()
-    return
-  }
-
-  dragTargetIndex = targetIndex
-
-  // Highlight target row
-  document.querySelectorAll('.tagrow.drag-over').forEach(el => {
-    if (el !== tagrow) el.classList.remove('drag-over')
-  })
-  tagrow.classList.add('drag-over')
+  _as.updatePos(e.clientX, e.clientY)
+  _as.start()
+  _retarget(e.clientX, e.clientY)
 }
 
 function onMouseUp(e) {
+  _as.stop()
   document.removeEventListener('mousemove', onMouseMove)
   document.removeEventListener('mouseup', onMouseUp)
 
