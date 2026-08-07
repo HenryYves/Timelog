@@ -45,6 +45,7 @@ export const DEFAULT_ZOOM = 100
 export const DEFAULT_FONT_FAMILY = ''
 export const DEFAULT_CHECK_BEFORE_CREATE = false
 export const DEFAULT_COPY_AFTER_CREATE = true
+export const DEFAULT_AUTO_SELECT_ON_FOCUS = true
 export const DEFAULT_MARKDOWN_PREVIEW = true
 export const DEFAULT_BATCH_MARKDOWN_PREVIEW = true
 export const DEFAULT_TAB_TO_INDENT = true

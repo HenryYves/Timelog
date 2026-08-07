@@ -202,6 +202,16 @@
             <div class="small">{{ STR.settings.descCopyAfterCreate }}</div>
 
             <div class="row">
+              <label>{{ STR.settings.autoSelectOnFocus }}</label>
+              <div>
+                <label class="toggle"><input type="checkbox" :checked="settings.autoSelectOnFocus" @change="settings.setAutoSelectOnFocus($event.target.checked)"><span class="tk"></span></label>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoSelectOnFocus(DEFAULT_AUTO_SELECT_ON_FOCUS)">
+                  <img src="/icons/restore.svg" alt="">
+                </button>
+              </div>
+            </div>
+
+            <div class="row">
               <label>{{ STR.settings.tagDelimiters }}</label>
               <div>
                 <input type="text" :value="settings.tagDelimiters" @change="settings.setTagDelimiters($event.target.value)" placeholder="," style="width:200px;">
@@ -448,6 +458,7 @@ import {
   DEFAULT_RENDER_NOTE_MARKDOWN,
   DEFAULT_END_TIME_AT_NOW,
   DEFAULT_MIN_BLOCK_MINUTES,
+  DEFAULT_AUTO_SELECT_ON_FOCUS,
 } from '../constants.js'
 import { STR } from '../strings.js'
 

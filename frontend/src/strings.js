@@ -119,6 +119,7 @@ export const STR = {
     sectionBatchCreate: 'N 模式创建时间块',
     checkBeforeCreate: '保存前检查解析结果',
     copyAfterCreate: '创建后复制到剪贴板',
+    autoSelectOnFocus: '输入框获取焦点时全选内容',
     tagDelimiters: '标签分隔符',
 
     // ── Appearance ──

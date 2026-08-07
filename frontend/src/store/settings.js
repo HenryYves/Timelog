@@ -11,6 +11,7 @@ import {
   DEFAULT_RENDER_NOTE_MARKDOWN,
   DEFAULT_END_TIME_AT_NOW,
   DEFAULT_MIN_BLOCK_MINUTES,
+  DEFAULT_AUTO_SELECT_ON_FOCUS,
 } from '../constants.js'
 
 function loadNum(k, d) {
@@ -54,6 +55,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const renderNoteMarkdown = ref(loadBool('renderNoteMarkdown', DEFAULT_RENDER_NOTE_MARKDOWN))
   const endTimeAtNow = ref(loadBool('endTimeAtNow', DEFAULT_END_TIME_AT_NOW))
   const minBlockMinutes = ref(loadNum('minBlockMinutes', DEFAULT_MIN_BLOCK_MINUTES))
+  const autoSelectOnFocus = ref(loadBool('autoSelectOnFocus', DEFAULT_AUTO_SELECT_ON_FOCUS))
 
   function saveNum(k, v) { localStorage.setItem(KEY_PREFIX + k, String(v)) }
   function saveBool(k, v) { localStorage.setItem(KEY_PREFIX + k, v ? '1' : '0') }
@@ -167,6 +169,7 @@ export const useSettingsStore = defineStore('settings', () => {
     minBlockMinutes.value = Math.max(0, Math.min(120, parseInt(v) || DEFAULT_MIN_BLOCK_MINUTES))
     saveNum('minBlockMinutes', minBlockMinutes.value)
   }
+  function setAutoSelectOnFocus(v) { autoSelectOnFocus.value = v; saveBool('autoSelectOnFocus', v) }
 
   function reloadSettings() {
     defaultDuration.value = loadNum('defaultDuration', DEFAULT_DURATION)
@@ -199,6 +202,7 @@ export const useSettingsStore = defineStore('settings', () => {
     renderNoteMarkdown.value = loadBool('renderNoteMarkdown', DEFAULT_RENDER_NOTE_MARKDOWN)
     endTimeAtNow.value = loadBool('endTimeAtNow', DEFAULT_END_TIME_AT_NOW)
     minBlockMinutes.value = loadNum('minBlockMinutes', DEFAULT_MIN_BLOCK_MINUTES)
+    autoSelectOnFocus.value = loadBool('autoSelectOnFocus', DEFAULT_AUTO_SELECT_ON_FOCUS)
   }
 
   return {
@@ -213,10 +217,12 @@ export const useSettingsStore = defineStore('settings', () => {
     renderNoteMarkdown,
     endTimeAtNow,
     minBlockMinutes,
+    autoSelectOnFocus,
     setShowBlockTitle, setShowBlockTime, setShowBlockTags, setShowBlockNote, setShowBlockColorBar, setMaskBlockOverflow,
     setRenderNoteMarkdown,
     setEndTimeAtNow,
     setMinBlockMinutes,
+    setAutoSelectOnFocus,
     setMarkdownPreview, setBatchMarkdownPreview, setTabToIndent, setBatchTabToIndent, setEditorFontSize, setCustomCss,
     reloadSettings,
   }
