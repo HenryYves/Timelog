@@ -457,7 +457,7 @@ function onWinMin() {
   try {
     window.__TAURI__.window.getCurrentWindow().minimize()
   } catch (e) {
-    console.error('minimize failed:', e.message)
+    logger.error('window', 'minimize failed', e)
   }
 }
 
@@ -467,7 +467,7 @@ function onWinMax() {
     window.__TAURI__.window.getCurrentWindow().toggleMaximize()
     // isMaximized updated by onResized listener — driven by actual window state
   } catch (e) {
-    console.error('toggleMaximize failed:', e.message)
+    logger.error('window', 'toggleMaximize failed', e)
   }
 }
 
@@ -476,7 +476,7 @@ function onWinClose() {
     try {
       window.__TAURI__.window.getCurrentWindow().close()
     } catch (e) {
-      console.error('close failed:', e.message)
+      logger.error('window', 'close failed', e)
     }
   } else {
     window.close()
@@ -508,7 +508,7 @@ function onHeaderMouseDown(e) {
     try {
       window.__TAURI__.window.getCurrentWindow().startDragging()
     } catch (e) {
-      console.error('startDragging failed:', e.message)
+      logger.error('window', 'startDragging failed', e)
     }
   }
   document.addEventListener('mousemove', onMove)
@@ -533,7 +533,7 @@ function applyBorderless() {
     try {
       window.__TAURI__.window.getCurrentWindow().setDecorations(!val)
     } catch (e) {
-      console.error('setDecorations failed:', e.message)
+      logger.error('window', 'setDecorations failed', e)
     }
   }
 }
@@ -765,7 +765,7 @@ onMounted(async () => {
   // Single-instance: second launch → toast
   listen('second-instance', () => {
     toast(STR.toast.alreadyRunning)
-  }).catch(() => { })
+  }).catch(e => { logger.warn('tauri', 'second-instance listener failed', e) })
 
   window.addEventListener('keydown', onWindowKeyDown)
   window.addEventListener('backup:restored', onBackupRestored)

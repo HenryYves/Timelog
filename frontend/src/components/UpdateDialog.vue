@@ -57,6 +57,7 @@ import { ref, computed, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { Channel } from '@tauri-apps/api/core'
 import { STR } from '../strings.js'
+import { logger } from '../utils/log.js'
 
 const props = defineProps({
   show: Boolean,
@@ -132,6 +133,7 @@ async function startDownload() {
     return true
   } catch (e) {
     if (cancelFlag) return false
+    logger.error('update', 'download failed', e)
     phase.value = 'error'
     errorMessage.value = `${STR.update.downloadFailed}：${e?.message || String(e)}`
     return false
@@ -151,6 +153,7 @@ async function onUpdateNow() {
     // install_update calls app.restart() on success, so we won't reach here
     phase.value = 'done'
   } catch (e) {
+    logger.error('update', 'install failed', e)
     phase.value = 'error'
     errorMessage.value = `${STR.update.installFailed}：${e?.message || String(e)}`
   }

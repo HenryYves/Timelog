@@ -69,7 +69,7 @@
 <script setup>
 import { ref } from 'vue'
 import { STR } from '../strings.js'
-import { exportLogs, getLogText } from '../utils/log.js'
+import { exportLogs, getLogText, logger } from '../utils/log.js'
 import { useToast } from '../composables/useToast.js'
 
 const { toast } = useToast()
@@ -82,6 +82,7 @@ async function doExportLogs() {
     if (path) toast('日志已导出到：' + path)
     else toast('已取消')
   } catch (e) {
+    logger.error('help', 'exportLogs failed', e)
     toast('导出日志失败')
   }
 }

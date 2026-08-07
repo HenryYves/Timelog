@@ -433,6 +433,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { useSettingsStore } from '../store/settings.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
+import { logger } from '../utils/log.js'
 import { migrateBackups } from '../utils/backup.js'
 import {
   APP_VERSION, compareSemver,
@@ -542,7 +543,7 @@ function applyBorderless(val) {
     try {
       T.window.getCurrentWindow().setDecorations(!val)
     } catch (e) {
-      console.error('setDecorations failed:', e.message)
+      logger.error('settings', 'setDecorations failed', e)
     }
   }
 }
@@ -598,6 +599,7 @@ async function onCheckUpdate() {
       }
     }
   } catch (e) {
+    logger.error('settings', 'checkUpdate failed', e)
     toast(STR.update.checkFailed)
   } finally {
     checkingUpdate.value = false
