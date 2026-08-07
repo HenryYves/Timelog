@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.10.27] - 2026-08-07
+
+### Added
+- 标签管理器新增"按分组排序"按钮
+- 标签拖拽排序（⋮⋮ 手柄，paw.svg 光标，蓝色虚线高亮，3px 防误触）
+- 时间常量区块（MS_PER_SECOND → MS_PER_DAY）
+
+### Changed
+- 提取 computePageRange 纯函数供 stats / useCoordConverter 共用
+- 提取 timelineLabels 共享标签生成函数
+- 坐标转换统一使用 pageRange，blockTop / yToMinute / minuteToY 简化为单行公式
+- 重命名 webview2-contenteditable-quirks.md → webview2-quirks.md
+
+### Fixed
+- 修复 pattern="[+-]" 正则表达式无效字符类错误
+- 修复 WebView2 HTML5 拖拽 API dragover/drop/drag 完全不触发
+- 修复右键框选后误触发 contextmenu 导致选中状态错误
+- 修复选择框渲染缺少 left/width 导致显示错位
+- 修复统计视图 24h/168h 缺少剪刀/胶水信息和日期范围计算错误
+- 修复 selectedBlocks 响应式丢失（storeToRefs 解构 state）
+- 修复 computePageRange 无 cutMeta 时返回本地坐标
+
+### Docs
+- CLAUDE.md 新增：函数职能与文件职能一致性、文件职能声明规则
+
 ## [0.10.9] - 2026-07-31
 
 ### Added
