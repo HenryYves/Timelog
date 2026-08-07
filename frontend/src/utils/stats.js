@@ -4,7 +4,7 @@
 
 import { KEY_PREFIX, DAY_MIN, DAY_OFFSET, MIN_PER_HOUR, HOURS_PER_DAY, DAYS_PER_WEEK, HOURS_PER_WEEK, MS_PER_HOUR, MS_PER_DAY } from '../constants.js'
 import { localMinToUnified, computePageRange } from '../composables/useCoordConverter.js'
-import { extractBlocks } from './dayStorage.js'
+import { extractBlocks, extractCutMeta } from './dayStorage.js'
 
 // ---- Date helpers ----
 
@@ -242,12 +242,20 @@ export function computeUnrecorded(days, blocksByDay, rangesByDay = null) {
  * @param {Object} tagStore - Pinia tag store (has .colorOf method + .tags array)
  * @param {Object} STR - stats strings (needs .untagged)
  * @param {Object} timeRangeState - { timeRange, customStart, customEnd, now }
- * @param {Object} cutMetaByDay - optional map of dateKey -> cutMeta for computing ranges
  * @returns {Object} map of cardId -> [{tag, minutes, color}]
  */
-export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, customStart, customEnd, now }, cutMetaByDay = {}) {
+export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, customStart, customEnd, now }) {
   const PAL = ['#A1AFC9', '#F0C7C1', '#C4E0D4', '#B5D8A8', '#FCE38A', '#F36838', '#9370DB', '#20B2AA', '#FF7F50', '#87CEEB']
   const map = {}
+
+  // Helper: load cutMeta from localStorage for a given dateKey
+  function loadCutMeta(dateKey) {
+    const raw = localStorage.getItem(KEY_PREFIX + dateKey)
+    if (!raw) return null
+    try {
+      return extractCutMeta(JSON.parse(raw))
+    } catch { return null }
+  }
 
   // For 24h/168h, compute exact time window using unified coordinates
   let timeWindow = null
@@ -256,7 +264,7 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
     const hours = timeRange === '24h' ? HOURS_PER_DAY : HOURS_PER_WEEK
     const startTime = new Date(nowDate.getTime() - hours * MS_PER_HOUR)
 
-    const getCutMeta = (dk) => cutMetaByDay[dk] || null
+    const getCutMeta = (dk) => loadCutMeta(dk)
 
     // Convert calendar times to unified coordinates
     const startDateKey = fmtDate(startTime)
@@ -273,18 +281,6 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
       endDate: endUnified.dateKey,
       endMin: endUnified.unifiedMin
     }
-
-    // Diagnostic logging
-    console.log('[24h/168h Diagnostics]', {
-      timeRange,
-      now: nowDate.toISOString(),
-      startTime: startTime.toISOString(),
-      startCalendar: { date: startDateKey, localMin: startLocalMin },
-      startUnified: startUnified,
-      endCalendar: { date: endDateKey, localMin: endLocalMin },
-      endUnified: endUnified,
-      timeWindow
-    })
   }
 
   // Get days to load (pass timeWindow for 24h/168h)
@@ -292,7 +288,7 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
   const blocksByDay = days.map(d => loadDayBlocks(d))
 
   // Compute visible range for each day (统一帧坐标)
-  const rangesByDay = days.map((dateKey, idx) => {
+  const rangesByDay = days.map((dateKey) => {
     // For absolute time windows (24h/168h), compute precise boundaries
     if (timeWindow) {
       // Default: not in window
@@ -305,20 +301,17 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
         hi = timeWindow.endMin
       } else if (dateKey === timeWindow.startDate) {
         // Start day: [startMin, dayEnd)
-        const cutMeta = cutMetaByDay[dateKey]
-        const pageRange = computePageRange(cutMeta)
+        const pageRange = computePageRange(loadCutMeta(dateKey))
         lo = timeWindow.startMin
         hi = pageRange.hi
       } else if (dateKey === timeWindow.endDate) {
         // End day: [dayStart, endMin)
-        const cutMeta = cutMetaByDay[dateKey]
-        const pageRange = computePageRange(cutMeta)
+        const pageRange = computePageRange(loadCutMeta(dateKey))
         lo = pageRange.lo
         hi = timeWindow.endMin
       } else {
         // Middle days: use full visible range
-        const cutMeta = cutMetaByDay[dateKey]
-        const pageRange = computePageRange(cutMeta)
+        const pageRange = computePageRange(loadCutMeta(dateKey))
         lo = pageRange.lo
         hi = pageRange.hi
       }
@@ -327,17 +320,8 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
     }
 
     // For other time ranges, use full pageRange for each day
-    const cutMeta = cutMetaByDay[dateKey]
-    return computePageRange(cutMeta)
+    return computePageRange(loadCutMeta(dateKey))
   })
-
-  // Diagnostic logging for rangesByDay
-  if (timeRange === '24h' || timeRange === '168h') {
-    console.log('[rangesByDay]', days.map((day, i) => ({
-      date: day,
-      range: rangesByDay[i]
-    })))
-  }
 
   for (const card of cards) {
     const tagMap = {}

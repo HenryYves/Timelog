@@ -1,21 +1,6 @@
 /**
  * @fileoverview 统一坐标转换 composable
  *
- * ## 为什么需要坐标转换？
- *
- * Timelog 使用"剪刀/胶水"功能将不同日期的时间段拼接显示在同一页面。
- * 这导致需要两套坐标系统：
- *
- * 1. **统一帧坐标**（存储/逻辑坐标）：
- *    - 昨天 [0, 1440)，今天 [1440, 2880)，明天 [2880, 4320)
- *    - 块的 start/end 使用此坐标存储
- *    - 优点：跨天块可以用连续的数字表示（如昨天 23:00-今天 01:00 = [1380, 1500]）
- *
- * 2. **渲染坐标**（像素坐标）：
- *    - 按照实际显示顺序排列：[昨天胶水区 | 今天显示区 | 明天胶水区]
- *    - 用于计算 DOM 元素的 top/height 样式
- *    - 优点：直观对应页面上从上到下的显示顺序
- *
  * ## 剪刀/胶水元数据（cutMeta）
  *
  * `_cutMeta` 由 timelog store 的 cutDay/glueBack 维护，包含 4 种剪切/胶水信息：
@@ -43,8 +28,6 @@
  * - fromPrev.cutAt 是**本地坐标**（昨天帧 [0, 1440)）
  * - fromNext.cutAt 是**本地分钟**（明天的本地时间 [0, 1440)）
  * - toPrev.cutAt 和 toNext.cutAt 都是**本地分钟**（今天的本地时间 [0, 1440)）
- *
- * 这种不一致是历史原因造成的，但改动成本太高，所以在使用时需要特别注意。
  */
 import { computed } from 'vue'
 import { useTimelogStore } from '../store/timelog.js'
@@ -71,7 +54,7 @@ export function localMinToUnified(day, min) {
  */
 export function computePageRange(cutMeta) {
   if (!cutMeta) {
-    return { lo: 0, hi: DAY_MIN }
+    return { lo: DAY_OFFSET.today, hi: DAY_OFFSET.next }
   }
 
   const fromPrev = cutMeta.fromPrev

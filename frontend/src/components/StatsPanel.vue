@@ -321,17 +321,6 @@ function exportCard(cardId) {
 
 // ── Data ──
 const cardTagData = computed(() => {
-  // Build cutMetaByDay for proper range calculation
-  const cutMetaByDay = {}
-
-  // For 'today', use current store's cutMeta
-  if (timeRange.value === 'today') {
-    cutMetaByDay[store.dateKey] = store._cutMeta
-  }
-  // For other days, we can't easily access their cutMeta from localStorage
-  // So we'll default to [0, 1440) for non-current days
-  // This is a limitation: historical scissors/glue won't be reflected in stats
-
   return computeCardsData(
     cards.value, tagGroup, tagStore, STR.stats,
     {
@@ -339,8 +328,7 @@ const cardTagData = computed(() => {
       customStart: customStart.value,
       customEnd: customEnd.value,
       now: new Date()
-    },
-    cutMetaByDay
+    }
   )
 })
 
