@@ -732,6 +732,21 @@ function onKeyDown(e) {
     return
   }
 
+  if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && selectedBlocks.value.size) {
+    e.preventDefault()
+    const delta = e.key === 'ArrowUp' ? -1 : 1
+    const sel = store.blocks.filter(b => selectedBlocks.value.has(b.id))
+    let minStart = Infinity, maxEnd = -Infinity
+    for (const b of sel) {
+      if (b.start < minStart) minStart = b.start
+      if (b.end > maxEnd) maxEnd = b.end
+    }
+    if (delta < 0 && minStart <= pageRange.value.lo) return
+    if (delta > 0 && maxEnd >= pageRange.value.hi) return
+    sel.forEach(b => store.updateBlock({ ...b, start: b.start + delta, end: b.end + delta }))
+    return
+  }
+
   if (e.key === 'Escape' && selectedBlocks.value.size) {
     selectedBlocks.value.clear()
     toast(STR.toast.unselected)
