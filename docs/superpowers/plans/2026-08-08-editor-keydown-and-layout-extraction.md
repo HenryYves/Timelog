@@ -232,7 +232,7 @@ git add -A && git commit -m "refactor(layout): 提取 layoutOverlap + blockStyle
 - Modify: `frontend/src/components/Timeline.vue:197-293`
 - Modify: `frontend/src/components/ExportImagePanel.vue:594-642`
 
-- [ ] **Step 1: Timeline.vue — import and replace layout**
+- [x] **Step 1: Timeline.vue — import and replace layout**
 
 ```js
 import { layoutOverlap, blockStyle } from '../utils/blockLayout.js'
@@ -245,7 +245,7 @@ function layout(list) { return layoutOverlap(list) }
 
 (Keep the wrapper function to preserve the `computed` reference below)
 
-- [ ] **Step 2: Timeline.vue — update computeBlockStyle**
+- [x] **Step 2: Timeline.vue — update computeBlockStyle**
 
 In `computeBlockStyle`, replace position calculations with `blockStyle` call, keep color logic:
 
@@ -263,7 +263,7 @@ function computeBlockStyle(ev) {
 }
 ```
 
-- [ ] **Step 3: ExportImagePanel.vue — import and replace layoutOverlap**
+- [x] **Step 3: ExportImagePanel.vue — import and replace layoutOverlap**
 
 ```js
 import { layoutOverlap, blockStyle as sharedBlockStyle } from '../utils/blockLayout.js'
@@ -271,7 +271,7 @@ import { layoutOverlap, blockStyle as sharedBlockStyle } from '../utils/blockLay
 
 Delete `function layoutOverlap(blocks) { ... }` (lines 595-627).
 
-- [ ] **Step 4: ExportImagePanel.vue — update blockStyle**
+- [x] **Step 4: ExportImagePanel.vue — update blockStyle**
 
 Replace `function blockStyle(b) { ... }` (lines 629-642) with:
 
@@ -286,9 +286,9 @@ function blockStyle(b) {
 }
 ```
 
-- [ ] **Step 5: Run `cd frontend && npx vitest run` — all 220 tests pass**
+- [x] **Step 5: Run `cd frontend && npx vitest run` — all 220 tests pass**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add -A && git commit -m "refactor(layout): Timeline + ExportImagePanel 统一使用 utils/blockLayout.js"
