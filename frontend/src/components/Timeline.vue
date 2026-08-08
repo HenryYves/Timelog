@@ -31,7 +31,7 @@
 
     <!-- Single day area -->
     <div class="day" ref="dayRef" :style="{ height: totalHeight * PX_MIN + 'px' }" @mousedown="onDayMouseDown"
-      @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onDayMouseLeave" @click.self="onDayClick"
+      @mousemove="onMouseMove" @mouseup="onMouseUp" @mouseleave="onMouseUp" @click.self="onDayClick"
       @contextmenu.prevent>
       <div v-if="selRect" class="selrect" :style="{
         top: Math.min(selRect.top, selRect.bottom) + 'px',
@@ -549,12 +549,6 @@ function onMouseUp(e) {
     }
   }
   overGrid.value = false
-}
-
-function onDayMouseLeave() {
-  _as.stop()
-  // 不提交拖拽 — window 级 mousemove/mouseup 继续跟踪，
-  // 避免 auto-scroll 滚动导致的 mouseleave 提前终止拖拽
 }
 
 function onBlockClick(e, ev) {
