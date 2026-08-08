@@ -852,7 +852,7 @@ async function doExport() {
 .export-right {
   flex: 1; display: flex; align-items: flex-start; justify-content: center;
   border-radius: 8px; overflow: hidden;
-  min-height: 300px; max-height: calc(72vh / var(--zoom, 1)); cursor: grab; position: relative;
+  min-height: 300px; max-height: calc(72vh / var(--zoom, 1)); cursor: url('../assets/paw.svg') 16 16, grab; position: relative;
   user-select: none;
   /* Checkerboard to indicate preview area (matches obsidian export-image) */
   background-size: 20px 20px;
@@ -862,6 +862,15 @@ async function doExport() {
     linear-gradient(-45deg, var(--border) 25%, transparent 25%),
     linear-gradient(45deg, transparent 75%, var(--border) 75%),
     linear-gradient(-45deg, transparent 75%, var(--border) 75%);
+}
+.export-right:active {
+  cursor: url('../assets/paw.svg') 16 16, grabbing;
+}
+.export-right .block {
+  cursor: url('../assets/paw.svg') 16 16, grab;
+}
+.export-right:active .block {
+  cursor: url('../assets/paw.svg') 16 16, grabbing;
 }
 
 /* Responsive: stack vertically on narrow screens */
