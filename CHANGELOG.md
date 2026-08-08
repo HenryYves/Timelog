@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.10.36] - 2026-08-08
+
+### Added
+- 拖拽和右键框选时边缘自动滚动（RAF 循环驱动，越近越快）
+- 选中块支持上下键整批移动（±1 分钟，触边界全停）
+- Ctrl+↑↓ 加速移动（步长 10），边界预判防越界
+- 输入框获焦时全选内容，方便 Tab 进入直接替换（可设置）
+- 快速取消再选中标签提升为主标签（800ms 内 unshift 到首位）
+- 导出图片预览区拖拽手势使用 paw.svg
+- 标签管理器拖拽排序支持边缘自动滚动
+
+### Changed
+- Header 光标 base64 → paw.svg 直接引用
+
+### Fixed
+- 补全静默 catch 的日志记录（窗口控制、更新检查、导出等 11 处）
+- RAF 无限循环导致键盘事件被抑制，拖拽期间 ↑↓ 失效
+- 拖拽微调边界检测与选中块移动统一使用 pageRange
+
+### Refactored
+- 抽取 createAutoScroll 工厂函数，消除 RAF 生命周期重复代码
+- 提取 MarkdownEditor onKeydown Backspace/Delete/Enter/Tab 处理器到 utils/editMarkdownKeyboard.js
+- Timeline 与 ExportImagePanel 布局算法统一提取到 utils/blockLayout.js
+
 ## [0.10.27] - 2026-08-07
 
 ### Added

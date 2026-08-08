@@ -63,7 +63,7 @@ export const DEFAULT_END_TIME_AT_NOW = true
 export const DEFAULT_MIN_BLOCK_MINUTES = 10
 
 // ---------- UI ----------
-export const APP_VERSION = 'v0.10.27'
+export const APP_VERSION = 'v0.10.36'
 export const TOAST_DURATION = 3000
 
 export function compareSemver(a, b) {
