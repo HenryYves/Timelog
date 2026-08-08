@@ -34,6 +34,7 @@ import { ref, nextTick, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useSettingsStore } from '../store/settings.js'
 import { useTagStore } from '../store/tags.js'
 import { getTagHint as _getTagHint, getWordBeforeCursor, getDelimiters, getAllCandidates as _getAllCandidates, confirmTagInFreq, loadFreqFromStorage, saveFreqToStorage } from '../utils/editor.js'
+import { handleBackspace, handleDelete, handleEnter, handleTab } from '../utils/editMarkdownKeyboard.js'
 import { UndoManager, shouldMergeEditorEntry } from '../utils/undo.js'
 import { saveCursor, restoreCursor } from '../utils/cursor.js'
 import { unwrapFormatting, scanContentEditable, scanLists, renumberLists } from '../utils/scanner.js'
@@ -551,7 +552,6 @@ function onKeydown(e) {
   }
 
   const isTagLine = props.tagLine
-  const hint = editorEl.value.querySelector('.tag-hint')
 
   // Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z — custom undo/redo
   if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) {
@@ -583,372 +583,37 @@ function onKeydown(e) {
 
   // Backspace/Delete: handle EditMarkdown elements
   if (e.key === 'Backspace' || e.key === 'Delete') {
-    // Remove hint if present
-    if (hint) hint.remove()
-
-    const sel = window.getSelection()
-    if (sel?.rangeCount) {
-      const range = sel.getRangeAt(0)
-      if (range.collapsed) {
-        let node = range.startContainer
-
-        // Case 1 (Backspace only): cursor inside an EditMarkdown element
-        //  - escape → delete element + char
-        //  - marker/content → unwrap (preserve text)
-        if (e.key === 'Backspace' && node.nodeType === 3) {
-          let el = node.parentNode
-          while (el && el !== editorEl.value) {
-            if (el.className && el.className.includes('EditMarkdown-escape')) {
-              e.preventDefault()
-              const parent = el.parentNode
-              const r = document.createRange()
-              if (el.nextSibling) { r.setStartBefore(el.nextSibling) }
-              else if (el.previousSibling) { r.setStartAfter(el.previousSibling) }
-              else { r.selectNodeContents(parent); r.collapse(true) }
-              r.collapse(true)
-              el.remove()
-              if (parent) parent.normalize()
-              sel.removeAllRanges()
-              sel.addRange(r)
-              return
-            }
-            // Marker/content elements:
-            //  - offset=0 → delete char from previous text node (marker edge)
-            //  - offset>0 in marker/escape → manual delete at cursor position
-            //  - offset>0 in content wrapper (<b>/<i>/etc.) → browser native
-            if (el.className && /EditMarkdown-/.test(el.className)) {
-              if (range.startOffset > 0) {
-                if (el.classList?.contains('EditMarkdown-marker') ||
-                    el.classList?.contains('EditMarkdown-escape')) {
-                  // Mid-marker: delete char before cursor ourselves
-                  e.preventDefault()
-                  inputLock++
-                  const t = node.textContent || ''
-                  const newOff = range.startOffset - 1
-                  node.textContent = t.slice(0, newOff) + t.slice(range.startOffset)
-                  sel.collapse(node, newOff)
-                  inputLock--
-                  onInput()
-                }
-                // content wrapper mid-text → break, let browser handle
-                break
-              }
-              // offset=0: delete char from previous text node
-              let prev = node.previousSibling
-              while (prev) {
-                if (prev.nodeType === 3) break
-                prev = prev.previousSibling
-              }
-              if (prev && prev.nodeType === 3) {
-                const text = prev.textContent || ''
-                if (text.length > 0) {
-                  e.preventDefault()
-                  inputLock++
-                  prev.textContent = text.slice(0, -1)
-                  if (!prev.textContent) {
-                    const span = prev.parentNode
-                    if (span && span.nodeType === 1 && span !== el.parentNode) span.remove()
-                  }
-                  node.parentNode.normalize?.()
-                  inputLock--
-                  onInput()
-                }
-              }
-              return
-            }
-            el = el.parentNode
-          }
-        }
-
-        // Case 1b (Delete): cursor at end of text inside EditMarkdown element.
-        // Delete first character of next text node (mirror of Backspace logic).
-        if (e.key === 'Delete' && node.nodeType === 3) {
-          const textLen = (node.textContent || '').length
-          if (range.startOffset < textLen) {
-            // Mid-text in marker/escape: delete char at cursor position
-            let elM = node.parentNode
-            while (elM && elM !== editorEl.value) {
-              if (elM.classList?.contains('EditMarkdown-marker') ||
-                  elM.classList?.contains('EditMarkdown-escape')) {
-                e.preventDefault()
-                inputLock++
-                const t = node.textContent || ''
-                node.textContent = t.slice(0, range.startOffset) + t.slice(range.startOffset + 1)
-                sel.removeAllRanges()
-                const r = document.createRange()
-                r.setStart(node, range.startOffset)
-                r.collapse(true)
-                sel.addRange(r)
-                inputLock--
-                onInput()
-                return
-              }
-              elM = elM.parentNode
-            }
-          }
-          // Cursor at text end inside EditMarkdown: delete first char
-          // of next text node (mirror of Backspace offset=0 logic).
-          if (range.startOffset === textLen && textLen > 0) {
-            let el = node.parentNode
-            while (el && el !== editorEl.value) {
-              if (el.className && /EditMarkdown-/.test(el.className)) {
-                let next = node.nextSibling
-                while (next) {
-                  if (next.nodeType === 3) break
-                  next = next.nextSibling
-                }
-                if (next && next.nodeType === 3) {
-                  const text = next.textContent || ''
-                  if (text.length > 0) {
-                    e.preventDefault()
-                    inputLock++
-                    next.textContent = text.slice(1)
-                    if (!next.textContent) {
-                      const span = next.parentNode
-                      if (span && span.nodeType === 1 && span !== el.parentNode) span.remove()
-                    }
-                    node.parentNode.normalize?.()
-                    inputLock--
-                    onInput()
-                  }
-                }
-                return
-              }
-              el = el.parentNode
-            }
-          }
-        }
-
-        // Case 2: cursor at text node boundary next to an EditMarkdown sibling
-        if (node.nodeType === 3) {
-          if (e.key === 'Backspace' && range.startOffset === 0) {
-            const prev = node.previousSibling
-            if (prev && prev.nodeType === 1 && prev.className && /EditMarkdown-/.test(prev.className)) {
-              e.preventDefault()
-              const parent = prev.parentNode
-              prev.remove()
-              // Keep block non-empty to prevent browser merge —
-              // check for actual content, not just empty text nodes
-              if (parent && !parent.textContent.trim() && parent.querySelector('br') === null) {
-                parent.appendChild(document.createElement('br'))
-              }
-              return
-            }
-          }
-          if (e.key === 'Delete' && range.startOffset === (node.textContent || '').length) {
-            const next = node.nextSibling
-            if (next && next.nodeType === 1 && next.className && /EditMarkdown-/.test(next.className)) {
-              e.preventDefault()
-              const parent = next.parentNode
-              next.remove()
-              if (parent && !parent.textContent.trim() && parent.querySelector('br') === null) {
-                parent.appendChild(document.createElement('br'))
-              }
-              return
-            }
-          }
-        }
-
-        // Case 3: Backspace at position 1 in the first content text of a block.
-        // WebView2 merges blocks when deletion results in cursor at pos 0
-        // of a block's first text node. Handle ourselves to prevent the merge.
-        if (e.key === 'Backspace' && node.nodeType === 3 && range.startOffset === 1) {
-          const block = node.parentNode
-          if (block && block !== editorEl.value) {
-            // Check that only EditMarkdown elements precede this text node
-            let prev = node.previousSibling
-            let atBlockStart = true
-            while (prev) {
-              if (!(prev.nodeType === 1 && prev.className && /EditMarkdown-/.test(prev.className))) {
-                atBlockStart = false
-                break
-              }
-              prev = prev.previousSibling
-            }
-            if (atBlockStart && block.previousSibling) {
-              e.preventDefault()
-              const text = node.textContent || ''
-              node.textContent = text.slice(1) // delete first char
-              const r = document.createRange()
-              r.setStart(node, 0)
-              r.collapse(true)
-              sel.removeAllRanges()
-              sel.addRange(r)
-              // Quirk #4 guard: WebView2 merges empty divs without <br>
-              const parent = node.parentNode
-              if (parent && parent !== editorEl.value && !parent.textContent.trim() && !parent.querySelector('br')) {
-                parent.appendChild(document.createElement('br'))
-              }
-              return
-            }
-          }
-        }
-      }
-    }
+    const inputRef = { v: inputLock }
+    const ctx = { editorEl, inputLock: inputRef, onInput }
+    const handled = e.key === 'Backspace'
+      ? handleBackspace(ctx, e)
+      : handleDelete(ctx, e)
+    inputLock = inputRef.v
+    if (handled) return
   }
 
-  // Enter: confirm tag hint (tagLine only), then fall through to div-break
-  if (e.key === 'Enter' && isTagLine) {
-    const word = getWordAtCursor()
-    if (word) confirmTag(word)
-    if (hint) hint.remove()
-  }
-
-  // Enter: unified split + insert + cleanup + scanAll paths (list / indent / plain)
-  // use the same formula: split text at cursor, insert new block after.
+  // Enter
   if (e.key === 'Enter') {
-    const prefix = getListPrefix()
-    // Empty list item → end the list
-    if (prefix && !prefix.content.trim()) {
-      e.preventDefault()
-      const block = getCurrentBlock()
-      if (block) { block.textContent = ''; block.appendChild(document.createElement('br')) }
-      return
+    const inputRef = { v: inputLock }
+    const ctx = {
+      editorEl, inputLock: inputRef, onInput,
+      tagLine: isTagLine,
+      getWordAtCursor, confirmTag,
+      getListPrefix, getCurrentBlock, getOffsetInBlock,
     }
-    const block = getCurrentBlock()
-    // Empty line → fallback appendChild
-    if (!block || !block.textContent) {
-      e.preventDefault()
-      inputLock++
-      const newDiv = document.createElement('div')
-      newDiv.appendChild(document.createElement('br'))
-      editorEl.value.appendChild(newDiv)
-      const sel = window.getSelection()
-      sel.collapse(newDiv.firstChild, 0)
-      inputLock--
-      onInput()
-      return
-    }
-    e.preventDefault()
-    inputLock++
-    const offset = getOffsetInBlock(block)
-    const fullText = block.textContent || ''
-    const textBefore = fullText.slice(0, offset)
-    const textAfter = fullText.slice(offset)
-    // Determine prefix for new line
-    let newPrefix = ''
-    if (prefix) {
-      let nextMarker = prefix.marker
-      const ordered = prefix.marker.match(/^(\d+)\.$/)
-      if (ordered) nextMarker = (parseInt(ordered[1]) + 1) + '.'
-      newPrefix = prefix.indent + nextMarker + ' '
-    } else {
-      const im = fullText.match(/^(\s+)/)
-      if (im && fullText.trim()) newPrefix = im[1]
-    }
-    const parent = editorEl.value
-    const refNode = block.nextSibling
-    // Current block: keep if has content, remove if empty
-    if (textBefore.trim()) {
-      block.textContent = textBefore
-    } else {
-      block.remove()
-    }
-    // <br> div needed when no content after OR cursor at line start
-    const sel = window.getSelection()
-    const content = newPrefix + textAfter
-    const needBr = !content || !textBefore.trim()
-    if (needBr) {
-      const brDiv = document.createElement('div')
-      brDiv.appendChild(document.createElement('br'))
-      parent.insertBefore(brDiv, refNode)
-      if (!content) sel.collapse(brDiv.firstChild, 0)
-    }
-    if (content) {
-      const contentDiv = document.createElement('div')
-      contentDiv.textContent = content
-      parent.insertBefore(contentDiv, refNode)
-      sel.collapse(contentDiv.firstChild, newPrefix ? newPrefix.length : 0)
-    }
-    inputLock--
-    onInput()
-    return
+    const handled = handleEnter(ctx, e)
+    inputLock = inputRef.v
+    if (handled) return
   }
 
-  // Tab: tag hint cycling, nav mode tab-out, or indent
+  // Tab
   if (e.key === 'Tab') {
-    // Tag hint cycling takes priority when hint exists
-    if (isTagLine && hint) {
-      e.preventDefault()
-      e.stopPropagation()
-      confirmTagHint()
-      return
+    const ctxTab = {
+      editorEl, navMode, settingsStore,
+      tagLine: isTagLine,
+      confirmTagHint,
     }
-
-    // Nav mode: jump to next/prev focusable (respect Shift+Tab)
-    if (navMode.value) {
-      e.preventDefault()
-      e.stopPropagation()
-      const focusable = [...document.querySelectorAll(
-        '.modal button:not([disabled]), .modal input:not([disabled]), .modal [tabindex="0"]'
-      )].filter(el => el.offsetParent !== null)  // skip hidden (v-show=false) elements
-      const idx = focusable.indexOf(editorEl.value)
-      let next
-      if (e.shiftKey) {
-        next = idx > 0 ? focusable[idx - 1] : focusable[focusable.length - 1]
-      } else {
-        next = idx < focusable.length - 1 ? focusable[idx + 1] : focusable[0]
-      }
-      if (next) next.focus()
-      navMode.value = false
-      editorEl.value.style.outline = ''
-      return
-    }
-
-    // Normal: insert tab (only at line start)
-    e.preventDefault()
-    e.stopPropagation()
-    // Only intercept Tab at line start; elsewhere let browser handle focus
-    let atLineStart = false
-    const sel = window.getSelection()
-    if (sel?.rangeCount) {
-      const node = sel.anchorNode
-      const off = sel.anchorOffset
-      const text = node?.textContent || ''
-      // Cursor at start of text, or after \n, or after existing leading tabs
-      if (off === 0 || text[off - 1] === '\n') {
-        atLineStart = true
-      } else {
-        let i = off - 1
-        while (i >= 0 && text[i] === '\t') i--
-        atLineStart = i < 0 || text[i] === '\n'
-      }
-    }
-    const tabIndent = props.tagLine ? settingsStore.batchTabToIndent : settingsStore.tabToIndent
-    // Only insert \t when indent is ON AND cursor is at line start.
-    // Otherwise, switch focus to next element in modal.
-    if (!tabIndent || !atLineStart) {
-      const modal = editorEl.value.closest('.modal')
-      if (modal) {
-        const focusable = modal.querySelectorAll(
-          'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
-        )
-        const visible = [...focusable].filter(el => el.offsetParent !== null)
-        const idx = visible.indexOf(editorEl.value)
-        if (e.shiftKey) {
-          if (idx > 0) visible[idx - 1].focus()
-          else if (visible.length) visible[visible.length - 1].focus()
-        } else {
-          if (idx !== -1 && idx < visible.length - 1) visible[idx + 1].focus()
-          else if (visible.length) visible[0].focus()
-        }
-      }
-      return
-    }
-    // Insert tab at line start with indent enabled
-    e.preventDefault()
-    e.stopPropagation()
-    const tabNode = document.createTextNode('\t')
-    if (sel?.rangeCount) {
-      const r = sel.getRangeAt(0)
-      r.deleteContents()
-      r.insertNode(tabNode)
-      r.setStartAfter(tabNode)
-      r.collapse(true)
-      sel.removeAllRanges()
-      sel.addRange(r)
-    }
-    return
+    if (handleTab(ctxTab, e)) return
   }
 
   // ESC: nav mode toggle
