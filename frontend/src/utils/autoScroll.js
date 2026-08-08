@@ -8,6 +8,7 @@
 const MAX_EDGE_THRESHOLD = 120  // px，鼠标距离容器边缘多远时开始触发自动滚动
 const HEIGHT_DIVISOR = 3        // 容器高度的 1/N 作为上限
 const DEFAULT_SPEED = 10        // px/frame，最大滚动速度
+const IDLE_STOP_FRAMES = 30     // 连续无滚动帧数后自停（~0.5s），避免无限循环抑制键盘事件
 
 /**
  * 根据鼠标 Y 坐标自动滚动容器。
@@ -48,14 +49,19 @@ export function createAutoScroll(getContainer, onFrame) {
   let _rafId = 0
   let _clientX = 0
   let _clientY = 0
+  let _idleCount = 0
 
   function _loop() {
     _rafId = 0
     const c = getContainer()
     if (!c) return
-    autoScrollByEdge(c, _clientY)
+    const scrolled = autoScrollByEdge(c, _clientY)
     onFrame(_clientX, _clientY)
-    _rafId = requestAnimationFrame(_loop)
+    if (scrolled) _idleCount = 0
+    else _idleCount++
+    if (_idleCount < IDLE_STOP_FRAMES) {
+      _rafId = requestAnimationFrame(_loop)
+    }
   }
 
   return {
