@@ -292,6 +292,7 @@ import { useTimelogStore, fmt, fmtSigned, dkey } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 
 import { useCoordConverter } from '../composables/useCoordConverter.js'
+import { layoutOverlap, blockStyle as sharedBlockStyle } from '../utils/blockLayout.js'
 import { PX_MIN, DAY_MIN, GUTTER_WIDTH, DATA_DIR, EXPORT_DATE_TITLE_H, EXPORT_AUTHOR_BLOCK_H } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
 import { logger } from '../utils/log.js'
@@ -591,51 +592,9 @@ watch(
   { deep: false }
 )
 
-// ----- Block overlap layout (unified display coordinates) -----
-function layoutOverlap(blocks) {
-  const sorted = [...blocks].sort((a, b) => a.start - b.start)
-  const result = sorted.map(b => ({ ...b }))
-  let i = 0
-  while (i < result.length) {
-    let j = i
-    let ge = result[i].end
-    while (j + 1 < result.length && result[j + 1].start < ge) {
-      j++
-      ge = Math.max(ge, result[j].end)
-    }
-    const grp = result.slice(i, j + 1)
-    const cols = []
-    grp.forEach(ev => {
-      let placed = false
-      for (let c = 0; c < cols.length; c++) {
-        if (ev.start >= cols[c]) {
-          cols[c] = ev.end
-          ev._col = c
-          placed = true
-          break
-        }
-      }
-      if (!placed) {
-        ev._col = cols.length
-        cols.push(ev.end)
-      }
-    })
-    grp.forEach(ev => (ev._cols = cols.length))
-    i = j + 1
-  }
-  return result
-}
-
 function blockStyle(b) {
-  const top = blockTop(b)
-  const height = (b.end - b.start) * PX_MIN
-  const w = 100 / (b._cols || 1)
-  const left = ((b._col || 0) / (b._cols || 1)) * 100
   return {
-    top: top + 'px',
-    height: height + 'px',
-    left: `calc(${left}% + 2px)`,
-    width: `calc(${w}% - 4px)`,
+    ...sharedBlockStyle(b, blockTop, PX_MIN),
     background: blockBg(b),
     '--block-bg': blockBg(b),
   }

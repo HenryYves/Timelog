@@ -89,6 +89,7 @@ import { useTimelogStore, fmt, fmtSigned, dkey, addDays, cutDay, glueBack, canCu
 import { useSettingsStore } from '../store/settings.js'
 import { mdToHtml } from '../utils/markdown.js'
 import { createAutoScroll } from '../utils/autoScroll.js'
+import { layoutOverlap, blockStyle } from '../utils/blockLayout.js'
 import { buildGluePrevLabels, buildTodayLabels, buildGlueNextLabels, mergeAllLabels } from '../utils/timelineLabels.js'
 
 import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH, DAY_OFFSET } from '../constants.js'
@@ -194,54 +195,7 @@ function updateNowMin() {
 // 诚实存储：storage = display，无需转换函数
 
 // --- Layout algorithm ---
-function layout(list) {
-  const evs = list.slice().sort((a, b) => a.start - b.start || a.end - b.end)
-  let i = 0
-  while (i < evs.length) {
-    let j = i
-    let ge = evs[i].end
-    while (j + 1 < evs.length && evs[j + 1].start < ge) {
-      j++
-      ge = Math.max(ge, evs[j].end)
-    }
-    const grp = evs.slice(i, j + 1)
-    const cols = []
-    grp.forEach(ev => {
-      let placed = false
-      for (let c = 0; c < cols.length; c++) {
-        if (ev.start >= cols[c]) {
-          cols[c] = ev.end
-          ev._col = c
-          placed = true
-          break
-        }
-      }
-      if (!placed) {
-        ev._col = cols.length
-        cols.push(ev.end)
-      }
-    })
-    grp.forEach(ev => (ev._cols = cols.length))
-
-    // Calculate span: how many consecutive columns each block can expand into
-    // Note: ev.start, ev.end are unified frame coordinates (昨天 [0,1440), 今天 [1440,2880), 明天 [2880,4320))
-    grp.forEach(ev => {
-      let span = 1
-      for (let c = ev._col + 1; c < cols.length; c++) {
-        // Check if column c is free during [ev.start, ev.end) using unified frame coordinates
-        const occupied = grp.some(other => other._col === c && other.start < ev.end && other.end > ev.start)
-        if (occupied) break
-        span++
-      }
-      ev._span = span
-    })
-
-    i = j + 1
-  }
-  return evs
-}
-
-const layoutBlocks = computed(() => layout(store.blocks.slice()))
+const layoutBlocks = computed(() => layoutOverlap(store.blocks.slice()))
 
 // --- Labels ---
 const gluePrevLabels = computed(() =>
@@ -275,17 +229,8 @@ const maskGradientStyle = computed(() => {
 function computeBlockStyle(ev) {
   const has = ev.tags && ev.tags.length
   const c0 = colorOf(has ? ev.tags[0] : null)
-  const top = blockTop(ev)
-  const height = (ev.end - ev.start) * PX_MIN
-  const colW = 100 / (ev._cols || 1)
-  const left = (ev._col || 0) * colW
-  const span = ev._span || 1
-  const width = span * colW
   return {
-    top: top + 'px',
-    height: height + 'px',
-    left: `calc(${left}% + 2px)`,
-    width: `calc(${width}% - 4px)`,
+    ...blockStyle(ev, blockTop, PX_MIN),
     background: c0.bg,
     '--block-bg': c0.bg,
     color: '#2C2C2B',
