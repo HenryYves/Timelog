@@ -702,7 +702,7 @@ function onKeyDown(e) {
   if (adrag) {
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault()
-      adrag.cur = Math.max(0, Math.min(TOTAL_MIN,
+      adrag.cur = Math.max(pageRange.value.lo, Math.min(pageRange.value.hi,
         adrag.cur + (e.ctrlKey ? ARROW_CTRL_MULT : 1) * (e.key === 'ArrowUp' ? -1 : 1)))
       applyDrag()
       return
