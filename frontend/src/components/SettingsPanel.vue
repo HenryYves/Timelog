@@ -285,6 +285,49 @@
             </div>
             <div class="small">{{ STR.settings.descBorderless }}</div>
 
+            <!-- 皮肤 -->
+            <div class="sub-head">{{ STR.settings.sectionSkin }}</div>
+
+            <div class="row">
+              <label>当前皮肤</label>
+              <div>
+                <select :value="settings.activeSkin" @change="onSkinSelect($event.target.value)"
+                  @focus="onSkinDropdownOpen" style="width:180px;">
+                  <option v-for="s in skinOptions" :key="s.id" :value="s.id"
+                    :disabled="s.disabled">{{ s.label }}</option>
+                </select>
+                <span class="restore-spacer"></span>
+              </div>
+            </div>
+            <div class="row" style="margin-top:8px;">
+              <div style="display:flex;gap:8px;">
+                <button type="button" @click="openSkinFolder" class="small-btn">{{ STR.settings.openSkinFolder }}</button>
+                <button type="button" @click="refreshSkins" class="small-btn">{{ STR.settings.refresh }}</button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descSkin }}</div>
+
+            <!-- CSS 片段 -->
+            <div class="sub-head">{{ STR.settings.sectionSnippet }}</div>
+
+            <div class="snippet-scroll">
+              <div v-if="snippetFiles.length === 0" class="small" style="padding:8px;">暂无 CSS 片段文件</div>
+              <div v-for="name in snippetFiles" :key="name" class="row" style="margin-top:6px;">
+                <label>{{ name }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="snippetEnabled(name)"
+                      @change="onSnippetToggle(name, $event.target.checked)"><span class="tk"></span></label>
+                </div>
+              </div>
+            </div>
+            <div class="row" style="margin-top:8px;">
+              <div style="display:flex;gap:8px;">
+                <button type="button" @click="openSnippetFolder" class="small-btn">{{ STR.settings.openSnippetFolder }}</button>
+                <button type="button" @click="refreshSnippets" class="small-btn">{{ STR.settings.refresh }}</button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descSnippet }}</div>
+
             <!-- 时间块 -->
             <div class="sub-head">{{ STR.settings.sectionBlockDisplay }}</div>
 
@@ -438,7 +481,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { useSettingsStore } from '../store/settings.js'
 import { useConfirm } from '../composables/useConfirm.js'
@@ -459,6 +502,7 @@ import {
   DEFAULT_END_TIME_AT_NOW,
   DEFAULT_MIN_BLOCK_MINUTES,
   DEFAULT_AUTO_SELECT_ON_FOCUS,
+  BUILTIN_SKINS,
 } from '../constants.js'
 import { STR } from '../strings.js'
 
@@ -476,6 +520,141 @@ const checkingUpdate = ref(false)
 const modalEl = ref(null)
 
 const bkPathDraft = ref(settings.bkCustomPath)
+
+// ── Skin & Snippet ──
+const userSkinFiles = ref([])
+const snippetFiles = ref([])
+
+const skinOptions = computed(() => {
+  const userSkins = userSkinFiles.value
+    .filter(name => name !== 'night')
+    .map(name => ({ id: name, label: name }))
+  const sep = userSkins.length > 0 ? [{ id: '', label: '─────────', disabled: true }] : []
+  return [...BUILTIN_SKINS, ...sep, ...userSkins]
+})
+
+async function resolveSkinPath() {
+  if (settings.skinPath) return settings.skinPath
+  const base = await invoke('get_default_asset_dir')
+  return base + '\\skins'
+}
+
+async function resolveSnippetPath() {
+  if (settings.snippetPath) return settings.snippetPath
+  const base = await invoke('get_default_asset_dir')
+  return base + '\\snippets'
+}
+
+async function onSkinDropdownOpen() {
+  try {
+    const path = await resolveSkinPath()
+    userSkinFiles.value = await invoke('scan_css_files', { path })
+    if (settings.activeSkin && settings.activeSkin !== 'night'
+        && !userSkinFiles.value.includes(settings.activeSkin)) {
+      settings.setActiveSkin('')
+    }
+  } catch { /* 静默 */ }
+}
+
+async function refreshSkins() {
+  try {
+    const path = await resolveSkinPath()
+    userSkinFiles.value = await invoke('scan_css_files', { path })
+    await reloadSkinStyle()
+  } catch { toast(STR.toast.folderNotFound) }
+}
+
+async function reloadSkinStyle() {
+  const name = settings.activeSkin
+  const style = document.getElementById('skin-style')
+  if (!name) {
+    if (style) style.remove()
+    return
+  }
+  try {
+    const path = await resolveSkinPath()
+    const content = await invoke('read_file_text', { path: path + '\\' + name + '.css' })
+    if (!style) {
+      const s = document.createElement('style')
+      s.id = 'skin-style'
+      s.textContent = content
+      document.head.appendChild(s)
+    } else {
+      style.textContent = content
+    }
+  } catch {
+    if (style) style.remove()
+    settings.setActiveSkin('')
+  }
+}
+
+function onSkinSelect(val) {
+  if (!val && settings.activeSkin === '') return
+  settings.setActiveSkin(val)
+}
+
+// ── Snippet ──
+
+async function refreshSnippets() {
+  try {
+    const path = await resolveSnippetPath()
+    snippetFiles.value = await invoke('scan_css_files', { path })
+    const valid = new Set(snippetFiles.value)
+    settings.setEnabledSnippets(settings.enabledSnippets.filter(s => valid.has(s)))
+    await syncSnippetStyles()
+  } catch { toast(STR.toast.folderNotFound) }
+}
+
+function snippetEnabled(name) {
+  return settings.enabledSnippets.includes(name)
+}
+
+async function onSnippetToggle(name, on) {
+  const list = [...settings.enabledSnippets]
+  if (on) {
+    if (!list.includes(name)) list.push(name)
+    await injectOneSnippet(name)
+  } else {
+    const idx = list.indexOf(name)
+    if (idx !== -1) list.splice(idx, 1)
+    removeOneSnippet(name)
+  }
+  settings.setEnabledSnippets(list)
+}
+
+async function injectOneSnippet(name) {
+  removeOneSnippet(name)
+  try {
+    const path = await resolveSnippetPath()
+    const content = await invoke('read_file_text', { path: path + '\\' + name + '.css' })
+    const style = document.createElement('style')
+    style.dataset.snippet = name
+    style.textContent = content
+    document.head.appendChild(style)
+  } catch { /* 读取失败跳过 */ }
+}
+
+function removeOneSnippet(name) {
+  const style = document.querySelector(`style[data-snippet="${CSS.escape(name)}"]`)
+  if (style) style.remove()
+}
+
+async function syncSnippetStyles() {
+  document.querySelectorAll('style[data-snippet]').forEach(s => s.remove())
+  for (const name of settings.enabledSnippets) {
+    await injectOneSnippet(name)
+  }
+}
+
+async function openSkinFolder() {
+  try { await invoke('open_folder', { path: await resolveSkinPath() }) }
+  catch { toast(STR.toast.folderNotFound) }
+}
+
+async function openSnippetFolder() {
+  try { await invoke('open_folder', { path: await resolveSnippetPath() }) }
+  catch { toast(STR.toast.folderNotFound) }
+}
 
 const activeTab = ref('basic')
 const tabs = [
@@ -655,6 +834,8 @@ function resetCategory(cat) {
       settings.setZoom(DEFAULT_ZOOM)
       settings.setBlockOpacity(DEFAULT_OPACITY)
       settings.setBorderless(DEFAULT_BORDERLESS)
+      settings.setActiveSkin('')
+      settings.setEnabledSnippets([])
       break
   }
 }
@@ -798,4 +979,12 @@ input[type="range"]::-moz-range-thumb {
 }
 input[type="range"]::-moz-range-thumb:hover { transform: scale(1.15); }
 .settings-content input[type="range"] { vertical-align: middle; }
+.snippet-scroll {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 8px 4px;
+  margin-top: 4px;
+}
 </style>
