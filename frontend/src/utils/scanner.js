@@ -310,7 +310,8 @@ export function scanLists(root, tagLine) {
   }
 }
 export function renumberLists(root, tagLine) {
-  let counter = 0, lineNo = 0
+  const counters = {}  // key: indent level, value: current counter
+  let lineNo = 0
   for (const child of root.childNodes) {
     if (child.nodeType !== 1 && child.nodeType !== 3) continue
 
@@ -331,15 +332,23 @@ export function renumberLists(root, tagLine) {
     // Match ordered list marker: optional whitespace + digits + dot
     const m = text.match(/^(\s*)(\d+)\.(\s.*|$)/)
     if (m) {
-      counter++
+      const indent = m[1].length
+      // Reset deeper indent counters when back at shallower level
+      Object.keys(counters).forEach(k => { if (Number(k) > indent) delete counters[k] })
+      if (!(indent in counters)) counters[indent] = 0
+      counters[indent]++
+      const newNum = counters[indent] + '.'
       const oldNum = m[2] + '.'
-      const newNum = counter + '.'
       if (oldNum !== newNum) {
         textNode.textContent = m[1] + newNum + m[3]
       }
     } else {
-      // Empty line or non-ordered content breaks the sequence
-      counter = 0
+      // Non-ordered content clears all counters at or below its indent level
+      const t = text.trim()
+      if (!t) continue
+      const indentMatch = text.match(/^(\s*)/)
+      const indent = indentMatch[1].length
+      Object.keys(counters).forEach(k => { if (Number(k) >= indent) delete counters[k] })
     }
   }
 }
