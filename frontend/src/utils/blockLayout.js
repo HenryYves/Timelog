@@ -1,8 +1,8 @@
 /**
- * @fileoverview 时间块重叠布局算法。
+ * @fileoverview 时间块重叠布局 + 视觉样式。
  * 从 Timeline.vue 的 layout() 和 computeBlockStyle() 提取，Timeline.vue 与
  * ExportImagePanel.vue 共享。纯函数，无 Vue 依赖。
- * 导出：layoutOverlap(blocks) 分组重叠块并分配 _col/_cols/_span；blockStyle(b, blockTop, PX_MIN) 计算单块 CSS 定位。
+ * 导出：layoutOverlap / blockStyle / blockVisualStyle
  */
 
 /**
@@ -75,5 +75,19 @@ export function blockStyle(b, blockTop, PX_MIN) {
     height: height + 'px',
     left: `calc(${left}% + 2px)`,
     width: `calc(${width}% - 4px)`,
+  }
+}
+
+/**
+ * 计算时间块的视觉样式（背景色、文字色）。
+ * @param {{ tags?: string[] }} b — 时间块（只需 tags 字段）
+ * @param {(name: string|null) => { hex: string, bg: string }} colorOf — 标签颜色查询函数
+ * @returns {{ background: string, color: string }}
+ */
+export function blockVisualStyle(b, colorOf) {
+  const c0 = colorOf((b.tags && b.tags.length) ? b.tags[0] : null)
+  return {
+    background: c0.bg,
+    color: 'var(--text, #2C2C2B)',
   }
 }

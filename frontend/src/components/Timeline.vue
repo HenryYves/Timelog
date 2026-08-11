@@ -49,7 +49,7 @@
         @contextmenu.prevent="onBlockContextMenu(ev)">
         <div v-if="settingsStore.showBlockColorBar" class="cbar">
           <i v-for="(t, ti) in (ev.tags || [])" :key="ti" :style="{ background: colorOf(t).hex }" />
-          <i v-if="!ev.tags || !ev.tags.length" style="background:#C4C3C0" />
+          <i v-if="!ev.tags || !ev.tags.length" style="background: var(--no-tag, #C4C3C0)" />
         </div>
         <div v-if="settingsStore.showBlockTitle" class="bt">{{ ev.title || '(未命名)' }}</div>
         <div v-if="settingsStore.showBlockTime && (ev.end - ev.start) * PX_MIN >= 32" class="bs">{{ fmtSigned(ev.start)
@@ -89,7 +89,7 @@ import { useTimelogStore, fmt, fmtSigned, dkey, addDays, cutDay, glueBack, canCu
 import { useSettingsStore } from '../store/settings.js'
 import { mdToHtml } from '../utils/markdown.js'
 import { createAutoScroll } from '../utils/autoScroll.js'
-import { layoutOverlap, blockStyle } from '../utils/blockLayout.js'
+import { layoutOverlap, blockStyle, blockVisualStyle } from '../utils/blockLayout.js'
 import { buildGluePrevLabels, buildTodayLabels, buildGlueNextLabels, mergeAllLabels } from '../utils/timelineLabels.js'
 
 import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH, DAY_OFFSET } from '../constants.js'
@@ -223,13 +223,9 @@ const availableDirs = computed(() => {
 // --- Visual helpers ---
 
 function computeBlockStyle(ev) {
-  const has = ev.tags && ev.tags.length
-  const c0 = colorOf(has ? ev.tags[0] : null)
   return {
     ...blockStyle(ev, blockTop, PX_MIN),
-    background: c0.bg,
-    '--block-bg': c0.bg,
-    color: '#2C2C2B',
+    ...blockVisualStyle(ev, colorOf),
   }
 }
 
@@ -854,8 +850,8 @@ watch(() => store.dateKey, () => {
 
 .selrect {
   position: absolute;
-  background: var(--blue-soft);
-  border: 1px solid var(--blue);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
   opacity: .35;
   z-index: 2;
   pointer-events: none;
@@ -872,9 +868,9 @@ watch(() => store.dateKey, () => {
 }
 
 .block.bsel {
-  outline: 2.5px solid var(--blue);
+  outline: 2.5px solid var(--primary);
   outline-offset: 1px;
-  box-shadow: 0 0 0 3px var(--blue-soft);
+  box-shadow: 0 0 0 3px var(--primary-soft);
 }
 
 .block.resizing {

@@ -202,7 +202,7 @@
                 <div v-for="b in layoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
                   <div v-if="settings.showBlockColorBar" class="cbar">
                     <i v-for="(t, ti) in (b.tags || [])" :key="ti" :style="{ background: tagColor(t) }" />
-                    <i v-if="!b.tags || !b.tags.length" style="background:#C4C3C0" />
+                    <i v-if="!b.tags || !b.tags.length" style="background: var(--no-tag, #C4C3C0)" />
                   </div>
                   <div v-if="settings.showBlockTitle" class="bt">{{ b.title || '(未命名)' }}</div>
                   <div v-if="settings.showBlockTime && (b.end - b.start) >= 32" class="bs">{{ fmtSigned(b.start) }}–{{ fmtSigned(b.end) }}</div>
@@ -292,7 +292,7 @@ import { useTimelogStore, fmt, fmtSigned, dkey } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 
 import { useCoordConverter } from '../composables/useCoordConverter.js'
-import { layoutOverlap, blockStyle as sharedBlockStyle } from '../utils/blockLayout.js'
+import { layoutOverlap, blockStyle as sharedBlockStyle, blockVisualStyle } from '../utils/blockLayout.js'
 import { PX_MIN, DAY_MIN, GUTTER_WIDTH, DATA_DIR, EXPORT_DATE_TITLE_H, EXPORT_AUTHOR_BLOCK_H } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
 import { logger } from '../utils/log.js'
@@ -466,11 +466,6 @@ const nextLabels = computed(() =>
 const allLabels = computed(() =>
   mergeAllLabels(prevLabels.value, todayLabels.value, nextLabels.value, gutterHeights.value))
 
-function blockBg(b) {
-  if (b.tags?.length) return tagStore.colorOf(b.tags[0]).bg
-  return tagStore.colorOf(null).bg
-}
-
 function tagColor(t) {
   return tagStore.colorOf(t).hex
 }
@@ -595,8 +590,7 @@ watch(
 function blockStyle(b) {
   return {
     ...sharedBlockStyle(b, blockTop, PX_MIN),
-    background: blockBg(b),
-    '--block-bg': blockBg(b),
+    ...blockVisualStyle(b, timelogStore.colorOf),
   }
 }
 
@@ -811,7 +805,7 @@ async function doExport() {
 .export-right {
   flex: 1; display: flex; align-items: flex-start; justify-content: center;
   border-radius: 8px; overflow: hidden;
-  min-height: 300px; max-height: calc(72vh / var(--zoom, 1)); cursor: url('../assets/paw.svg') 16 16, grab; position: relative;
+  min-height: 300px; max-height: calc(72vh / var(--zoom, 1)); cursor: var(--drag-cursor); position: relative;
   user-select: none;
   /* Checkerboard to indicate preview area (matches obsidian export-image) */
   background-size: 20px 20px;
@@ -823,13 +817,13 @@ async function doExport() {
     linear-gradient(-45deg, transparent 75%, var(--border) 75%);
 }
 .export-right:active {
-  cursor: url('../assets/paw.svg') 16 16, grabbing;
+  cursor: var(--drag-cursor) 16 16, grabbing;
 }
 .export-right .block {
-  cursor: url('../assets/paw.svg') 16 16, grab;
+  cursor: var(--drag-cursor) 16 16, grab;
 }
 .export-right:active .block {
-  cursor: url('../assets/paw.svg') 16 16, grabbing;
+  cursor: var(--drag-cursor) 16 16, grabbing;
 }
 
 /* Responsive: stack vertically on narrow screens */
