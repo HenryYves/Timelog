@@ -1,11 +1,11 @@
 {
-  "version": "v0.10.36",
-  "notes": "新增：拖拽/框选边缘自动滚动、选中块上下键移动、Ctrl+↑↓加速、输入框获焦全选、快速重选标签提升为主标签、导出预览paw手势\n变更：header光标base64→paw.svg\n修复：静默catch补日志11处、RAF无限循环抑制键盘、拖拽微调边界统一\n重构：createAutoScroll工厂函数、MarkdownEditor keydown提取、布局算法统一提取\n220 tests",
-  "pub_date": "2026-08-08T00:00:00Z",
+  "version": "v0.11.3",
+  "notes": "新增：自定义皮肤系统+CSS片段+暗色皮肤、设置皮肤/CSS片段管理UI、开发者Tab+DevTools、skin-template首次安装\n变更：CSS变量语义化--blue→--primary、光标base64→文件路径、菜单图标mask-image方案、Markdown高亮走CSS变量\n修复：遮罩CSS变量、有序列表缩进编号、tdot暗色描边\n重构：blockVisualStyle共享、skin.js注入工具提取、列表嵌套HTML正确结构\n220 tests",
+  "pub_date": "2026-08-11T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUNkOU85YVd0Nm95bldyVWdkZ3pUaDZRQVpZRGh4WXgyL01ZakU5Y2hyejBhbFMrdWFmR2xIQm83aHI4b1JVMnFPY1p6aWd2U3J0S0M2Z29uVEtramdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2MTc5NDkxCWZpbGU6dGltZWxvZ18wLjEwLjM2X3g2NF9lbi1VUy5tc2kKcHh6LzFZN29EZmFRQi9RSkFnZEk0M0JiYjV2dnR4eWFHUmIyUzM4VGRxYmhjWXRYNjBXMnZPQ1djdFRETzRNNStpRnd2WkN6aUcwcFMyaUQ0OVdjQ2c9PQo=",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.10.36/timelog_0.10.36_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUNnR3dHUVBzTjh1NEtpS3lqNWlUUzJhVzM0ODd2d082L1pKcDhjQW91SGVHSWNrNTlZSUl2TkpZQzh0NWVCSk1tRXBjYXVEYnlEbjU5amxnTzVIY2dBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NDU5NDQ1CWZpbGU6dGltZWxvZ18wLjExLjNfeDY0X2VuLVVTLm1zaQpLbldCVXg3dW5QV1RKaUNFZ3FrejE5cG1iRlZWQXQvc0FSNXl6TVpMR1FuMkFMdUdxL1Z6Mk9TT01hU3ppZ2I5MFFhblBaRFhxSTRITHFqeDF4VCtDQT09Cg==",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.11.3/timelog_0.11.3_x64_en-US.msi"
     }
   }
 }
