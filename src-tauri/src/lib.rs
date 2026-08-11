@@ -249,6 +249,15 @@ fn write_file_text(path: String, content: String) -> Result<(), String> {
     Ok(())
 }
 
+/// 打开 WebView2 开发者工具
+#[tauri::command]
+fn open_devtools(app: AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        window.open_devtools();
+    }
+    Ok(())
+}
+
 /// 用系统文件管理器打开文件夹
 #[tauri::command]
 fn open_folder(path: String) -> Result<(), String> {
@@ -345,6 +354,7 @@ pub fn run(reset_settings: bool, minimized: bool) {
             clipboard_write_image,
             clipboard_write_text,
             get_default_asset_dir,
+            open_devtools,
             scan_css_files,
             read_file_text,
             write_file_text,

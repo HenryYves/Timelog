@@ -472,6 +472,21 @@
             <div class="small">{{ STR.settings.descKeepDays }}</div>
           </div>
 
+          <!-- ═══════ 开发者 ═══════ -->
+          <div v-show="activeTab === 'dev'">
+            <div class="section-head">
+              <h4 class="section-title">{{ STR.settings.navDev }}</h4>
+            </div>
+
+            <div class="row">
+              <label>{{ STR.settings.devTools }}</label>
+              <div>
+                <button type="button" class="small-btn" @click="openDevTools">{{ STR.settings.devTools }}</button>
+              </div>
+            </div>
+            <div class="small">{{ STR.settings.descDevTools }}</div>
+          </div>
+
         </div>
       </div>
 
@@ -637,12 +652,17 @@ async function openSnippetFolder() {
   catch { toast(STR.toast.folderNotFound) }
 }
 
+async function openDevTools() {
+  try { await invoke('open_devtools') } catch { /* 非 Tauri 环境 */ }
+}
+
 const activeTab = ref('basic')
 const tabs = [
   { key: 'basic', label: STR.settings.navBasic },
   { key: 'editor', label: STR.settings.navEditor },
   { key: 'appearance', label: STR.settings.navAppearance },
   { key: 'files', label: STR.settings.navFiles },
+  { key: 'dev', label: STR.settings.navDev },
 ]
 
 function trapFocus(e) {

@@ -192,6 +192,11 @@ export const STR = {
     editorFontSize: '编辑器字号',
     descEditorFontSize: '编辑框内文字大小，10–28px',
 
+    // ── Developer ──
+    navDev: '开发者',
+    devTools: '打开开发者工具',
+    descDevTools: '查看 DOM / CSS / 控制台，调试皮肤和样式',
+
     // ── Restore ──
     restoreDefault: '恢复默认设置',
     restoreCategory: '恢复本栏默认',
