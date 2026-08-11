@@ -5,7 +5,7 @@ import {
   DEFAULT_AUTO_SCROLL, DEFAULT_EXPORT_TIMESTAMP, DEFAULT_EXPORT_DIALOG,
   DEFAULT_BORDERLESS, DEFAULT_BACKUP_ON, DEFAULT_AUTO_UPDATE, DEFAULT_TAG_DELIMITERS,
   DEFAULT_ZOOM, DEFAULT_FONT_FAMILY, DEFAULT_CHECK_BEFORE_CREATE, DEFAULT_COPY_AFTER_CREATE,
-  DEFAULT_MARKDOWN_PREVIEW, DEFAULT_BATCH_MARKDOWN_PREVIEW, DEFAULT_TAB_TO_INDENT, DEFAULT_BATCH_TAB_TO_INDENT, DEFAULT_EDITOR_FONT_SIZE, DEFAULT_CUSTOM_CSS,
+  DEFAULT_MARKDOWN_PREVIEW, DEFAULT_BATCH_MARKDOWN_PREVIEW, DEFAULT_TAB_TO_INDENT, DEFAULT_BATCH_TAB_TO_INDENT, DEFAULT_EDITOR_FONT_SIZE,
   DEFAULT_SHOW_BLOCK_TITLE, DEFAULT_SHOW_BLOCK_TIME, DEFAULT_SHOW_BLOCK_TAGS, DEFAULT_SHOW_BLOCK_NOTE, DEFAULT_SHOW_BLOCK_COLOR_BAR,
   DEFAULT_MASK_BLOCK_OVERFLOW,
   DEFAULT_RENDER_NOTE_MARKDOWN,
@@ -45,7 +45,37 @@ export const useSettingsStore = defineStore('settings', () => {
   const tabToIndent = ref(loadBool('tabToIndent', DEFAULT_TAB_TO_INDENT))
   const batchTabToIndent = ref(loadBool('batchTabToIndent', DEFAULT_BATCH_TAB_TO_INDENT))
   const editorFontSize = ref(loadNum('editorFontSize', DEFAULT_EDITOR_FONT_SIZE))
-  const customCss = ref(localStorage.getItem(KEY_PREFIX + 'customCss') || DEFAULT_CUSTOM_CSS)
+  // ── Skin & snippet ──
+  const activeSkin = ref(localStorage.getItem(KEY_PREFIX + 'activeSkin') || '')
+  const skinPath = ref(localStorage.getItem(KEY_PREFIX + 'skinPath') || '')
+  const snippetPath = ref(localStorage.getItem(KEY_PREFIX + 'snippetPath') || '')
+  const enabledSnippets = ref((() => {
+    try { return JSON.parse(localStorage.getItem(KEY_PREFIX + 'enabledSnippets')) || [] } catch { return [] }
+  })())
+
+  function setActiveSkin(v) {
+    activeSkin.value = (v || '').trim()
+    if (activeSkin.value) { localStorage.setItem(KEY_PREFIX + 'activeSkin', activeSkin.value) }
+    else { localStorage.removeItem(KEY_PREFIX + 'activeSkin') }
+  }
+  function setSkinPath(v) {
+    skinPath.value = (v || '').trim()
+    if (skinPath.value) { localStorage.setItem(KEY_PREFIX + 'skinPath', skinPath.value) }
+    else { localStorage.removeItem(KEY_PREFIX + 'skinPath') }
+  }
+  function setSnippetPath(v) {
+    snippetPath.value = (v || '').trim()
+    if (snippetPath.value) { localStorage.setItem(KEY_PREFIX + 'snippetPath', snippetPath.value) }
+    else { localStorage.removeItem(KEY_PREFIX + 'snippetPath') }
+  }
+  function setEnabledSnippets(v) {
+    enabledSnippets.value = v || []
+    if (enabledSnippets.value.length > 0) {
+      localStorage.setItem(KEY_PREFIX + 'enabledSnippets', JSON.stringify(enabledSnippets.value))
+    } else {
+      localStorage.removeItem(KEY_PREFIX + 'enabledSnippets')
+    }
+  }
   const showBlockTitle = ref(loadBool('showBlockTitle', DEFAULT_SHOW_BLOCK_TITLE))
   const showBlockTime = ref(loadBool('showBlockTime', DEFAULT_SHOW_BLOCK_TIME))
   const showBlockTags = ref(loadBool('showBlockTags', DEFAULT_SHOW_BLOCK_TAGS))
@@ -152,11 +182,6 @@ export const useSettingsStore = defineStore('settings', () => {
     editorFontSize.value = Math.max(10, Math.min(28, parseInt(v) || DEFAULT_EDITOR_FONT_SIZE))
     saveNum('editorFontSize', editorFontSize.value)
   }
-  function setCustomCss(v) {
-    customCss.value = (v || '').trim()
-    if (customCss.value) { localStorage.setItem(KEY_PREFIX + 'customCss', customCss.value) }
-    else { localStorage.removeItem(KEY_PREFIX + 'customCss') }
-  }
   function setShowBlockTitle(v) { showBlockTitle.value = v; saveBool('showBlockTitle', v) }
   function setShowBlockTime(v) { showBlockTime.value = v; saveBool('showBlockTime', v) }
   function setShowBlockTags(v) { showBlockTags.value = v; saveBool('showBlockTags', v) }
@@ -192,7 +217,6 @@ export const useSettingsStore = defineStore('settings', () => {
     tabToIndent.value = loadBool('tabToIndent', DEFAULT_TAB_TO_INDENT)
     batchTabToIndent.value = loadBool('batchTabToIndent', DEFAULT_BATCH_TAB_TO_INDENT)
     editorFontSize.value = loadNum('editorFontSize', DEFAULT_EDITOR_FONT_SIZE)
-    customCss.value = (localStorage.getItem(KEY_PREFIX + 'customCss') || '')
     showBlockTitle.value = loadBool('showBlockTitle', DEFAULT_SHOW_BLOCK_TITLE)
     showBlockTime.value = loadBool('showBlockTime', DEFAULT_SHOW_BLOCK_TIME)
     showBlockTags.value = loadBool('showBlockTags', DEFAULT_SHOW_BLOCK_TAGS)
@@ -203,13 +227,18 @@ export const useSettingsStore = defineStore('settings', () => {
     endTimeAtNow.value = loadBool('endTimeAtNow', DEFAULT_END_TIME_AT_NOW)
     minBlockMinutes.value = loadNum('minBlockMinutes', DEFAULT_MIN_BLOCK_MINUTES)
     autoSelectOnFocus.value = loadBool('autoSelectOnFocus', DEFAULT_AUTO_SELECT_ON_FOCUS)
+    activeSkin.value = (localStorage.getItem(KEY_PREFIX + 'activeSkin') || '')
+    skinPath.value = (localStorage.getItem(KEY_PREFIX + 'skinPath') || '')
+    snippetPath.value = (localStorage.getItem(KEY_PREFIX + 'snippetPath') || '')
+    try { enabledSnippets.value = JSON.parse(localStorage.getItem(KEY_PREFIX + 'enabledSnippets')) || [] } catch { enabledSnippets.value = [] }
   }
 
   return {
     defaultDuration, autoScroll, exportTimestamp, exportDialog,
     blockOpacity, bkCustomPath, borderless, keepDays, backupOn, autoUpdate, tagDelimiters,
     zoom, fontFamily, checkBeforeCreate, copyAfterCreate,
-    markdownPreview, batchMarkdownPreview, tabToIndent, batchTabToIndent, editorFontSize, customCss,
+    markdownPreview, batchMarkdownPreview, tabToIndent, batchTabToIndent, editorFontSize,
+    activeSkin, skinPath, snippetPath, enabledSnippets,
     setDuration, setAutoScroll, setExportTimestamp, setExportDialog,
     setBlockOpacity, setBkCustomPath, setBorderless, setKeepDays, setBackupOn, setAutoUpdate, setTagDelimiters,
     setZoom, setFontFamily, setCheckBeforeCreate, setCopyAfterCreate,
@@ -223,7 +252,8 @@ export const useSettingsStore = defineStore('settings', () => {
     setEndTimeAtNow,
     setMinBlockMinutes,
     setAutoSelectOnFocus,
-    setMarkdownPreview, setBatchMarkdownPreview, setTabToIndent, setBatchTabToIndent, setEditorFontSize, setCustomCss,
+    setMarkdownPreview, setBatchMarkdownPreview, setTabToIndent, setBatchTabToIndent, setEditorFontSize,
+    setActiveSkin, setSkinPath, setSnippetPath, setEnabledSnippets,
     reloadSettings,
   }
 })

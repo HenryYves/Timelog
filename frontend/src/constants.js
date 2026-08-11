@@ -51,7 +51,6 @@ export const DEFAULT_BATCH_MARKDOWN_PREVIEW = true
 export const DEFAULT_TAB_TO_INDENT = true
 export const DEFAULT_BATCH_TAB_TO_INDENT = true
 export const DEFAULT_EDITOR_FONT_SIZE = 14
-export const DEFAULT_CUSTOM_CSS = ''
 export const DEFAULT_SHOW_BLOCK_TITLE = true
 export const DEFAULT_SHOW_BLOCK_TIME = true
 export const DEFAULT_SHOW_BLOCK_TAGS = true
@@ -61,6 +60,28 @@ export const DEFAULT_MASK_BLOCK_OVERFLOW = false
 export const DEFAULT_RENDER_NOTE_MARKDOWN = true
 export const DEFAULT_END_TIME_AT_NOW = true
 export const DEFAULT_MIN_BLOCK_MINUTES = 10
+
+// 内置夜间皮肤 CSS（首次启动自动安装到 skins/night.css）
+export const NIGHT_CSS_CONTENT = `/* 夜间皮肤 */
+:root {
+  --text: #c2ccd0;
+  --text2: #a1afc9;
+  --canvas: #161823;
+  --soft: #50616d;
+  --soft2: #35434d;
+  --border: #758a99;
+  --blue: #758a99;
+  --blue-soft: #1f2936;
+  --green: #549688;
+  --red: #cd5e3c;
+}
+`
+
+// 内置皮肤列表
+export const BUILTIN_SKINS = [
+  { id: '', label: '☀ 日间（默认）' },
+  { id: 'night', label: '🌙 夜间' },
+]
 
 // ---------- UI ----------
 export const APP_VERSION = 'v0.10.36'

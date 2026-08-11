@@ -1,4 +1,7 @@
 use std::sync::Mutex;
+use std::fs;
+use std::path::Path;
+use std::io::Write;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_updater::{UpdaterExt, Update};
@@ -201,6 +204,61 @@ fn clipboard_write_text(app: AppHandle, text: String) -> Result<(), String> {
     Ok(())
 }
 
+// ═══════ 皮肤 & CSS 片段 ═══════
+
+/// 返回 AppData 下的数据目录
+#[tauri::command]
+fn get_default_asset_dir() -> Result<String, String> {
+    let appdata = std::env::var("APPDATA").map_err(|e| e.to_string())?;
+    Ok(format!("{}\\com.timelog.app", appdata))
+}
+
+/// 扫描目录中 .css 文件，返回去后缀文件名列表。目录不存在则创建。
+#[tauri::command]
+fn scan_css_files(path: String) -> Result<Vec<String>, String> {
+    let dir = Path::new(&path);
+    if !dir.exists() {
+        fs::create_dir_all(dir).map_err(|e| format!("创建目录失败: {}", e))?;
+    }
+    let mut files: Vec<String> = Vec::new();
+    for entry in fs::read_dir(dir).map_err(|e| format!("读取目录失败: {}", e))? {
+        let entry = entry.map_err(|e| format!("读取条目失败: {}", e))?;
+        let fname = entry.file_name().to_string_lossy().to_string();
+        if fname.ends_with(".css") {
+            files.push(fname[..fname.len() - 4].to_string());
+        }
+    }
+    files.sort();
+    Ok(files)
+}
+
+/// 读取文本文件内容
+#[tauri::command]
+fn read_file_text(path: String) -> Result<String, String> {
+    fs::read_to_string(&path).map_err(|e| format!("读取文件失败: {}", e))
+}
+
+/// 写入文本文件内容（自动创建父目录）
+#[tauri::command]
+fn write_file_text(path: String, content: String) -> Result<(), String> {
+    if let Some(parent) = Path::new(&path).parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("创建目录失败: {}", e))?;
+    }
+    let mut f = fs::File::create(&path).map_err(|e| format!("创建文件失败: {}", e))?;
+    f.write_all(content.as_bytes()).map_err(|e| format!("写入文件失败: {}", e))?;
+    Ok(())
+}
+
+/// 用系统文件管理器打开文件夹
+#[tauri::command]
+fn open_folder(path: String) -> Result<(), String> {
+    std::process::Command::new("explorer")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| format!("打开文件夹失败: {}", e))?;
+    Ok(())
+}
+
 #[tauri::command]
 async fn install_update(
     pending: tauri::State<'_, PendingUpdate>,
@@ -286,6 +344,11 @@ pub fn run(reset_settings: bool, minimized: bool) {
             install_update,
             clipboard_write_image,
             clipboard_write_text,
+            get_default_asset_dir,
+            scan_css_files,
+            read_file_text,
+            write_file_text,
+            open_folder,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

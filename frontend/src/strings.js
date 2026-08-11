@@ -23,6 +23,7 @@ export const STR = {
     backupMigrated: (n) => `已迁移 ${n} 个备份文件`,
     importCountTo: (n, date) => `已导入 ${n} 条到 ${date}`,
     alreadyRunning: '软件已在运行',
+    folderNotFound: '无法访问该文件夹',
   },
   confirm: {
     deleteBlock: '确定删除该时间块？',
@@ -159,6 +160,16 @@ export const STR = {
     minBlockMinutes: '最小时间块确认',
     descMinBlockMinutes: '当创建的时间块时间跨度小于 n 分钟时弹出确认框。避免创建肉眼不可见的时间块，过于零碎的记录反而不利于时间管理。',
     descBorderless: '启用后隐藏原生标题栏，顶部右侧显示窗口控制按钮',
+
+    // ── Skin & Snippet ──
+    sectionSkin: '皮肤',
+    sectionSnippet: 'CSS 片段',
+    openSkinFolder: '打开皮肤文件夹',
+    openSnippetFolder: '打开片段文件夹',
+    refresh: '刷新',
+    descSkin: '将 .css 文件放入皮肤文件夹即可作为主题使用，下拉切换实时生效',
+    descSnippet: '将 .css 文件放入片段文件夹，每个文件对应一个开关',
+
     descExportTimestamp: '例：timelog-backup-2026-07-04-1730.json',
     descExportDialog: '导出时弹出系统文件对话框选择保存位置',
     descBackupPath: '输入绝对路径，留空则使用 AppData',
