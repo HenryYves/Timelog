@@ -11,6 +11,23 @@
 
 import { invoke, convertFileSrc } from '@tauri-apps/api/core'
 
+function isTauri() {
+  return !!(window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke)
+}
+
+/** 把皮肤目录路径转为可加载的 URL */
+function assetUrl(dir, name) {
+  if (isTauri()) return convertFileSrc(dir + '\\' + name + '.css')
+  // 浏览器 dev 模式：public/skins/ 由 Vite 静态服务
+  return '/skins/' + name + '.css'
+}
+
+/** 把片段目录路径转为可加载的 URL */
+function snippetUrl(dir, name) {
+  if (isTauri()) return convertFileSrc(dir + '\\' + name + '.css')
+  return '/snippets/' + name + '.css'
+}
+
 const INSTALLED_KEY = 'timelog:skinInstalled'
 
 const TEMPLATE_FILES = [
@@ -27,7 +44,7 @@ const TEMPLATE_FILES = [
  * @param {string} skinDir — 用户皮肤目录（绝对路径，如 C:\...\AppData\...\skins）
  */
 export async function installSkinTemplates(skinDir) {
-  if (localStorage.getItem(INSTALLED_KEY)) return
+  if (!isTauri() || localStorage.getItem(INSTALLED_KEY)) return
   try {
     await invoke('scan_css_files', { path: skinDir }) // 确保目录存在
     for (const file of TEMPLATE_FILES) {
@@ -49,7 +66,7 @@ export function injectSkinLink(skinDir, skinName) {
   const link = document.createElement('link')
   link.id = 'skin-link'
   link.rel = 'stylesheet'
-  link.href = convertFileSrc(skinDir + '\\' + skinName + '.css')
+  link.href = assetUrl(skinDir, skinName)
   document.head.appendChild(link)
 }
 
@@ -64,7 +81,7 @@ export function reloadSkinLink(skinDir, skinName) {
     if (link) link.remove()
     return
   }
-  const href = convertFileSrc(skinDir + '\\' + skinName + '.css') + '?v=' + Date.now()
+  const href = assetUrl(skinDir, skinName) + '?v=' + Date.now()
   if (!link) {
     const l = document.createElement('link')
     l.id = 'skin-link'
@@ -83,7 +100,7 @@ export function injectSnippetLink(snippetDir, name) {
   const link = document.createElement('link')
   link.rel = 'stylesheet'
   link.dataset.snippet = name
-  link.href = convertFileSrc(snippetDir + '\\' + name + '.css')
+  link.href = snippetUrl(snippetDir, name)
   document.head.appendChild(link)
 }
 

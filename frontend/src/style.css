@@ -1,7 +1,9 @@
 :root {
   --text: #2C2C2B; --text2: #7D7A75; --canvas: #FFFFFF; --soft: #F9F8F7;
-  --soft2: #F0EFED; --border: #E6E5E3; --blue: #2783DE; --blue-soft: #E5F2FC;
-  --green: #2F7D51; --red: #C13B2E;
+  --soft2: #F0EFED; --border: #E6E5E3;
+  --blue: #2783DE; --blue-soft: #E5F2FC; --green: #2F7D51; --red: #C13B2E;
+  --primary: var(--blue); --primary-soft: var(--blue-soft);
+  --success: var(--green); --danger: var(--red);
   --win-min-icon: url(/icons/win-min.svg);
   --win-max-icon: url(/icons/win-max.svg);
   --win-restore-icon: url(/icons/win-restore.svg);
@@ -51,14 +53,14 @@ button {
   padding: 6px 11px; cursor: pointer; transition: background .12s, border-color .12s; white-space: nowrap;
 }
 button:hover { background: var(--soft2); }
-button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+button.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
 button.primary:hover { background: #1f70c0; }
 button.icon { padding: 6px 9px; font-size: 15px; line-height: 1; }
-button.del { color: var(--red); border-color: #F0C7C1; }
+button.del { color: var(--danger); border-color: #F0C7C1; }
 button.del:hover { background: #FCE9E7; }
 .backup { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text2); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #C4C3C0; flex: none; }
-.dot.on { background: var(--green); }
+.dot.on { background: var(--success); }
 .dot.warn { background: #D5803B; }
 
 main { flex: 1; overflow-y: auto; overflow-x: hidden; background: var(--canvas); }
@@ -138,7 +140,7 @@ kbd {
   width: auto !important;
   padding: 2px 8px !important;
   font-size: 11px !important;
-  color: var(--blue) !important;
+  color: var(--primary) !important;
 }
 .win-btn {
   width: 32px; height: 32px; padding: 4px; border-radius: 6px; cursor: pointer;
@@ -154,7 +156,7 @@ kbd {
   background-image: var(--icon);
   opacity: .7;
 }
-.win-btn.close:hover { background: var(--red); }
+.win-btn.close:hover { background: var(--danger); }
 .win-btn.close:hover .win-ico { filter: brightness(0) invert(1); opacity: 1; }
 #exText { white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; overflow-x: hidden; }
 .version { font-size: 12px; color: var(--text2); margin-right: 4px; user-select: none; }
@@ -191,9 +193,9 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
 
 /* Drag ghost & label (pure DOM, need global CSS — not Vue-scoped) */
 .ghost {
-  position: absolute; background: var(--blue-soft); border: 1px solid var(--blue);
+  position: absolute; background: var(--primary-soft); border: 1px solid var(--primary);
   border-radius: 6px; opacity: .85; pointer-events: none;
-  font-size: 11px; color: var(--blue); padding: 2px 6px; font-weight: 600;
+  font-size: 11px; color: var(--primary); padding: 2px 6px; font-weight: 600;
 }
 .dlabel {
   position: absolute; right: 6px; transform: translateY(-50%);
@@ -207,7 +209,7 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
   padding: 9px 10px; color: var(--text); background: var(--soft);
 }
 .modal textarea { min-height: 60px; resize: vertical; }
-.modal input:focus, .modal textarea:focus { outline: none; border-color: var(--blue); background: var(--canvas); }
+.modal input:focus, .modal textarea:focus { outline: none; border-color: var(--primary); background: var(--canvas); }
 
 /* Tag row (tag manager, edit modal) */
 .tagrow {
@@ -262,7 +264,7 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
   color: #ff7500;
 }
 .EditMarkdown-strike {
-  text-decoration: line-through 2px var(--red);
+  text-decoration: line-through 2px var(--danger);
 }
 .EditMarkdown-highlight {
   background: #ffc773;
@@ -276,7 +278,7 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
   font-family: Menlo, Consolas, monospace;
 }
 .EditMarkdown-link {
-  color: var(--blue);
+  color: var(--primary);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -431,14 +433,14 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
   right: 0;
   pointer-events: none;
   z-index: 5;
-  border-top: 1px dashed var(--red);
+  border-top: 1px dashed var(--primary);
 }
 .cut-hover-label {
   position: absolute;
   right: 2px;
   top: -9px;
   font-size: 11px;
-  color: var(--red);
+  color: var(--primary);
   background: var(--canvas);
   padding: 0 3px;
   white-space: nowrap;
