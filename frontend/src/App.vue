@@ -24,46 +24,36 @@
             alt="更多"></button>
         <div class="dropdown" :class="{ open: showMore }" @keydown.escape.stop="showMore = false"
           @keydown="trapMoreFocus">
-          <button class="dropdown-item" @click="showSettings = true; showMore = false"><img src="/icons/settings.svg"
-              alt="">设置</button>
-          <button class="dropdown-item" @click="showStats = true; showMore = false"><img src="/icons/stats.svg"
-              alt="">统计</button>
-          <button class="dropdown-item" @click="showTagMgr = true; showMore = false"><img src="/icons/tag.svg"
-              alt="">标签</button>
+          <button class="dropdown-item" @click="showSettings = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/settings.svg)"></span>设置</button>
+          <button class="dropdown-item" @click="showStats = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/stats.svg)"></span>统计</button>
+          <button class="dropdown-item" @click="showTagMgr = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/tag.svg)"></span>标签</button>
           <!-- 导出 submenu -->
           <div class="submenu-wrap">
             <button class="dropdown-item submenu-trigger"
-              @click.stop="showExportSub = !showExportSub; showImportSub = false"><img src="/icons/export.svg" alt="">导出
+              @click.stop="showExportSub = !showExportSub; showImportSub = false"><span class="mico" style="-webkit-mask-image: url(/icons/export.svg)"></span>导出
               <span class="sub-arrow">▸</span></button>
             <div class="submenu-drop" :class="{ open: showExportSub }" @mouseleave="showExportSub = false"
               @keydown.escape.stop="showExportSub = false" @keydown="trapSubFocus">
-              <button class="dropdown-item" @click="showExportImage = true; showMore = false"><img
-                  src="/icons/export-image.svg" alt="">导出切图</button>
-              <button class="dropdown-item" @click="showExport = true; exportMode = 'export'; showMore = false"><img
-                  src="/icons/export-text.svg" alt="">导出文本</button>
+              <button class="dropdown-item" @click="showExportImage = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/export-image.svg)"></span>导出切图</button>
+              <button class="dropdown-item" @click="showExport = true; exportMode = 'export'; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/export-text.svg)"></span>导出文本</button>
               <button class="dropdown-item"
-                @click="showExport = true; exportMode = 'json-export'; showMore = false"><img
-                  src="/icons/export-json.svg" alt="">导出JSON</button>
+                @click="showExport = true; exportMode = 'json-export'; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/export-json.svg)"></span>导出JSON</button>
             </div>
           </div>
 
           <!-- 导入 submenu -->
           <div class="submenu-wrap">
             <button class="dropdown-item submenu-trigger"
-              @click.stop="showImportSub = !showImportSub; showExportSub = false"><img src="/icons/import.svg" alt="">导入
+              @click.stop="showImportSub = !showImportSub; showExportSub = false"><span class="mico" style="-webkit-mask-image: url(/icons/import.svg)"></span>导入
               <span class="sub-arrow">▸</span></button>
             <div class="submenu-drop" :class="{ open: showImportSub }" @mouseleave="showImportSub = false"
               @keydown.escape.stop="showImportSub = false" @keydown="trapSubFocus">
-              <button class="dropdown-item" @click="doImport(); showMore = false"><img src="/icons/import-json.svg"
-                  alt="">导入JSON备份</button>
-              <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><img
-                  src="/icons/text-import.svg" alt="">文本导入</button>
+              <button class="dropdown-item" @click="doImport(); showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/import-json.svg)"></span>导入JSON备份</button>
+              <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/text-import.svg)"></span>文本导入</button>
             </div>
           </div>
-          <button class="dropdown-item" @click="showDataMgr = true; showMore = false"><img src="/icons/data.svg"
-              alt="">管理数据</button>
-          <button class="dropdown-item" @click="doBackupNow(); showMore = false"><img src="/icons/backup.svg"
-              alt="">立即备份<span class="dot" :class="bkStatusClass"></span></button>
+          <button class="dropdown-item" @click="showDataMgr = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/data.svg)"></span>管理数据</button>
+          <button class="dropdown-item" @click="doBackupNow(); showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/backup.svg)"></span>立即备份<span class="dot" :class="bkStatusClass"></span></button>
           <div class="dropdown-footer"><span>{{ bkStatusText }}</span><button class="dropdown-item btn-help-mini"
               @click="showHelp = true; showMore = false">help</button></div>
         </div>

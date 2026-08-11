@@ -66,7 +66,7 @@
         <div
           v-if="settingsStore.showBlockNote && ev.note && (ev.end - ev.start) * PX_MIN >= (ev.tags?.length ? 66 : 48) && !settingsStore.renderNoteMarkdown"
           class="bnote" style="white-space: pre-wrap">{{ ev.note }}</div>
-        <div v-if="settingsStore.maskBlockOverflow" class="block-mask" :style="maskGradientStyle" />
+        <div v-if="settingsStore.maskBlockOverflow" class="block-mask" />
       </div>
 
       <div v-if="hoverLine" class="cut-hover" :style="{ top: hoverLine.y + 'px' }">
@@ -221,10 +221,6 @@ const availableDirs = computed(() => {
 })
 
 // --- Visual helpers ---
-const maskGradientStyle = computed(() => {
-  const c = getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() || '#ffffff'
-  return { background: `linear-gradient(to bottom, ${c}00, ${c} 90%)` }
-})
 
 function computeBlockStyle(ev) {
   const has = ev.tags && ev.tags.length

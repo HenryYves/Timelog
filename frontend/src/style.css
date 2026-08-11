@@ -83,7 +83,14 @@ kbd {
   width: 100%; text-align: left; color: var(--text); font-family: inherit;
 }
 .dropdown-item:hover { background: var(--soft2); }
-.dropdown-item img { width: 18px; height: 18px; flex: none; opacity: .75; }
+.dropdown-item img, .dropdown-item .mico { width: 18px; height: 18px; flex: none; opacity: .75; }
+.mico {
+  display: inline-block;
+  background-color: var(--text2);
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
 .dropdown-item .dot { margin-left: auto; flex: none; }
 
 #scroller { padding-top: 8px; padding-bottom: 24px; }
@@ -329,6 +336,7 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
   pointer-events: none;
   z-index: 1;
   border-radius: 0 0 6px 6px;
+  background: linear-gradient(to bottom, transparent, var(--canvas) 90%);
 }
 
 /* ── Scrollbar: thin thumb expands on hover ── */
