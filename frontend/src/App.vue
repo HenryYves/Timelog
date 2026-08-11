@@ -59,9 +59,9 @@
         </div>
       </div>
       <span class="win-ctrls" :class="{ on: winCtrlActive }" id="winCtrls">
-        <button class="win-btn" id="winMin" title="最小化" @click="onWinMin"><span class="win-ico" style="--icon: var(--win-min-icon)"></span></button>
-        <button class="win-btn" id="winMax" :title="isMaximized ? '还原' : '最大化'" @click="onWinMax"><span class="win-ico" :style="'--icon: var(' + (isMaximized ? '--win-restore-icon' : '--win-max-icon') + ')'"></span></button>
-        <button class="win-btn close" id="winClose" title="关闭" @click="onWinClose"><span class="win-ico" style="--icon: var(--win-close-icon)"></span></button>
+        <button class="win-btn" id="winMin" title="最小化" @click="onWinMin"><span class="win-ico win-min"></span></button>
+        <button class="win-btn" id="winMax" :title="isMaximized ? '还原' : '最大化'" @click="onWinMax"><span class="win-ico" :class="isMaximized ? 'win-restore' : 'win-max'"></span></button>
+        <button class="win-btn close" id="winClose" title="关闭" @click="onWinClose"><span class="win-ico win-close"></span></button>
       </span>
     </header>
     <main id="scroller" tabindex="-1">

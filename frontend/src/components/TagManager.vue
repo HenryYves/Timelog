@@ -155,7 +155,7 @@ function onMouseMove(e) {
     const draggedRow = document.querySelector(`.tagrow[data-index="${draggedIndex}"]`)
     if (draggedRow) draggedRow.classList.add('dragging')
     // Set cursor globally during drag
-    document.body.style.cursor = 'url(/src/assets/paw.svg) 16 16, grabbing'
+    document.body.classList.add('drag-active')
   }
 
   if (!isDragging) return
@@ -179,7 +179,7 @@ function onMouseUp(e) {
   // Cleanup
   document.querySelectorAll('.tagrow.dragging').forEach(el => el.classList.remove('dragging'))
   clearDragOver()
-  document.body.style.cursor = '' // Reset global cursor
+  document.body.classList.remove('drag-active')
   draggedIndex = null
   dragTargetIndex = null
   isDragging = false
@@ -298,21 +298,21 @@ async function onSave() {
   transform: translateY(-2px);
 }
 .drag-handle {
-  cursor: url('../assets/paw.svg') 16 16, grab;
+  cursor: var(--drag-cursor) 16 16, grab;
   user-select: none;
   color: #999;
   font-size: 14px;
   line-height: 1;
   padding: 4px;
 }
-.drag-handle:active { cursor: url('../assets/paw.svg') 16 16, grabbing; }
+.drag-handle:active { cursor: var(--drag-cursor) 16 16, grabbing; }
 .tagrow input,
 .tagrow button {
   cursor: default;
 }
 .tagrow.dragging {
   opacity: 0.4;
-  cursor: url('../assets/paw.svg') 16 16, grabbing;
+  cursor: var(--drag-cursor) 16 16, grabbing;
 }
 </style>
 

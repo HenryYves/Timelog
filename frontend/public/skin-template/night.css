@@ -9,9 +9,20 @@
   --blue: #758a99; --blue-soft: #1f2936; --green: #549688; --red: #cd5e3c;
   --primary: var(--blue); --primary-soft: var(--blue-soft);
   --success: var(--green); --danger: var(--red);
-  --win-min-icon: url(night/icon/win-min_night.svg);
-  --win-max-icon: url(night/icon/win-max_night.svg);
-  --win-restore-icon: url(night/icon/win-restore_night.svg);
-  --win-close-icon: url(night/icon/win-close_night.svg);
-  --drag-cursor: url(night/icon/paw_night.svg) 16 16, grab;
+  --glue-prev: #5a7d9a; --glue-next: #6a8a5a;
+  --no-tag: #5a6370; --no-tag-bg: #1e2430;
+}
+
+.win-ico.win-min  { background-image: url(night/icon/win-min_night.svg); }
+.win-ico.win-max  { background-image: url(night/icon/win-max_night.svg); }
+.win-ico.win-restore { background-image: url(night/icon/win-restore_night.svg); }
+.win-ico.win-close { background-image: url(night/icon/win-close_night.svg); }
+
+/* 拖拽光标 — 直接规则覆盖，不走变量 */
+header, header h1, header .datenav, header .date, header .spacer, header .version,
+body.drag-active,
+.drag-handle, .drag-handle:active, .tagrow.dragging,
+.export-right, .export-right:active,
+.export-right .block, .export-right:active .block {
+  cursor: url(night/icon/paw_night.svg) 16 4, grab !important;
 }

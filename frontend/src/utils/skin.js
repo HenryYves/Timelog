@@ -21,7 +21,7 @@ function isDevServer() {
 
 /** 把皮肤目录路径转为可加载的 URL */
 function assetUrl(dir, name) {
-  if (isDevServer()) return '/skins/' + name + '.css'
+  if (isDevServer()) return '/skin-template/' + name + '.css'
   return convertFileSrc(dir + '\\' + name + '.css')
 }
 
