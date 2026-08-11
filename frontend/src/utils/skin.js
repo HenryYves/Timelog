@@ -15,17 +15,20 @@ function isTauri() {
   return !!(window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke)
 }
 
+function isDevServer() {
+  return location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+}
+
 /** 把皮肤目录路径转为可加载的 URL */
 function assetUrl(dir, name) {
-  if (isTauri()) return convertFileSrc(dir + '\\' + name + '.css')
-  // 浏览器 dev 模式：public/skins/ 由 Vite 静态服务
-  return '/skins/' + name + '.css'
+  if (isDevServer()) return '/skins/' + name + '.css'
+  return convertFileSrc(dir + '\\' + name + '.css')
 }
 
 /** 把片段目录路径转为可加载的 URL */
 function snippetUrl(dir, name) {
-  if (isTauri()) return convertFileSrc(dir + '\\' + name + '.css')
-  return '/snippets/' + name + '.css'
+  if (isDevServer()) return '/snippets/' + name + '.css'
+  return convertFileSrc(dir + '\\' + name + '.css')
 }
 
 const INSTALLED_KEY = 'timelog:skinInstalled'
@@ -44,7 +47,7 @@ const TEMPLATE_FILES = [
  * @param {string} skinDir — 用户皮肤目录（绝对路径，如 C:\...\AppData\...\skins）
  */
 export async function installSkinTemplates(skinDir) {
-  if (!isTauri() || localStorage.getItem(INSTALLED_KEY)) return
+  if (isDevServer() || localStorage.getItem(INSTALLED_KEY)) return
   try {
     await invoke('scan_css_files', { path: skinDir }) // 确保目录存在
     for (const file of TEMPLATE_FILES) {
