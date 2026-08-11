@@ -502,9 +502,9 @@ import {
   DEFAULT_END_TIME_AT_NOW,
   DEFAULT_MIN_BLOCK_MINUTES,
   DEFAULT_AUTO_SELECT_ON_FOCUS,
-  BUILTIN_SKINS,
 } from '../constants.js'
 import { STR } from '../strings.js'
+import { reloadSkinLink, injectSnippetLink as _injSnippet, removeSnippetLink as _rmSnippet, syncAllSnippetLinks as _syncSnippets } from '../utils/skin.js'
 
 const props = defineProps({
   show: Boolean,
@@ -526,11 +526,15 @@ const userSkinFiles = ref([])
 const snippetFiles = ref([])
 
 const skinOptions = computed(() => {
+  const builtin = [
+    { id: '', label: STR.settings.skinDay },
+    { id: 'night', label: STR.settings.skinNight },
+  ]
   const userSkins = userSkinFiles.value
     .filter(name => name !== 'night')
     .map(name => ({ id: name, label: name }))
-  const sep = userSkins.length > 0 ? [{ id: '', label: '─────────', disabled: true }] : []
-  return [...BUILTIN_SKINS, ...sep, ...userSkins]
+  const sep = userSkins.length > 0 ? [{ id: '', label: '─'.repeat(10), disabled: true }] : []
+  return [...builtin, ...sep, ...userSkins]
 })
 
 async function resolveSkinPath() {
@@ -560,30 +564,15 @@ async function refreshSkins() {
   try {
     const path = await resolveSkinPath()
     userSkinFiles.value = await invoke('scan_css_files', { path })
-    await reloadSkinStyle()
+    await doReloadSkinLink()
   } catch { toast(STR.toast.folderNotFound) }
 }
 
-async function reloadSkinStyle() {
-  const name = settings.activeSkin
-  const style = document.getElementById('skin-style')
-  if (!name) {
-    if (style) style.remove()
-    return
-  }
+async function doReloadSkinLink() {
   try {
     const path = await resolveSkinPath()
-    const content = await invoke('read_file_text', { path: path + '\\' + name + '.css' })
-    if (!style) {
-      const s = document.createElement('style')
-      s.id = 'skin-style'
-      s.textContent = content
-      document.head.appendChild(s)
-    } else {
-      style.textContent = content
-    }
+    reloadSkinLink(path, settings.activeSkin)
   } catch {
-    if (style) style.remove()
     settings.setActiveSkin('')
   }
 }
@@ -601,7 +590,7 @@ async function refreshSnippets() {
     snippetFiles.value = await invoke('scan_css_files', { path })
     const valid = new Set(snippetFiles.value)
     settings.setEnabledSnippets(settings.enabledSnippets.filter(s => valid.has(s)))
-    await syncSnippetStyles()
+    await doSyncSnippets()
   } catch { toast(STR.toast.folderNotFound) }
 }
 
@@ -613,37 +602,29 @@ async function onSnippetToggle(name, on) {
   const list = [...settings.enabledSnippets]
   if (on) {
     if (!list.includes(name)) list.push(name)
-    await injectOneSnippet(name)
+    await doInjectSnippet(name)
   } else {
     const idx = list.indexOf(name)
     if (idx !== -1) list.splice(idx, 1)
-    removeOneSnippet(name)
+    doRemoveSnippet(name)
   }
   settings.setEnabledSnippets(list)
 }
 
-async function injectOneSnippet(name) {
-  removeOneSnippet(name)
+async function doInjectSnippet(name) {
   try {
     const path = await resolveSnippetPath()
-    const content = await invoke('read_file_text', { path: path + '\\' + name + '.css' })
-    const style = document.createElement('style')
-    style.dataset.snippet = name
-    style.textContent = content
-    document.head.appendChild(style)
-  } catch { /* 读取失败跳过 */ }
+    _injSnippet(path, name)
+  } catch { /* 跳过 */ }
 }
 
-function removeOneSnippet(name) {
-  const style = document.querySelector(`style[data-snippet="${CSS.escape(name)}"]`)
-  if (style) style.remove()
+function doRemoveSnippet(name) {
+  _rmSnippet(name)
 }
 
-async function syncSnippetStyles() {
-  document.querySelectorAll('style[data-snippet]').forEach(s => s.remove())
-  for (const name of settings.enabledSnippets) {
-    await injectOneSnippet(name)
-  }
+async function doSyncSnippets() {
+  const path = await resolveSnippetPath()
+  _syncSnippets(path, settings.enabledSnippets)
 }
 
 async function openSkinFolder() {

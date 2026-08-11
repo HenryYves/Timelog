@@ -162,6 +162,8 @@ export const STR = {
     descBorderless: '启用后隐藏原生标题栏，顶部右侧显示窗口控制按钮',
 
     // ── Skin & Snippet ──
+    skinDay: '日间（默认）',
+    skinNight: '夜间',
     sectionSkin: '皮肤',
     sectionSnippet: 'CSS 片段',
     openSkinFolder: '打开皮肤文件夹',

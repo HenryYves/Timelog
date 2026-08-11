@@ -59,11 +59,9 @@
         </div>
       </div>
       <span class="win-ctrls" :class="{ on: winCtrlActive }" id="winCtrls">
-        <button class="win-btn" id="winMin" title="最小化" @click="onWinMin"><img src="/icons/win-min.svg" alt=""></button>
-        <button class="win-btn" id="winMax" :title="isMaximized ? '还原' : '最大化'" @click="onWinMax"><img
-            :src="isMaximized ? '/icons/win-restore.svg' : '/icons/win-max.svg'" alt=""></button>
-        <button class="win-btn close" id="winClose" title="关闭" @click="onWinClose"><img src="/icons/win-close.svg"
-            alt=""></button>
+        <button class="win-btn" id="winMin" title="最小化" @click="onWinMin"><span class="win-ico" style="--icon: var(--win-min-icon)"></span></button>
+        <button class="win-btn" id="winMax" :title="isMaximized ? '还原' : '最大化'" @click="onWinMax"><span class="win-ico" :style="'--icon: var(' + (isMaximized ? '--win-restore-icon' : '--win-max-icon') + ')'"></span></button>
+        <button class="win-btn close" id="winClose" title="关闭" @click="onWinClose"><span class="win-ico" style="--icon: var(--win-close-icon)"></span></button>
       </span>
     </header>
     <main id="scroller" tabindex="-1">
@@ -105,7 +103,7 @@ import { useTimelogStore, dkey, storeUndo, todayLocalToStorage } from './store/t
 
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
-import { APP_VERSION, compareSemver, DAY_MIN, DAY_OFFSET, NIGHT_CSS_CONTENT } from './constants.js'
+import { APP_VERSION, compareSemver, DAY_MIN, DAY_OFFSET } from './constants.js'
 import { STR } from './strings.js'
 import {
   bkStatusText, bkStatusClass, setBackupPrefs,
@@ -128,6 +126,7 @@ import { useToast } from './composables/useToast.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { useCoordConverter, localMinToUnified } from './composables/useCoordConverter.js'
 import { logger } from './utils/log.js'
+import { installSkinTemplates, injectSkinLink, removeSkinLink, injectSnippetLink, removeSnippetLink, syncAllSnippetLinks } from './utils/skin.js'
 
 const store = useTimelogStore()
 const settings = useSettingsStore()
@@ -765,62 +764,6 @@ async function resolveSnippetDir() {
   return await getDefaultBase() + '\\snippets'
 }
 
-async function injectSkinStyle(name) {
-  removeSkinStyle()
-  if (!name) return
-  try {
-    const dir = await resolveSkinDir()
-    const content = await invoke('read_file_text', { path: dir + '\\' + name + '.css' })
-    const style = document.createElement('style')
-    style.id = 'skin-style'
-    style.textContent = content
-    document.head.appendChild(style)
-  } catch { settings.setActiveSkin('') }
-}
-
-function removeSkinStyle() {
-  const style = document.getElementById('skin-style')
-  if (style) style.remove()
-}
-
-async function injectSnippetStyle(name) {
-  removeSnippetStyle(name)
-  try {
-    const dir = await resolveSnippetDir()
-    const content = await invoke('read_file_text', { path: dir + '\\' + name + '.css' })
-    const style = document.createElement('style')
-    style.dataset.snippet = name
-    style.textContent = content
-    document.head.appendChild(style)
-  } catch { /* 文件被删，跳过 */ }
-}
-
-function removeSnippetStyle(name) {
-  const style = document.querySelector(`style[data-snippet="${CSS.escape(name)}"]`)
-  if (style) style.remove()
-}
-
-async function syncAllSnippetStyles() {
-  document.querySelectorAll('style[data-snippet]').forEach(s => s.remove())
-  for (const name of settings.enabledSnippets) {
-    await injectSnippetStyle(name)
-  }
-}
-
-async function ensureNightCss() {
-  try {
-    const dir = await resolveSkinDir()
-    const files = await invoke('scan_css_files', { path: dir })
-    if (!files.includes('night')) {
-      await invoke('write_file_text', {
-        path: dir + '\\night.css',
-        content: NIGHT_CSS_CONTENT,
-      })
-    }
-    return files
-  } catch { return [] }
-}
-
 onMounted(async () => {
   _bnoteMO = new MutationObserver(() => {
     clearTimeout(_bnoteTimer)
@@ -890,15 +833,19 @@ onMounted(async () => {
   watch(() => settings.keepDays, (v) => setBackupPrefs({ keepDays: v }))
   watch(() => settings.borderless, () => applyBorderless())
 
-  // ── 皮肤变化 → 重建 <style> ──
-  watch(() => settings.activeSkin, (name) => { injectSkinStyle(name) })
+  // ── 皮肤变化 → 重建 <link> ──
+  watch(() => settings.activeSkin, async (name) => {
+    const dir = await resolveSkinDir()
+    injectSkinLink(dir, name)
+  })
 
-  // ── 片段列表变化 → 增删 <style> ──
-  watch(() => settings.enabledSnippets, (list, oldList) => {
+  // ── 片段列表变化 → 增删 <link> ──
+  watch(() => settings.enabledSnippets, async (list, oldList) => {
+    const dir = await resolveSnippetDir()
     const oldSet = new Set(oldList || [])
     const newSet = new Set(list || [])
-    for (const name of oldSet) { if (!newSet.has(name)) removeSnippetStyle(name) }
-    for (const name of newSet) { if (!oldSet.has(name)) injectSnippetStyle(name) }
+    for (const name of oldSet) { if (!newSet.has(name)) removeSnippetLink(name) }
+    for (const name of newSet) { if (!oldSet.has(name)) injectSnippetLink(dir, name) }
   })
 
   // Apply zoom & font
@@ -932,21 +879,20 @@ onMounted(async () => {
   watch(() => tagStore.tags, onDataChanged, { deep: true })
 
   // ── 初始化皮肤 & 片段 ──
-  await ensureNightCss()
+  const skinDir = await resolveSkinDir()
+  await installSkinTemplates(skinDir)
 
   if (settings.activeSkin) {
-    await injectSkinStyle(settings.activeSkin)
+    injectSkinLink(skinDir, settings.activeSkin)
   }
 
   try {
-    const sDir = settings.snippetPath || (await getDefaultBase() + '\\snippets')
+    const sDir = await resolveSnippetDir()
     const validFiles = await invoke('scan_css_files', { path: sDir })
     const validSet = new Set(validFiles)
     const cleaned = settings.enabledSnippets.filter(s => validSet.has(s))
     settings.setEnabledSnippets(cleaned)
-    for (const name of cleaned) {
-      await injectSnippetStyle(name)
-    }
+    syncAllSnippetLinks(sDir, cleaned)
   } catch { /* 静默 */ }
 
   // 启动时跳转到包含当前时间的页（复用 goToday 逻辑）
