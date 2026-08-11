@@ -7,7 +7,6 @@
         height="220px"
         :font-size="settings.editorFontSize"
         :enable-md="settings.batchMarkdownPreview"
-        :custom-css="settings.customCss"
         :placeholder="STR.batchCreate.placeholder"
         :tag-line="true"
         auto-focus

@@ -25,7 +25,6 @@
       @input="e => emit('update:modelValue', e.target.value)"
       @keydown="onTaKeydown"
     />
-    <component :is="'style'" v-if="customCss">{{ customCss }}</component>
   </div>
 </template>
 
@@ -45,7 +44,6 @@ const props = defineProps({
   placeholder: { type: String, default: '' },
   fontSize: { type: Number, default: 14 },
   enableMd: { type: Boolean, default: true },
-  customCss: { type: String, default: '' },
   autoFocus: { type: Boolean, default: false },
   tagLine: { type: Boolean, default: false },
   height: { type: String, default: '' },

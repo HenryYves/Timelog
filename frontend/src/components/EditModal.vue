@@ -59,7 +59,6 @@
         height="126px"
         :font-size="settings.editorFontSize"
         :enable-md="settings.markdownPreview"
-        :custom-css="settings.customCss"
       />
 
       <div class="actions">
