@@ -23,8 +23,16 @@ export function mdToHtml(text) {
   const lines = (text || '').split(/\n/)
   let html = ''
   const stack = []
-  function closeAll() {
+  let liOpen = false
+  function closeList() {
+    if (liOpen) { html += '</li>'; liOpen = false }
     while (stack.length) html += '</' + stack.pop().type + '>'
+  }
+  function closeDeeper(newIndent) {
+    while (stack.length && stack[stack.length - 1].indent > newIndent) {
+      if (liOpen) { html += '</li>'; liOpen = false }
+      html += '</' + stack.pop().type + '>'
+    }
   }
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i]
@@ -34,19 +42,24 @@ export function mdToHtml(text) {
       const lead = (um || om)[1].replace(/\t/g, '  ').length
       const type = um ? 'ul' : 'ol'
       const content = um ? um[2] : om[2]
-      while (stack.length &&
-        (stack[stack.length - 1].indent > lead ||
-          (stack[stack.length - 1].indent === lead &&
-            stack[stack.length - 1].type !== type)))
-        html += '</' + stack.pop().type + '>'
+      closeDeeper(lead)
       if (!stack.length || stack[stack.length - 1].indent < lead) {
+        // Nested list — let parent <li> stay open
+        html += '<' + type + '>'
+        stack.push({ type, indent: lead })
+      } else if (stack[stack.length - 1].type !== type) {
+        // Same indent, different type — close old, open new
+        if (liOpen) { html += '</li>'; liOpen = false }
+        html += '</' + stack.pop().type + '>'
         html += '<' + type + '>'
         stack.push({ type, indent: lead })
       }
-      html += '<li>' + mdInline(content) + '</li>'
+      if (liOpen) { html += '</li>'; liOpen = false }
+      html += '<li>' + mdInline(content)
+      liOpen = true
       continue
     }
-    closeAll()
+    closeList()
     const hm = raw.match(/^(#{1,3})\s+(.*)$/)
     if (hm) {
       html += '<div class="md-h md-h' + hm[1].length + '">' +
@@ -56,6 +69,6 @@ export function mdToHtml(text) {
     if (raw.trim() === '') { html += '<br>'; continue }
     html += '<div>' + mdInline(raw) + '</div>'
   }
-  closeAll()
+  closeList()
   return html
 }

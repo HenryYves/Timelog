@@ -11,6 +11,9 @@
   --success: var(--green); --danger: var(--red);
   --glue-prev: #5a7d9a; --glue-next: #6a8a5a;
   --no-tag: #5a6370; --no-tag-bg: #1e2430;
+  --md-bold: #bed2c3; --md-italic: #93b69c; --md-strike: #cd5e3c;
+  --md-highlight-bg: #316745; --md-code-bg: rgba(255,255,255,0.08);
+  --md-marker: #5a7d9a;
 }
 
 .win-ico.win-min  { background-image: url(night/icon/win-min_night.svg); }

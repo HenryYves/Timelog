@@ -7,6 +7,9 @@
   --glue-prev: #89c3eb; --glue-next: #e0ebaf;
   --no-tag: #C4C3C0; --no-tag-bg: #F0EFED;
   --drag-cursor: url('/src/assets/paw.svg') 16 16, grab;
+  --md-bold: #f36838; --md-italic: #ff7500; --md-strike: #ff2d51;
+  --md-highlight-bg: #ffc773; --md-code-bg: rgba(0,0,0,0.06);
+  --md-marker: #a1afc9;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--soft); }
@@ -250,31 +253,31 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
 
 /* ── MarkdownEditor syntax highlighting ── */
 .EditMarkdown-marker {
-  color: #a1afc9;
+  color: var(--md-marker);
   font-weight: normal;
   font-style: normal;
 }
 .EditMarkdown-escape {
-  color: #a1afc9;
+  color: var(--md-marker);
 }
 .EditMarkdown-bold {
   font-weight: 800;
-  color: #f36838;
+  color: var(--md-bold);
 }
 .EditMarkdown-italic {
   font-style: italic;
-  color: #ff7500;
+  color: var(--md-italic);
 }
 .EditMarkdown-strike {
-  text-decoration: line-through 2px var(--danger);
+  text-decoration: line-through 2px var(--md-strike);
 }
 .EditMarkdown-highlight {
-  background: #ffc773;
+  background: var(--md-highlight-bg);
   padding: 0 2px;
   border-radius: 2px;
 }
 .EditMarkdown-code {
-  background: rgba(0,0,0,.06);
+  background: var(--md-code-bg);
   padding: 0 3px;
   border-radius: 3px;
   font-family: Menlo, Consolas, monospace;
@@ -304,13 +307,19 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
 /* ── 时间块备注渲染 ── */
 .block .bnote b {
   font-weight: 800;
-  color: #f36838;
+  color: var(--md-bold);
 }
 .block .bnote i {
-  color: #ff7500;
+  color: var(--md-italic);
 }
 .block .bnote s {
-  text-decoration-color: #ff2d51;
+  text-decoration-color: var(--md-strike);
+}
+.block .bnote mark {
+  background: var(--md-highlight-bg);
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 2px;
 }
 .block .bnote > div,
 .block .bnote li {
@@ -321,19 +330,17 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
 .block .bnote ul,
 .block .bnote ol {
   margin: 2px 0;
-  padding-left: 2px;
+  padding-inline-start: 0;
   list-style-position: inside;
 }
-.block .bnote ul ul,
-.block .bnote ol ol,
-.block .bnote ul ol,
-.block .bnote ol ul {
-  padding-left: 14px;
+.block .bnote li > ul,
+.block .bnote li > ol {
+  padding-left: 18px;
   margin-top: 0;
   margin-bottom: 0;
 }
 .block .bnote code {
-  background: rgba(0,0,0,.07);
+  background: var(--md-code-bg);
   padding: 0 3px;
   border-radius: 3px;
   font-family: Menlo, Consolas, monospace;
