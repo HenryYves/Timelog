@@ -1,7 +1,7 @@
 <template>
   <div id="app-container">
     <header @mousedown="onHeaderMouseDown" @dblclick="onHeaderDblClick">
-      <h1><img src="/icons/icon.svg" class="logo" alt=""><img src="/icons/timelog.svg" class="logo-text" alt="Timelog">
+      <h1><img src="/icons/icon.svg" class="logo" alt=""><span class="mico logo-text" style="-webkit-mask-image: url(/icons/timelog.svg)"></span>
       </h1>
       <div class="datenav">
         <button class="icon" @click="store.goPrevDay()">‹</button>

@@ -27,7 +27,7 @@
             <div class="section-head">
               <h4 class="section-title">{{ STR.settings.navBasic }}</h4>
               <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('basic')">
-                <img src="/icons/restore.svg" alt="">
+                <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
               </button>
             </div>
 
@@ -36,7 +36,7 @@
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.autoUpdate" @change="settings.setAutoUpdate($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoUpdate(DEFAULT_AUTO_UPDATE)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -73,7 +73,7 @@
             <div class="section-head">
               <h4 class="section-title">{{ STR.settings.sectionStartup }}</h4>
               <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('startup')">
-                <img src="/icons/restore.svg" alt="">
+                <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
               </button>
             </div>
 
@@ -82,7 +82,7 @@
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.autoScroll" @change="settings.setAutoScroll($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoScroll(DEFAULT_AUTO_SCROLL)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -94,7 +94,7 @@
             <div class="section-head">
               <h4 class="section-title">{{ STR.settings.sectionEditor }}</h4>
               <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('tEditor')">
-                <img src="/icons/restore.svg" alt="">
+                <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
               </button>
             </div>
 
@@ -103,7 +103,7 @@
               <div>
                 <input type="number" min="0" max="120" style="width:80px;" :value="settings.minBlockMinutes" @change="onMinBlockMinutesChange">
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setMinBlockMinutes(DEFAULT_MIN_BLOCK_MINUTES)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -114,7 +114,7 @@
               <div>
                 <input type="number" min="1" max="1440" style="width:80px;" :value="settings.defaultDuration" @change="onDurationChange">
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setDuration(DEFAULT_DURATION)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -124,7 +124,7 @@
               <label>{{ STR.settings.endTimeAtNow }}</label>
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.endTimeAtNow" @change="settings.setEndTimeAtNow($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setEndTimeAtNow(DEFAULT_END_TIME_AT_NOW)"><img src="/icons/restore.svg" alt=""></button>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setEndTimeAtNow(DEFAULT_END_TIME_AT_NOW)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
               </div>
             </div>
 
@@ -133,7 +133,7 @@
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.markdownPreview" @change="settings.setMarkdownPreview($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setMarkdownPreview(DEFAULT_MARKDOWN_PREVIEW)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -144,7 +144,7 @@
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.tabToIndent" @change="settings.setTabToIndent($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setTabToIndent(DEFAULT_TAB_TO_INDENT)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -153,7 +153,7 @@
             <div class="section-head">
               <h4 class="section-title">{{ STR.settings.sectionBatchCreate }}</h4>
               <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('batchCreate')">
-                <img src="/icons/restore.svg" alt="">
+                <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
               </button>
             </div>
 
@@ -162,7 +162,7 @@
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.batchMarkdownPreview" @change="settings.setBatchMarkdownPreview($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBatchMarkdownPreview(DEFAULT_BATCH_MARKDOWN_PREVIEW)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -173,7 +173,7 @@
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.batchTabToIndent" @change="settings.setBatchTabToIndent($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBatchTabToIndent(DEFAULT_BATCH_TAB_TO_INDENT)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -184,7 +184,7 @@
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.checkBeforeCreate" @change="settings.setCheckBeforeCreate($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setCheckBeforeCreate(DEFAULT_CHECK_BEFORE_CREATE)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -195,7 +195,7 @@
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.copyAfterCreate" @change="settings.setCopyAfterCreate($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setCopyAfterCreate(DEFAULT_COPY_AFTER_CREATE)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -206,7 +206,7 @@
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.autoSelectOnFocus" @change="settings.setAutoSelectOnFocus($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoSelectOnFocus(DEFAULT_AUTO_SELECT_ON_FOCUS)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -216,7 +216,7 @@
               <div>
                 <input type="text" :value="settings.tagDelimiters" @change="settings.setTagDelimiters($event.target.value)" placeholder="," style="width:200px;">
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setTagDelimiters(DEFAULT_TAG_DELIMITERS)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -228,7 +228,7 @@
             <div class="section-head">
               <h4 class="section-title">{{ STR.settings.navAppearance }}</h4>
               <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('appearance')">
-                <img src="/icons/restore.svg" alt="">
+                <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
               </button>
             </div>
 
@@ -237,7 +237,7 @@
               <div>
                 <input type="text" :value="settings.fontFamily" @change="settings.setFontFamily($event.target.value)" :placeholder="STR.settings.placeholderFontFamily" style="width:100%;">
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setFontFamily(DEFAULT_FONT_FAMILY)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -248,7 +248,7 @@
               <div>
                 <input type="number" min="10" max="28" style="width:80px;" :value="settings.editorFontSize" @change="onEditorFontSizeChange">
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setEditorFontSize(DEFAULT_EDITOR_FONT_SIZE)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -259,7 +259,7 @@
               <div>
                 <button class="small-btn" @click="showZoomPopup = true">调整 ({{ settings.zoom }}%)</button>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setZoom(DEFAULT_ZOOM)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
               <!-- Zoom popup — fixed size, zoom-compensated -->
@@ -279,7 +279,7 @@
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.borderless" @change="onBorderlessChange"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBorderless(DEFAULT_BORDERLESS)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -336,7 +336,7 @@
               <div>
                 <input type="range" min="5" max="200" :value="settings.blockOpacity" @input="onOpacityInput" style="width:180px;">
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBlockOpacity(DEFAULT_OPACITY)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -346,7 +346,7 @@
               <label>{{ STR.settings.showBlockTitle }}</label>
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.showBlockTitle" @change="settings.setShowBlockTitle($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTitle(DEFAULT_SHOW_BLOCK_TITLE)"><img src="/icons/restore.svg" alt=""></button>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTitle(DEFAULT_SHOW_BLOCK_TITLE)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
               </div>
             </div>
 
@@ -354,7 +354,7 @@
               <label>{{ STR.settings.showBlockTime }}</label>
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.showBlockTime" @change="settings.setShowBlockTime($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTime(DEFAULT_SHOW_BLOCK_TIME)"><img src="/icons/restore.svg" alt=""></button>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTime(DEFAULT_SHOW_BLOCK_TIME)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
               </div>
             </div>
 
@@ -362,7 +362,7 @@
               <label>{{ STR.settings.showBlockTags }}</label>
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.showBlockTags" @change="settings.setShowBlockTags($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTags(DEFAULT_SHOW_BLOCK_TAGS)"><img src="/icons/restore.svg" alt=""></button>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTags(DEFAULT_SHOW_BLOCK_TAGS)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
               </div>
             </div>
 
@@ -370,7 +370,7 @@
               <label>{{ STR.settings.showBlockNote }}</label>
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.showBlockNote" @change="settings.setShowBlockNote($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockNote(DEFAULT_SHOW_BLOCK_NOTE)"><img src="/icons/restore.svg" alt=""></button>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockNote(DEFAULT_SHOW_BLOCK_NOTE)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
               </div>
             </div>
 
@@ -378,7 +378,7 @@
               <label>{{ STR.settings.showBlockColorBar }}</label>
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.showBlockColorBar" @change="settings.setShowBlockColorBar($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockColorBar(DEFAULT_SHOW_BLOCK_COLOR_BAR)"><img src="/icons/restore.svg" alt=""></button>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockColorBar(DEFAULT_SHOW_BLOCK_COLOR_BAR)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
               </div>
             </div>
 
@@ -386,7 +386,7 @@
               <label>{{ STR.settings.maskBlockOverflow }}</label>
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.maskBlockOverflow" @change="settings.setMaskBlockOverflow($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setMaskBlockOverflow(DEFAULT_MASK_BLOCK_OVERFLOW)"><img src="/icons/restore.svg" alt=""></button>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setMaskBlockOverflow(DEFAULT_MASK_BLOCK_OVERFLOW)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
               </div>
             </div>
 
@@ -394,7 +394,7 @@
               <label>{{ STR.settings.renderNoteMarkdown }}</label>
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.renderNoteMarkdown" @change="settings.setRenderNoteMarkdown($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setRenderNoteMarkdown(DEFAULT_RENDER_NOTE_MARKDOWN)"><img src="/icons/restore.svg" alt=""></button>
+                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setRenderNoteMarkdown(DEFAULT_RENDER_NOTE_MARKDOWN)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
               </div>
             </div>
 
@@ -405,7 +405,7 @@
             <div class="section-head">
               <h4 class="section-title">{{ STR.settings.sectionExport }}</h4>
               <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('export')">
-                <img src="/icons/restore.svg" alt="">
+                <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
               </button>
             </div>
 
@@ -414,7 +414,7 @@
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.exportTimestamp" @change="settings.setExportTimestamp($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setExportTimestamp(DEFAULT_EXPORT_TIMESTAMP)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -425,7 +425,7 @@
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.exportDialog" @change="settings.setExportDialog($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setExportDialog(DEFAULT_EXPORT_DIALOG)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -434,7 +434,7 @@
             <div class="section-head">
               <h4 class="section-title">{{ STR.settings.sectionBackup }}</h4>
               <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('backup')">
-                <img src="/icons/restore.svg" alt="">
+                <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
               </button>
             </div>
 
@@ -443,7 +443,7 @@
               <div>
                 <input type="text" :value="bkPathDraft" @input="bkPathDraft = $event.target.value" @change="onBkPathBlur" :placeholder="STR.settings.placeholderBackupPath" style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;" :title="bkPathDraft">
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="onBkPathReset">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -454,7 +454,7 @@
               <div>
                 <label class="toggle"><input type="checkbox" :checked="settings.backupOn" @change="settings.setBackupOn($event.target.checked)"><span class="tk"></span></label>
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBackupOn(DEFAULT_BACKUP_ON)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -465,7 +465,7 @@
               <div>
                 <input type="number" min="0" max="3650" style="width:80px;" placeholder="0" :value="settings.keepDays" @change="onKeepDaysChange">
                 <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setKeepDays(DEFAULT_KEEP_DAYS)">
-                  <img src="/icons/restore.svg" alt="">
+                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                 </button>
               </div>
             </div>
@@ -920,7 +920,7 @@ function resetCategory(cat) {
   flex-shrink: 0;
 }
 .btn-restore:hover { opacity: 1; }
-.btn-restore img { width: 100%; height: 100%; display: block; }
+.btn-restore img, .btn-restore .restico { width: 100%; height: 100%; display: block; }
 
 .restore-spacer { width: 20px; height: 20px; flex-shrink: 0; }
 
