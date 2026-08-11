@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.11.3] - 2026-08-11
+
+### Added
+- 自定义皮肤系统（skins/ 目录 + 下拉选择 + `<link>` 动态加载）
+- CSS 片段系统（snippets/ 目录 + 独立开关 + 实时注入）
+- 内置夜间皮肤（night.css + 配套图标）
+- `skin-template/` 首次启动自动安装到用户数据目录
+- 设置 → 外观 Tab 新增皮肤/CSS 片段管理 UI
+- 设置 → 开发者 Tab + 打开 WebView2 DevTools 按钮
+- 5 个 Rust 命令（scan_css_files / read_file_text / write_file_text / open_folder / open_devtools）
+
+### Changed
+- CSS 变量语义化：`--blue`→`--primary`、`--green`→`--success`、`--red`→`--danger`
+- 皮肤/片段使用 `<link>` 标签注入（正式版 `convertFileSrc`，dev 模式 Vite 静态服务）
+- 光标 scissors/glue base64 改为 `/icons/scissors.svg` 文件路径
+- 菜单栏、restore、timelog 图标改为 CSS mask-image 方案（`--text2` 控制颜色）
+- Markdown 语法高亮色全走 CSS 变量（`--md-bold` / `--md-italic` 等）
+- 抽出 `blockVisualStyle()` 到 `blockLayout.js`，Timeline 和 ExportImagePanel 共用
+- 注入逻辑从 App.vue 抽出到 `utils/skin.js`，`isDevServer()` 判断环境
+- 构建排除 dev 调试目录 `skins/` `snippets/`
+
+### Fixed
+- 时间块溢出遮罩使用 `var(--canvas)` 替代 JS getComputedStyle
+- 编辑器有序列表按缩进层级独立重新编号
+- tdot 圆点增加 `--text2` 描边，暗色主题下可见
+
+### Removed
+- 旧 `customCss`（仅编辑器级别），统一使用全局 CSS 片段系统
+
 ## [0.10.36] - 2026-08-08
 
 ### Added
