@@ -371,7 +371,7 @@ function onSliceLeave() {
   background: var(--canvas); cursor: pointer; font-size: 13px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-.filter-btn:hover { border-color: var(--blue); box-shadow: 0 0 0 2px rgba(79,140,217,0.12); }
+.filter-btn:hover { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(79,140,217,0.12); }
 .filter-menu {
   position: absolute; top: calc(100% + 4px); left: 0;
   background: var(--canvas); border: 1px solid var(--border); border-radius: 8px;
@@ -384,13 +384,13 @@ function onSliceLeave() {
   transition: background 0.15s;
 }
 .filter-item:hover { background: var(--soft); }
-.filter-item.active { background: var(--blue); color: #fff; }
+.filter-item.active { background: var(--primary); color: #fff; }
 .date-input {
   border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px;
   font-size: 13px; width: 130px; transition: border-color 0.2s;
 }
-.date-input:focus { border-color: var(--blue); outline: none; box-shadow: 0 0 0 2px rgba(79,140,217,0.12); }
-.date-error { color: var(--red); font-size: 12px; width: 100%; }
+.date-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(79,140,217,0.12); }
+.date-error { color: var(--danger); font-size: 12px; width: 100%; }
 
 /* ── Cards ── */
 .stats-cards { display: flex; flex-direction: column; gap: 14px; }
@@ -407,7 +407,7 @@ function onSliceLeave() {
   transition: background 0.2s;
 }
 .stat-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-.stat-card:hover::before { background: var(--blue); }
+.stat-card:hover::before { background: var(--primary); }
 .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--soft); }
 .card-title { font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text2); }
 .card-settings { border: none; background: none; cursor: pointer; font-size: 15px; padding: 2px 6px; border-radius: 4px; color: var(--text2); opacity: 0.5; transition: opacity 0.2s, background 0.2s; }
@@ -430,7 +430,7 @@ function onSliceLeave() {
   color: var(--text2); margin-top: 14px;
   transition: border-color 0.2s, color 0.2s, background 0.2s;
 }
-.add-view-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--canvas); }
+.add-view-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--canvas); }
 
 /* ── Pie ── */
 .pie-wrap { display: flex; flex-direction: column; gap: 12px; }
@@ -449,17 +449,17 @@ function onSliceLeave() {
 .config-modal { max-width: 380px; max-height: calc(76vh / var(--zoom, 1)); overflow: auto; }
 .config-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
 .config-form label { font-size: 14px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
-.config-form input[type="checkbox"]:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 2px; }
+.config-form input[type="checkbox"]:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 2px; }
 .config-form select, .tag-input, .name-input { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 14px; background: var(--canvas); }
 .name-input { width: 100%; }
 .tag-input { width: 100%; }
 .config-groups { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0; }
 .config-groups > span { width: 100%; font-size: 13px; font-weight: 600; color: var(--text2); padding-bottom: 2px; }
 .config-groups label { font-size: 13px; gap: 4px; padding: 2px 8px; border-radius: 12px; border: 1px solid var(--border); transition: background 0.15s; }
-.config-groups label:has(input:checked) { background: var(--soft); border-color: var(--blue); }
+.config-groups label:has(input:checked) { background: var(--soft); border-color: var(--primary); }
 
 .actions { display: flex; gap: 8px; align-items: center; }
 .spacer { flex: 1; }
-.danger { background: none; border: 1px solid var(--red); color: var(--red); border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 13px; transition: background 0.15s; }
-.danger:hover { background: var(--red); color: #fff; }
+.danger { background: none; border: 1px solid var(--danger); color: var(--danger); border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 13px; transition: background 0.15s; }
+.danger:hover { background: var(--danger); color: #fff; }
 </style>

@@ -129,7 +129,7 @@ function trapFocus(e) {
   font-variant-numeric: tabular-nums;
 }
 .cut-time-input:focus {
-  border-bottom-color: var(--blue);
+  border-bottom-color: var(--primary);
 }
 .cut-dir-wrap {
   position: relative;

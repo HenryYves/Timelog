@@ -775,7 +775,7 @@ watch(() => props.modelValue, (val) => {
 }
 
 .md-editor:focus {
-  border-color: var(--blue);
+  border-color: var(--primary);
   background: var(--canvas);
 }
 
@@ -803,7 +803,7 @@ watch(() => props.modelValue, (val) => {
 
 .md-fallback:focus {
   outline: none;
-  border-color: var(--blue);
+  border-color: var(--primary);
   background: var(--canvas);
 }
 
@@ -814,7 +814,7 @@ watch(() => props.modelValue, (val) => {
 
 /* ── Link ── */
 .md-editor .EditMarkdown-link {
-  color: var(--blue);
+  color: var(--primary);
   text-decoration: underline;
   cursor: pointer;
 }

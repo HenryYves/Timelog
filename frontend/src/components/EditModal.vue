@@ -460,7 +460,7 @@ function trapFocus(e) {
 }
 .chip:focus-visible,
 .chip:focus {
-  outline: 2px solid var(--blue);
+  outline: 2px solid var(--primary);
   outline-offset: 1px;
 }
 </style>

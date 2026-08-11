@@ -850,7 +850,7 @@ function resetCategory(cat) {
   cursor: pointer;
 }
 .snav-item:hover { background: var(--soft2); }
-.snav-item.active { background: var(--blue-soft); color: var(--blue); font-weight: 600; }
+.snav-item.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
 .settings-content {
   flex: 1;
   padding-left: 20px;
@@ -912,7 +912,7 @@ select {
   padding: 6px 10px; color: var(--text); background: var(--soft);
   cursor: pointer;
 }
-select:focus { outline: none; border-color: var(--blue); background: var(--canvas); }
+select:focus { outline: none; border-color: var(--primary); background: var(--canvas); }
 select:disabled { opacity: .5; cursor: default; }
 
 /* ── Value hints ── */
@@ -934,7 +934,7 @@ select:disabled { opacity: .5; cursor: default; }
 .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
 .toggle .tk { position: absolute; inset: 0; background: var(--border); border-radius: 11px; transition: background .2s; }
 .toggle .tk::before { content: ''; position: absolute; left: 2px; top: 2px; width: 18px; height: 18px; background: #fff; border-radius: 50%; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
-.toggle input:checked + .tk { background: var(--blue); }
+.toggle input:checked + .tk { background: var(--primary); }
 .toggle input:checked + .tk::before { transform: translateX(18px); }
 .toggle input:disabled + .tk { opacity: .35; cursor: default; }
 .toggle input:disabled + .tk::before { box-shadow: none; }
@@ -948,14 +948,14 @@ input[type="range"] {
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
   width: 18px; height: 18px; border-radius: 50%;
-  background: var(--blue); border: none;
+  background: var(--primary); border: none;
   box-shadow: 0 1px 4px rgba(0,0,0,.15); cursor: pointer;
   transition: transform .15s;
 }
 input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 input[type="range"]::-moz-range-thumb {
   width: 18px; height: 18px; border-radius: 50%;
-  background: var(--blue); border: none;
+  background: var(--primary); border: none;
   box-shadow: 0 1px 4px rgba(0,0,0,.15); cursor: pointer;
 }
 input[type="range"]::-moz-range-thumb:hover { transform: scale(1.15); }

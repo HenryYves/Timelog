@@ -590,7 +590,7 @@ watch(() => [props.mode, props.jsonImportData], ([mode, data]) => {
   height: 34vh;
 }
 .copied {
-  color: var(--green);
+  color: var(--success);
   font-size: 13px;
   font-weight: 600;
 }
