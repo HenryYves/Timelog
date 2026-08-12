@@ -7,10 +7,14 @@
   --soft2: #35434d;
   --border: #758a99;
   --blue: #758a99; --blue-soft: #1f2936; --green: #549688; --red: #cd5e3c;
-  --primary: var(--blue); --primary-soft: var(--blue-soft);
+  --primary: var(--blue); --primary-soft: var(--blue-soft); --primary-hover: #5a7d9a;
   --success: var(--green); --danger: var(--red);
+  --danger-border: #8a4e4a; --danger-soft: #3a2829;
+  --warn: #cd8b3e; --now-line: #cd5e3c;
   --glue-prev: #5a7d9a; --glue-next: #6a8a5a;
   --no-tag: #5a6370; --no-tag-bg: #1e2430;
+  --dlabel-bg: var(--canvas); --dlabel-text: var(--text);
+  --toast-bg: var(--soft); --toast-text: var(--text);
   --md-bold: #bed2c3; --md-italic: #93b69c; --md-strike: #cd5e3c;
   --skin-palette-count: 6;
   --skin-palette-1: #a1afc9; --skin-palette-2: #549688; --skin-palette-3: #758a99;

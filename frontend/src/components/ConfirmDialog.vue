@@ -83,7 +83,7 @@ const cancelLabel = STR.btn.cancel
   padding: 16px;
 }
 .dlg-card {
-  background: #FFFBF0;
+  background: var(--canvas);
   border-radius: 16px;
   padding: 28px 32px 22px;
   max-width: 360px;
@@ -116,15 +116,15 @@ const cancelLabel = STR.btn.cancel
   transition: background .12s, opacity .12s;
 }
 .dlg-ok {
-  background: #A1AFC9;
-  border: 1px solid #A1AFC9;
+  background: var(--primary);
+  border: 1px solid var(--primary);
   color: #fff;
 }
 .dlg-ok:hover { opacity: .88; }
 .dlg-cancel {
   background: var(--canvas);
-  border: 1px solid #A1AFC9;
-  color: #A1AFC9;
+  border: 1px solid var(--text2);
+  color: var(--text2);
 }
-.dlg-cancel:hover { background: #F0F2F7; }
+.dlg-cancel:hover { background: var(--soft2); }
 </style>

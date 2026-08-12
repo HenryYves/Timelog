@@ -16,8 +16,8 @@ const { toastMsg: message, toastVisible: visible } = useToast()
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  background: #2C2C2B;
-  color: #fff;
+  background: var(--toast-bg, #2C2C2B);
+  color: var(--toast-text, #fff);
   padding: 8px 16px;
   border-radius: 8px;
   font-size: 13px;

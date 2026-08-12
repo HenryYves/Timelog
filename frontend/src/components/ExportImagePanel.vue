@@ -884,10 +884,10 @@ async function doExport() {
   right: 0;
 }
 .exp-gutter-section.glue.glue-prev {
-  background: #89c3eb;
+  background: var(--glue-prev);
 }
 .exp-gutter-section.glue.glue-next {
-  background: #e0ebaf;
+  background: var(--glue-next);
 }
 .exp-gutter::after {
   content: '';
@@ -919,7 +919,7 @@ async function doExport() {
   position: absolute;
   left: 0;
   right: 0;
-  border-top: 1px dashed var(--soft2);
+  border-top: 1px dashed var(--border);
   pointer-events: none;
 }
 

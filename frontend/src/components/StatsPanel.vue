@@ -371,7 +371,7 @@ function onSliceLeave() {
   background: var(--canvas); cursor: pointer; font-size: 13px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-.filter-btn:hover { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(79,140,217,0.12); }
+.filter-btn:hover { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
 .filter-menu {
   position: absolute; top: calc(100% + 4px); left: 0;
   background: var(--canvas); border: 1px solid var(--border); border-radius: 8px;
@@ -387,9 +387,9 @@ function onSliceLeave() {
 .filter-item.active { background: var(--primary); color: #fff; }
 .date-input {
   border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px;
-  font-size: 13px; width: 130px; transition: border-color 0.2s;
+  font-size: 13px; width: 130px; transition: border-color 0.2s; background: var(--soft);
 }
-.date-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(79,140,217,0.12); }
+.date-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px var(--primary-soft); }
 .date-error { color: var(--danger); font-size: 12px; width: 100%; }
 
 /* ── Cards ── */

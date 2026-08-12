@@ -845,7 +845,7 @@ watch(() => store.dateKey, () => {
   position: absolute;
   left: 0;
   right: 0;
-  border-top: 1px dashed #F0EFED;
+  border-top: 1px dashed var(--border);
 }
 
 .selrect {
@@ -929,7 +929,7 @@ watch(() => store.dateKey, () => {
   left: 0;
   right: 0;
   height: 0;
-  border-top: 2px solid #E56458;
+  border-top: 2px solid var(--now-line);
   z-index: 5;
   pointer-events: none;
 }
@@ -942,6 +942,6 @@ watch(() => store.dateKey, () => {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #E56458;
+  background: var(--now-line);
 }
 </style>

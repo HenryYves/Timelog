@@ -141,7 +141,7 @@ function trapFocus(e) {
   bottom: 6px;
   width: 3px;
   border-radius: 2px;
-  background: linear-gradient(to bottom, rgb(145,234,228) 0%, rgb(134,168,231) 15%, rgb(127,127,213) 40%);
+  background: linear-gradient(to bottom, var(--primary-soft) 0%, var(--primary) 40%);
 }
 .help-section h3 {
   font-size: 13.5px;

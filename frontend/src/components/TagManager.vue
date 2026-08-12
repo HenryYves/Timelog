@@ -303,14 +303,14 @@ async function onSave() {
   transform: scale(0.95);
 }
 .tagrow.drag-over {
-  background: rgba(66, 153, 225, 0.1);
-  border: 2px dashed #4299E1;
+  background: var(--primary-soft);
+  border: 2px dashed var(--primary);
   transform: translateY(-2px);
 }
 .drag-handle {
   cursor: var(--drag-cursor) 16 16, grab;
   user-select: none;
-  color: #999;
+  color: var(--text2);
   font-size: 14px;
   line-height: 1;
   padding: 4px;
