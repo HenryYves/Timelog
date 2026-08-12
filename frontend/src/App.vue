@@ -126,7 +126,7 @@ import { useToast } from './composables/useToast.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { useCoordConverter, localMinToUnified } from './composables/useCoordConverter.js'
 import { logger } from './utils/log.js'
-import { installSkinTemplates, injectSkinLink, removeSkinLink, injectSnippetLink, removeSnippetLink, syncAllSnippetLinks } from './utils/skin.js'
+import { installSkinTemplates, injectSkinStyle, removeSkinStyle, injectSnippetStyle, removeSnippetStyle, syncAllSnippetStyles } from './utils/skin.js'
 
 const store = useTimelogStore()
 const settings = useSettingsStore()
@@ -836,7 +836,7 @@ onMounted(async () => {
   // ── 皮肤变化 → 重建 <link> ──
   watch(() => settings.activeSkin, async (name) => {
     const dir = await resolveSkinDir()
-    injectSkinLink(dir, name)
+    injectSkinStyle(dir, name)
   })
 
   // ── 片段列表变化 → 增删 <link> ──
@@ -844,8 +844,8 @@ onMounted(async () => {
     const dir = await resolveSnippetDir()
     const oldSet = new Set(oldList || [])
     const newSet = new Set(list || [])
-    for (const name of oldSet) { if (!newSet.has(name)) removeSnippetLink(name) }
-    for (const name of newSet) { if (!oldSet.has(name)) injectSnippetLink(dir, name) }
+    for (const name of oldSet) { if (!newSet.has(name)) removeSnippetStyle(name) }
+    for (const name of newSet) { if (!oldSet.has(name)) injectSnippetStyle(dir, name) }
   })
 
   // Apply zoom & font
@@ -883,7 +883,7 @@ onMounted(async () => {
   await installSkinTemplates(skinDir)
 
   if (settings.activeSkin) {
-    injectSkinLink(skinDir, settings.activeSkin)
+    injectSkinStyle(skinDir, settings.activeSkin)
   }
 
   try {
@@ -892,7 +892,7 @@ onMounted(async () => {
     const validSet = new Set(validFiles)
     const cleaned = settings.enabledSnippets.filter(s => validSet.has(s))
     settings.setEnabledSnippets(cleaned)
-    syncAllSnippetLinks(sDir, cleaned)
+    syncAllSnippetStyles(sDir, cleaned)
   } catch { /* 静默 */ }
 
   // 启动时跳转到包含当前时间的页（复用 goToday 逻辑）

@@ -3,32 +3,39 @@
  *
  * 职责：
  * - 首次启动安装内置皮肤模板（night.css + 图标）
- * - 皮肤 link 注入/移除/刷新
- * - CSS 片段 link 注入/移除/同步
+ * - 皮肤 <style> 注入/移除/刷新（读文件 + URL 重写）
+ * - CSS 片段 <style> 注入/移除/同步
  *
  * 非职责：皮肤路径解析（依赖 settings store，由调用方传入）
  */
 
-import { invoke, convertFileSrc } from '@tauri-apps/api/core'
+import { invoke } from '@tauri-apps/api/core'
 
 function isTauri() {
   return !!(window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke)
 }
 
-function isDevServer() {
-  return location.hostname === 'localhost' || location.hostname === '127.0.0.1'
-}
-
-/** 把皮肤目录路径转为可加载的 URL */
-function assetUrl(dir, name) {
-  if (isDevServer()) return '/skin-template/' + name + '.css'
-  return convertFileSrc(dir + '\\' + name + '.css')
-}
-
-/** 把片段目录路径转为可加载的 URL */
-function snippetUrl(dir, name) {
-  if (isDevServer()) return '/snippets/' + name + '.css'
-  return convertFileSrc(dir + '\\' + name + '.css')
+/** 将 CSS 中相对 url() 替换为内嵌 data URI（读文件 base64 编码） */
+async function resolveUrls(css, dir) {
+  const urls = [], re = /url\(["']?([^"')]+)["']?\)/g
+  let m
+  while ((m = re.exec(css))) {
+    const p = m[1].trim()
+    if (!/^(data:|https?:|\/|[A-Za-z]:)/.test(p)) urls.push(p)
+  }
+  if (!urls.length) return css
+  const results = await Promise.all(urls.map(async p => {
+    try {
+      const svg = await invoke('read_file_text', { path: dir + '\\' + p })
+      return [p, `url(data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))})`]
+    } catch { return null }
+  }))
+  let out = css
+  for (const r of results) {
+    if (!r) continue
+    out = out.split(`url(${r[0]})`).join(r[1]).split(`url("${r[0]}")`).join(r[1]).split(`url('${r[0]}')`).join(r[1])
+  }
+  return out
 }
 
 const INSTALLED_KEY = 'timelog:skinInstalled'
@@ -44,12 +51,11 @@ const TEMPLATE_FILES = [
 
 /**
  * 首次启动时将皮肤模板从 /skin-template/ 复制到用户数据目录的 skins/ 下。
- * @param {string} skinDir — 用户皮肤目录（绝对路径，如 C:\...\AppData\...\skins）
  */
 export async function installSkinTemplates(skinDir) {
-  if (isDevServer() || localStorage.getItem(INSTALLED_KEY)) return
+  if (!isTauri() || localStorage.getItem(INSTALLED_KEY)) return
   try {
-    await invoke('scan_css_files', { path: skinDir }) // 确保目录存在
+    await invoke('scan_css_files', { path: skinDir })
     for (const file of TEMPLATE_FILES) {
       const resp = await fetch('/skin-template/' + file)
       if (resp.ok) {
@@ -63,58 +69,55 @@ export async function installSkinTemplates(skinDir) {
 
 // ── 皮肤 ──
 
-export function injectSkinLink(skinDir, skinName) {
-  removeSkinLink()
-  if (!skinName) return
-  const link = document.createElement('link')
-  link.id = 'skin-link'
-  link.rel = 'stylesheet'
-  link.href = assetUrl(skinDir, skinName)
-  document.head.appendChild(link)
+export async function injectSkinStyle(skinDir, skinName) {
+  removeSkinStyle()
+  if (!skinName || !isTauri()) return
+  try {
+    const path = skinDir + '\\' + skinName + '.css'
+    let css = await invoke('read_file_text', { path })
+    css = await resolveUrls(css, skinDir)
+    const style = document.createElement('style')
+    style.id = 'skin-style'
+    style.textContent = css
+    document.head.appendChild(style)
+  } catch { /* 文件读取失败，跳过 */ }
 }
 
-export function removeSkinLink() {
-  const link = document.getElementById('skin-link')
-  if (link) link.remove()
+export function removeSkinStyle() {
+  const s = document.getElementById('skin-style')
+  if (s) s.remove()
 }
 
-export function reloadSkinLink(skinDir, skinName) {
-  const link = document.getElementById('skin-link')
-  if (!skinName) {
-    if (link) link.remove()
-    return
-  }
-  const href = assetUrl(skinDir, skinName) + '?v=' + Date.now()
-  if (!link) {
-    const l = document.createElement('link')
-    l.id = 'skin-link'
-    l.rel = 'stylesheet'
-    l.href = href
-    document.head.appendChild(l)
-  } else {
-    link.href = href
-  }
+export async function reloadSkinStyle(skinDir, skinName) {
+  removeSkinStyle()
+  if (!skinName || !isTauri()) return
+  await injectSkinStyle(skinDir, skinName)
 }
 
 // ── CSS 片段 ──
 
-export function injectSnippetLink(snippetDir, name) {
-  removeSnippetLink(name)
-  const link = document.createElement('link')
-  link.rel = 'stylesheet'
-  link.dataset.snippet = name
-  link.href = snippetUrl(snippetDir, name)
-  document.head.appendChild(link)
+export async function injectSnippetStyle(snippetDir, name) {
+  removeSnippetStyle(name)
+  if (!isTauri()) return
+  try {
+    const path = snippetDir + '\\' + name + '.css'
+    let css = await invoke('read_file_text', { path })
+    css = await resolveUrls(css, snippetDir)
+    const style = document.createElement('style')
+    style.dataset.snippet = name
+    style.textContent = css
+    document.head.appendChild(style)
+  } catch { /* 文件读取失败，跳过 */ }
 }
 
-export function removeSnippetLink(name) {
-  const link = document.querySelector(`link[data-snippet="${CSS.escape(name)}"]`)
-  if (link) link.remove()
+export function removeSnippetStyle(name) {
+  const s = document.querySelector(`style[data-snippet="${CSS.escape(name)}"]`)
+  if (s) s.remove()
 }
 
-export function syncAllSnippetLinks(snippetDir, enabledNames) {
-  document.querySelectorAll('link[data-snippet]').forEach(l => l.remove())
+export function syncAllSnippetStyles(snippetDir, enabledNames) {
+  document.querySelectorAll('style[data-snippet]').forEach(s => s.remove())
   for (const name of enabledNames) {
-    injectSnippetLink(snippetDir, name)
+    injectSnippetStyle(snippetDir, name)
   }
 }

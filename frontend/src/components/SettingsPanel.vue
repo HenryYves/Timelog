@@ -519,7 +519,7 @@ import {
   DEFAULT_AUTO_SELECT_ON_FOCUS,
 } from '../constants.js'
 import { STR } from '../strings.js'
-import { reloadSkinLink, injectSnippetLink as _injSnippet, removeSnippetLink as _rmSnippet, syncAllSnippetLinks as _syncSnippets } from '../utils/skin.js'
+import { reloadSkinStyle, injectSnippetStyle as _injSnippet, removeSnippetStyle as _rmSnippet, syncAllSnippetStyles as _syncSnippets } from '../utils/skin.js'
 
 const props = defineProps({
   show: Boolean,
@@ -579,14 +579,14 @@ async function refreshSkins() {
   try {
     const path = await resolveSkinPath()
     userSkinFiles.value = await invoke('scan_css_files', { path })
-    await doReloadSkinLink()
+    await doReloadSkinStyle()
   } catch { toast(STR.toast.folderNotFound) }
 }
 
-async function doReloadSkinLink() {
+async function doReloadSkinStyle() {
   try {
     const path = await resolveSkinPath()
-    reloadSkinLink(path, settings.activeSkin)
+    reloadSkinStyle(path, settings.activeSkin)
   } catch {
     settings.setActiveSkin('')
   }
