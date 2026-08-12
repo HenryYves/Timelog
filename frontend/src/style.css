@@ -8,6 +8,10 @@
   --no-tag: #C4C3C0; --no-tag-bg: #F0EFED;
   --drag-cursor: url('/src/assets/paw.svg') 16 16, grab;
   --md-bold: #f36838; --md-italic: #ff7500; --md-strike: #ff2d51;
+  --skin-palette-count: 10;
+  --skin-palette-1: #1cbfe2; --skin-palette-2: #61cee6; --skin-palette-3: #9edbe9;
+  --skin-palette-4: #99ccb4; --skin-palette-5: #76ac32; --skin-palette-6: #338e65;
+  --skin-palette-7: #fc9d9d; --skin-palette-8: #27c4c4; --skin-palette-9: #aabdb4; --skin-palette-10: #45547e;
   --md-highlight-bg: #ffc773; --md-code-bg: rgba(0,0,0,0.06);
   --md-marker: #a1afc9;
 }

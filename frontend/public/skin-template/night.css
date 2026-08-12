@@ -12,9 +12,9 @@
   --glue-prev: #5a7d9a; --glue-next: #6a8a5a;
   --no-tag: #5a6370; --no-tag-bg: #1e2430;
   --md-bold: #bed2c3; --md-italic: #93b69c; --md-strike: #cd5e3c;
-  --skin-palette-1: #c2ccd0; --skin-palette-2: #a1afc9; --skin-palette-3: #549688;
-  --skin-palette-4: #bed2c3; --skin-palette-5: #93b69c; --skin-palette-6: #758a99;
-  --skin-palette-7: #cd5e3c; --skin-palette-8: #FCE38A; --skin-palette-9: #50616d;
+  --skin-palette-count: 6;
+  --skin-palette-1: #a1afc9; --skin-palette-2: #549688; --skin-palette-3: #758a99;
+  --skin-palette-4: #cd5e3c; --skin-palette-5: #FCE38A; --skin-palette-6: #50616d;
   --md-highlight-bg: #316745; --md-code-bg: rgba(255,255,255,0.08);
   --md-marker: #5a7d9a;
 }

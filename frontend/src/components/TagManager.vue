@@ -4,7 +4,7 @@
       <h2>管理标签</h2>
       <div class="sub">点左侧色块自定义颜色；相同"分组"的标签会归类显示（如"很自律"与"自律"放同一组）。</div>
       <div class="palette">
-        <span v-for="i in 9" :key="i" class="palette-dot"
+        <span v-for="i in paletteCount" :key="i" class="palette-dot"
           :style="{ background: 'var(--skin-palette-' + i + ', transparent)' }"
           :title="'--skin-palette-' + i" />
       </div>
@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useTagStore } from '../store/tags.js'
 import { KEY_PREFIX } from '../constants.js'
 import { useConfirm } from '../composables/useConfirm.js'
@@ -56,6 +56,11 @@ const { showConfirm } = useConfirm()
 
 const tagDraft = ref([])
 const modalEl = ref(null)
+
+const paletteCount = computed(() => {
+  const n = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--skin-palette-count').trim()) || 0
+  return Math.max(0, n)
+})
 const origNames = ref(new Map())
 const deletedNames = ref(new Set())
 let nextUid = 0
