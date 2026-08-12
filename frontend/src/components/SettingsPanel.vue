@@ -31,44 +31,52 @@
               </button>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.autoUpdate }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.autoUpdate" @change="settings.setAutoUpdate($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoUpdate(DEFAULT_AUTO_UPDATE)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.autoUpdate }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.autoUpdate" @change="settings.setAutoUpdate($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoUpdate(DEFAULT_AUTO_UPDATE)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
               </div>
-            </div>
-            <div class="small">{{ STR.settings.descAutoUpdate }}</div>
-
-            <div class="row">
-              <span>{{ STR.settings.checkUpdate }}</span>
-              <div>
-                <button type="button" @click="onCheckUpdate" :disabled="checkingUpdate" class="small-btn">
-                  {{ checkingUpdate ? STR.update.checking : STR.update.checkUpdate }}
-                </button>
-                <span class="restore-spacer"></span>
-              </div>
+              <div class="small">{{ STR.settings.descAutoUpdate }}</div>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.language }}</label>
-              <div>
-                <select disabled style="width:140px;"><option>中文</option></select>
-                <span class="restore-spacer"></span>
+            <div class="setting-item">
+              <div class="row">
+                <span>{{ STR.settings.checkUpdate }}</span>
+                <div>
+                  <button type="button" @click="onCheckUpdate" :disabled="checkingUpdate" class="small-btn">
+                    {{ checkingUpdate ? STR.update.checking : STR.update.checkUpdate }}
+                  </button>
+                  <span class="restore-spacer"></span>
+                </div>
               </div>
             </div>
-            <div class="small">{{ STR.settings.descLanguage }}</div>
 
-            <div class="row">
-              <span>{{ STR.settings.help }}</span>
-              <div>
-                <button type="button" class="small-btn" disabled>{{ STR.settings.helpButton }}</button>
-                <span class="restore-spacer"></span>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.language }}</label>
+                <div>
+                  <select disabled style="width:140px;"><option>中文</option></select>
+                  <span class="restore-spacer"></span>
+                </div>
               </div>
+              <div class="small">{{ STR.settings.descLanguage }}</div>
             </div>
-            <div class="small">{{ STR.settings.descHelp }}</div>
+
+            <div class="setting-item">
+              <div class="row">
+                <span>{{ STR.settings.help }}</span>
+                <div>
+                  <button type="button" class="small-btn" disabled>{{ STR.settings.helpButton }}</button>
+                  <span class="restore-spacer"></span>
+                </div>
+              </div>
+              <div class="small">{{ STR.settings.descHelp }}</div>
+            </div>
 
             <div class="section-head">
               <h4 class="section-title">{{ STR.settings.sectionStartup }}</h4>
@@ -77,16 +85,18 @@
               </button>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.autoScroll }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.autoScroll" @change="settings.setAutoScroll($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoScroll(DEFAULT_AUTO_SCROLL)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.autoScroll }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.autoScroll" @change="settings.setAutoScroll($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoScroll(DEFAULT_AUTO_SCROLL)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
               </div>
+              <div class="small">{{ STR.settings.descAutoScroll }}</div>
             </div>
-            <div class="small">{{ STR.settings.descAutoScroll }}</div>
           </div>
 
           <!-- ═══════ 编辑器 ═══════ -->
@@ -98,57 +108,67 @@
               </button>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.minBlockMinutes }}</label>
-              <div>
-                <input type="number" min="0" max="120" style="width:80px;" :value="settings.minBlockMinutes" @change="onMinBlockMinutesChange">
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setMinBlockMinutes(DEFAULT_MIN_BLOCK_MINUTES)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.minBlockMinutes }}</label>
+                <div>
+                  <input type="number" min="0" max="120" style="width:80px;" :value="settings.minBlockMinutes" @change="onMinBlockMinutesChange">
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setMinBlockMinutes(DEFAULT_MIN_BLOCK_MINUTES)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
               </div>
-            </div>
-            <div class="small">{{ STR.settings.descMinBlockMinutes }}</div>
-
-            <div class="row">
-              <label>{{ STR.settings.defaultDuration }}</label>
-              <div>
-                <input type="number" min="1" max="1440" style="width:80px;" :value="settings.defaultDuration" @change="onDurationChange">
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setDuration(DEFAULT_DURATION)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
-              </div>
-            </div>
-            <div class="small">{{ STR.settings.descDefaultDuration }}</div>
-
-            <div class="row">
-              <label>{{ STR.settings.endTimeAtNow }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.endTimeAtNow" @change="settings.setEndTimeAtNow($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setEndTimeAtNow(DEFAULT_END_TIME_AT_NOW)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
-              </div>
+              <div class="small">{{ STR.settings.descMinBlockMinutes }}</div>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.markdownPreview }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.markdownPreview" @change="settings.setMarkdownPreview($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setMarkdownPreview(DEFAULT_MARKDOWN_PREVIEW)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.defaultDuration }}</label>
+                <div>
+                  <input type="number" min="1" max="1440" style="width:80px;" :value="settings.defaultDuration" @change="onDurationChange">
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setDuration(DEFAULT_DURATION)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
               </div>
+              <div class="small">{{ STR.settings.descDefaultDuration }}</div>
             </div>
-            <div class="small">{{ STR.settings.descMarkdownPreview }}</div>
 
-            <div class="row">
-              <label>{{ STR.settings.tabToIndent }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.tabToIndent" @change="settings.setTabToIndent($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setTabToIndent(DEFAULT_TAB_TO_INDENT)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.endTimeAtNow }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.endTimeAtNow" @change="settings.setEndTimeAtNow($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setEndTimeAtNow(DEFAULT_END_TIME_AT_NOW)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
+                </div>
               </div>
             </div>
-            <div class="small">{{ STR.settings.descTabToIndent }}</div>
+
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.markdownPreview }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.markdownPreview" @change="settings.setMarkdownPreview($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setMarkdownPreview(DEFAULT_MARKDOWN_PREVIEW)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
+              </div>
+              <div class="small">{{ STR.settings.descMarkdownPreview }}</div>
+            </div>
+
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.tabToIndent }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.tabToIndent" @change="settings.setTabToIndent($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setTabToIndent(DEFAULT_TAB_TO_INDENT)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
+              </div>
+              <div class="small">{{ STR.settings.descTabToIndent }}</div>
+            </div>
 
             <div class="section-head">
               <h4 class="section-title">{{ STR.settings.sectionBatchCreate }}</h4>
@@ -157,70 +177,82 @@
               </button>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.batchMarkdownPreview }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.batchMarkdownPreview" @change="settings.setBatchMarkdownPreview($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBatchMarkdownPreview(DEFAULT_BATCH_MARKDOWN_PREVIEW)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.batchMarkdownPreview }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.batchMarkdownPreview" @change="settings.setBatchMarkdownPreview($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBatchMarkdownPreview(DEFAULT_BATCH_MARKDOWN_PREVIEW)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
               </div>
-            </div>
-            <div class="small">{{ STR.settings.descBatchMarkdownPreview }}</div>
-
-            <div class="row">
-              <label>{{ STR.settings.batchTabToIndent }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.batchTabToIndent" @change="settings.setBatchTabToIndent($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBatchTabToIndent(DEFAULT_BATCH_TAB_TO_INDENT)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
-              </div>
-            </div>
-            <div class="small">{{ STR.settings.descBatchTabToIndent }}</div>
-
-            <div class="row">
-              <label>{{ STR.settings.checkBeforeCreate }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.checkBeforeCreate" @change="settings.setCheckBeforeCreate($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setCheckBeforeCreate(DEFAULT_CHECK_BEFORE_CREATE)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
-              </div>
-            </div>
-            <div class="small">{{ STR.settings.descCheckBeforeCreate }}</div>
-
-            <div class="row">
-              <label>{{ STR.settings.copyAfterCreate }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.copyAfterCreate" @change="settings.setCopyAfterCreate($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setCopyAfterCreate(DEFAULT_COPY_AFTER_CREATE)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
-              </div>
-            </div>
-            <div class="small">{{ STR.settings.descCopyAfterCreate }}</div>
-
-            <div class="row">
-              <label>{{ STR.settings.autoSelectOnFocus }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.autoSelectOnFocus" @change="settings.setAutoSelectOnFocus($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoSelectOnFocus(DEFAULT_AUTO_SELECT_ON_FOCUS)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
-              </div>
+              <div class="small">{{ STR.settings.descBatchMarkdownPreview }}</div>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.tagDelimiters }}</label>
-              <div>
-                <input type="text" :value="settings.tagDelimiters" @change="settings.setTagDelimiters($event.target.value)" placeholder="," style="width:200px;">
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setTagDelimiters(DEFAULT_TAG_DELIMITERS)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.batchTabToIndent }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.batchTabToIndent" @change="settings.setBatchTabToIndent($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBatchTabToIndent(DEFAULT_BATCH_TAB_TO_INDENT)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
+              </div>
+              <div class="small">{{ STR.settings.descBatchTabToIndent }}</div>
+            </div>
+
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.checkBeforeCreate }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.checkBeforeCreate" @change="settings.setCheckBeforeCreate($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setCheckBeforeCreate(DEFAULT_CHECK_BEFORE_CREATE)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
+              </div>
+              <div class="small">{{ STR.settings.descCheckBeforeCreate }}</div>
+            </div>
+
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.copyAfterCreate }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.copyAfterCreate" @change="settings.setCopyAfterCreate($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setCopyAfterCreate(DEFAULT_COPY_AFTER_CREATE)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
+              </div>
+              <div class="small">{{ STR.settings.descCopyAfterCreate }}</div>
+            </div>
+
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.autoSelectOnFocus }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.autoSelectOnFocus" @change="settings.setAutoSelectOnFocus($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoSelectOnFocus(DEFAULT_AUTO_SELECT_ON_FOCUS)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
               </div>
             </div>
-            <div class="small">{{ STR.settings.descTagDelimiters }}</div>
+
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.tagDelimiters }}</label>
+                <div>
+                  <input type="text" :value="settings.tagDelimiters" @change="settings.setTagDelimiters($event.target.value)" placeholder="," style="width:200px;">
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setTagDelimiters(DEFAULT_TAG_DELIMITERS)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
+              </div>
+              <div class="small">{{ STR.settings.descTagDelimiters }}</div>
+            </div>
           </div>
 
           <!-- ═══════ 外观 ═══════ -->
@@ -232,80 +264,92 @@
               </button>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.fontFamily }}</label>
-              <div>
-                <input type="text" :value="settings.fontFamily" @change="settings.setFontFamily($event.target.value)" :placeholder="STR.settings.placeholderFontFamily" style="width:100%;">
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setFontFamily(DEFAULT_FONT_FAMILY)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
-              </div>
-            </div>
-            <div class="small">{{ STR.settings.descFontFamily }}</div>
-
-            <div class="row">
-              <label>{{ STR.settings.editorFontSize }} <span class="val-hint">{{ settings.editorFontSize }}px</span></label>
-              <div>
-                <input type="number" min="10" max="28" style="width:80px;" :value="settings.editorFontSize" @change="onEditorFontSizeChange">
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setEditorFontSize(DEFAULT_EDITOR_FONT_SIZE)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
-              </div>
-            </div>
-            <div class="small">{{ STR.settings.descEditorFontSize }}</div>
-
-            <div class="row">
-              <label>{{ STR.settings.zoom }} <span class="val-hint">{{ settings.zoom }}%</span></label>
-              <div>
-                <button class="small-btn" @click="showZoomPopup = true">调整 ({{ settings.zoom }}%)</button>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setZoom(DEFAULT_ZOOM)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
-              </div>
-              <!-- Zoom popup — fixed size, zoom-compensated -->
-              <div v-if="showZoomPopup" class="zoom-popup-overlay" @mousedown.self="showZoomPopup = false">
-                <div class="zoom-popup">
-                  <div class="zoom-popup-head">{{ STR.settings.zoom }}: {{ settings.zoom }}%</div>
-                  <input type="range" min="25" max="400" :value="settings.zoom"
-                    @input="settings.setZoom($event.target.value)" />
-                  <button type="button" @click="showZoomPopup = false">{{ STR.btn.close }}</button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.fontFamily }}</label>
+                <div>
+                  <input type="text" :value="settings.fontFamily" @change="settings.setFontFamily($event.target.value)" :placeholder="STR.settings.placeholderFontFamily" style="width:100%;">
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setFontFamily(DEFAULT_FONT_FAMILY)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
                 </div>
               </div>
+              <div class="small">{{ STR.settings.descFontFamily }}</div>
             </div>
-            <div class="small">{{ STR.settings.descZoom }}</div>
 
-            <div class="row">
-              <label>{{ STR.settings.borderless }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.borderless" @change="onBorderlessChange"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBorderless(DEFAULT_BORDERLESS)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.editorFontSize }} <span class="val-hint">{{ settings.editorFontSize }}px</span></label>
+                <div>
+                  <input type="number" min="10" max="28" style="width:80px;" :value="settings.editorFontSize" @change="onEditorFontSizeChange">
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setEditorFontSize(DEFAULT_EDITOR_FONT_SIZE)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
               </div>
+              <div class="small">{{ STR.settings.descEditorFontSize }}</div>
             </div>
-            <div class="small">{{ STR.settings.descBorderless }}</div>
+
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.zoom }} <span class="val-hint">{{ settings.zoom }}%</span></label>
+                <div>
+                  <button class="small-btn" @click="showZoomPopup = true">调整 ({{ settings.zoom }}%)</button>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setZoom(DEFAULT_ZOOM)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
+                <!-- Zoom popup — fixed size, zoom-compensated -->
+                <div v-if="showZoomPopup" class="zoom-popup-overlay" @mousedown.self="showZoomPopup = false">
+                  <div class="zoom-popup">
+                    <div class="zoom-popup-head">{{ STR.settings.zoom }}: {{ settings.zoom }}%</div>
+                    <input type="range" min="25" max="400" :value="settings.zoom"
+                      @input="settings.setZoom($event.target.value)" />
+                    <button type="button" @click="showZoomPopup = false">{{ STR.btn.close }}</button>
+                  </div>
+                </div>
+              </div>
+              <div class="small">{{ STR.settings.descZoom }}</div>
+            </div>
+
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.borderless }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.borderless" @change="onBorderlessChange"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBorderless(DEFAULT_BORDERLESS)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
+              </div>
+              <div class="small">{{ STR.settings.descBorderless }}</div>
+            </div>
 
             <!-- 皮肤 -->
             <div class="sub-head">{{ STR.settings.sectionSkin }}</div>
 
-            <div class="row">
-              <label>当前皮肤</label>
-              <div>
-                <select :value="settings.activeSkin" @change="onSkinSelect($event.target.value)"
-                  @focus="onSkinDropdownOpen" style="width:180px;">
-                  <option v-for="s in skinOptions" :key="s.id" :value="s.id"
-                    :disabled="s.disabled">{{ s.label }}</option>
-                </select>
-                <span class="restore-spacer"></span>
+            <div class="setting-item">
+              <div class="row">
+                <label>当前皮肤</label>
+                <div>
+                  <select :value="settings.activeSkin" @change="onSkinSelect($event.target.value)"
+                    @focus="onSkinDropdownOpen" style="width:180px;">
+                    <option v-for="s in skinOptions" :key="s.id" :value="s.id"
+                      :disabled="s.disabled">{{ s.label }}</option>
+                  </select>
+                  <span class="restore-spacer"></span>
+                </div>
               </div>
             </div>
-            <div class="row" style="margin-top:8px;">
-              <div style="display:flex;gap:8px;">
-                <button type="button" @click="openSkinFolder" class="small-btn">{{ STR.settings.openSkinFolder }}</button>
-                <button type="button" @click="refreshSkins" class="small-btn">{{ STR.settings.refresh }}</button>
+            <div class="setting-item">
+              <div class="row" style="margin-top:8px;">
+                <div style="display:flex;gap:8px;">
+                  <button type="button" @click="openSkinFolder" class="small-btn">{{ STR.settings.openSkinFolder }}</button>
+                  <button type="button" @click="refreshSkins" class="small-btn">{{ STR.settings.refresh }}</button>
+                </div>
               </div>
+              <div class="small">{{ STR.settings.descSkin }}</div>
             </div>
-            <div class="small">{{ STR.settings.descSkin }}</div>
 
             <!-- CSS 片段 -->
             <div class="sub-head">{{ STR.settings.sectionSnippet }}</div>
@@ -320,81 +364,99 @@
                 </div>
               </div>
             </div>
-            <div class="row" style="margin-top:8px;">
-              <div style="display:flex;gap:8px;">
-                <button type="button" @click="openSnippetFolder" class="small-btn">{{ STR.settings.openSnippetFolder }}</button>
-                <button type="button" @click="refreshSnippets" class="small-btn">{{ STR.settings.refresh }}</button>
+            <div class="setting-item">
+              <div class="row" style="margin-top:8px;">
+                <div style="display:flex;gap:8px;">
+                  <button type="button" @click="openSnippetFolder" class="small-btn">{{ STR.settings.openSnippetFolder }}</button>
+                  <button type="button" @click="refreshSnippets" class="small-btn">{{ STR.settings.refresh }}</button>
+                </div>
               </div>
+              <div class="small">{{ STR.settings.descSnippet }}</div>
             </div>
-            <div class="small">{{ STR.settings.descSnippet }}</div>
 
             <!-- 时间块 -->
             <div class="sub-head">{{ STR.settings.sectionBlockDisplay }}</div>
 
-            <div class="row">
-              <label>{{ STR.settings.blockOpacity }} <span class="val-hint">{{ settings.blockOpacity }}%</span></label>
-              <div>
-                <input type="range" min="5" max="200" :value="settings.blockOpacity" @input="onOpacityInput" style="width:180px;">
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBlockOpacity(DEFAULT_OPACITY)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.blockOpacity }} <span class="val-hint">{{ settings.blockOpacity }}%</span></label>
+                <div>
+                  <input type="range" min="5" max="200" :value="settings.blockOpacity" @input="onOpacityInput" style="width:180px;">
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBlockOpacity(DEFAULT_OPACITY)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
               </div>
-            </div>
-            <div class="small">{{ STR.settings.descBlockOpacity }}</div>
-
-            <div class="row">
-              <label>{{ STR.settings.showBlockTitle }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.showBlockTitle" @change="settings.setShowBlockTitle($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTitle(DEFAULT_SHOW_BLOCK_TITLE)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
-              </div>
+              <div class="small">{{ STR.settings.descBlockOpacity }}</div>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.showBlockTime }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.showBlockTime" @change="settings.setShowBlockTime($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTime(DEFAULT_SHOW_BLOCK_TIME)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.showBlockTitle }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.showBlockTitle" @change="settings.setShowBlockTitle($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTitle(DEFAULT_SHOW_BLOCK_TITLE)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
+                </div>
               </div>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.showBlockTags }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.showBlockTags" @change="settings.setShowBlockTags($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTags(DEFAULT_SHOW_BLOCK_TAGS)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.showBlockTime }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.showBlockTime" @change="settings.setShowBlockTime($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTime(DEFAULT_SHOW_BLOCK_TIME)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
+                </div>
               </div>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.showBlockNote }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.showBlockNote" @change="settings.setShowBlockNote($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockNote(DEFAULT_SHOW_BLOCK_NOTE)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.showBlockTags }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.showBlockTags" @change="settings.setShowBlockTags($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockTags(DEFAULT_SHOW_BLOCK_TAGS)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
+                </div>
               </div>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.showBlockColorBar }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.showBlockColorBar" @change="settings.setShowBlockColorBar($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockColorBar(DEFAULT_SHOW_BLOCK_COLOR_BAR)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.showBlockNote }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.showBlockNote" @change="settings.setShowBlockNote($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockNote(DEFAULT_SHOW_BLOCK_NOTE)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
+                </div>
               </div>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.maskBlockOverflow }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.maskBlockOverflow" @change="settings.setMaskBlockOverflow($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setMaskBlockOverflow(DEFAULT_MASK_BLOCK_OVERFLOW)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.showBlockColorBar }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.showBlockColorBar" @change="settings.setShowBlockColorBar($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setShowBlockColorBar(DEFAULT_SHOW_BLOCK_COLOR_BAR)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
+                </div>
               </div>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.renderNoteMarkdown }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.renderNoteMarkdown" @change="settings.setRenderNoteMarkdown($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setRenderNoteMarkdown(DEFAULT_RENDER_NOTE_MARKDOWN)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.maskBlockOverflow }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.maskBlockOverflow" @change="settings.setMaskBlockOverflow($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setMaskBlockOverflow(DEFAULT_MASK_BLOCK_OVERFLOW)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.renderNoteMarkdown }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.renderNoteMarkdown" @change="settings.setRenderNoteMarkdown($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setRenderNoteMarkdown(DEFAULT_RENDER_NOTE_MARKDOWN)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
+                </div>
               </div>
             </div>
 
@@ -409,27 +471,31 @@
               </button>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.exportTimestamp }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.exportTimestamp" @change="settings.setExportTimestamp($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setExportTimestamp(DEFAULT_EXPORT_TIMESTAMP)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.exportTimestamp }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.exportTimestamp" @change="settings.setExportTimestamp($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setExportTimestamp(DEFAULT_EXPORT_TIMESTAMP)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
               </div>
+              <div class="small">{{ STR.settings.descExportTimestamp }}</div>
             </div>
-            <div class="small">{{ STR.settings.descExportTimestamp }}</div>
 
-            <div class="row">
-              <label>{{ STR.settings.exportDialog }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.exportDialog" @change="settings.setExportDialog($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setExportDialog(DEFAULT_EXPORT_DIALOG)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.exportDialog }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.exportDialog" @change="settings.setExportDialog($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setExportDialog(DEFAULT_EXPORT_DIALOG)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
               </div>
+              <div class="small">{{ STR.settings.descExportDialog }}</div>
             </div>
-            <div class="small">{{ STR.settings.descExportDialog }}</div>
 
             <div class="section-head">
               <h4 class="section-title">{{ STR.settings.sectionBackup }}</h4>
@@ -438,38 +504,44 @@
               </button>
             </div>
 
-            <div class="row">
-              <label>{{ STR.settings.backupPath }}</label>
-              <div>
-                <input type="text" :value="bkPathDraft" @input="bkPathDraft = $event.target.value" @change="onBkPathBlur" :placeholder="STR.settings.placeholderBackupPath" style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;" :title="bkPathDraft">
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="onBkPathReset">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.backupPath }}</label>
+                <div>
+                  <input type="text" :value="bkPathDraft" @input="bkPathDraft = $event.target.value" @change="onBkPathBlur" :placeholder="STR.settings.placeholderBackupPath" style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;" :title="bkPathDraft">
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="onBkPathReset">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
               </div>
+              <div class="small">{{ STR.settings.descBackupPath }}</div>
             </div>
-            <div class="small">{{ STR.settings.descBackupPath }}</div>
 
-            <div class="row">
-              <label>{{ STR.settings.backupOn }}</label>
-              <div>
-                <label class="toggle"><input type="checkbox" :checked="settings.backupOn" @change="settings.setBackupOn($event.target.checked)"><span class="tk"></span></label>
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBackupOn(DEFAULT_BACKUP_ON)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.backupOn }}</label>
+                <div>
+                  <label class="toggle"><input type="checkbox" :checked="settings.backupOn" @change="settings.setBackupOn($event.target.checked)"><span class="tk"></span></label>
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBackupOn(DEFAULT_BACKUP_ON)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
               </div>
+              <div class="small">{{ STR.settings.descBackupOn }}</div>
             </div>
-            <div class="small">{{ STR.settings.descBackupOn }}</div>
 
-            <div class="row">
-              <label>{{ STR.settings.keepDays }}</label>
-              <div>
-                <input type="number" min="0" max="3650" style="width:80px;" placeholder="0" :value="settings.keepDays" @change="onKeepDaysChange">
-                <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setKeepDays(DEFAULT_KEEP_DAYS)">
-                  <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                </button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.keepDays }}</label>
+                <div>
+                  <input type="number" min="0" max="3650" style="width:80px;" placeholder="0" :value="settings.keepDays" @change="onKeepDaysChange">
+                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setKeepDays(DEFAULT_KEEP_DAYS)">
+                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
+                  </button>
+                </div>
               </div>
+              <div class="small">{{ STR.settings.descKeepDays }}</div>
             </div>
-            <div class="small">{{ STR.settings.descKeepDays }}</div>
           </div>
 
           <!-- ═══════ 开发者 ═══════ -->
@@ -480,21 +552,25 @@
 
             <div class="sub-head">{{ STR.settings.sectionSkin }}</div>
 
-            <div class="row">
-              <label>{{ STR.settings.reinstallSkin }}</label>
-              <div>
-                <button type="button" class="small-btn" @click="reinstallSkin">{{ STR.settings.reinstallSkin }}</button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.reinstallSkin }}</label>
+                <div>
+                  <button type="button" class="small-btn" @click="reinstallSkin">{{ STR.settings.reinstallSkin }}</button>
+                </div>
               </div>
+              <div class="small">{{ STR.settings.descReinstallSkin }}</div>
             </div>
-            <div class="small">{{ STR.settings.descReinstallSkin }}</div>
 
-            <div class="row">
-              <label>{{ STR.settings.devTools }}</label>
-              <div>
-                <button type="button" class="small-btn" @click="openDevTools">{{ STR.settings.devTools }}</button>
+            <div class="setting-item">
+              <div class="row">
+                <label>{{ STR.settings.devTools }}</label>
+                <div>
+                  <button type="button" class="small-btn" @click="openDevTools">{{ STR.settings.devTools }}</button>
+                </div>
               </div>
+              <div class="small">{{ STR.settings.descDevTools }}</div>
             </div>
-            <div class="small">{{ STR.settings.descDevTools }}</div>
           </div>
 
         </div>
@@ -901,10 +977,11 @@ function resetCategory(cat) {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 12px;
 }
 .row > :first-child { flex-shrink: 0; }
 .row > :last-child { display: flex; align-items: center; gap: 6px; }
+.setting-item { padding: 4px 0; border-radius: 6px; }
+.setting-item:hover { background: var(--soft2); }
 
 .section-head {
   display: flex;
