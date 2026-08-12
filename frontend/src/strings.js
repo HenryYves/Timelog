@@ -196,6 +196,8 @@ export const STR = {
     navDev: '开发者',
     devTools: '打开开发者工具',
     descDevTools: '查看 DOM / CSS / 控制台，调试皮肤和样式',
+    reinstallSkin: '重装皮肤模板',
+    descReinstallSkin: '清除标记后重新安装 night.css + 图标，更新内置模板',
 
     // ── Restore ──
     restoreDefault: '恢复默认设置',

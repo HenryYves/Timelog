@@ -180,6 +180,15 @@ mark { background: #FCE38A; color: #3a3a37; padding: 0 2px; border-radius: 2px; 
 .timerow span { color: var(--text2); }
 .tdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 3px; vertical-align: middle; border: 1px solid var(--text2); }
 
+.palette {
+  display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;
+}
+.palette-dot {
+  width: 18px; height: 18px; border-radius: 50%; display: inline-block;
+  border: 1.5px solid var(--border); cursor: pointer; transition: transform .12s;
+}
+.palette-dot:hover { transform: scale(1.25); }
+
 /* Overlay & modal (shared across settings, tag manager, data manager, help, export) */
 .overlay {
   position: fixed; inset: 0; background: rgba(20,20,20,.35);
