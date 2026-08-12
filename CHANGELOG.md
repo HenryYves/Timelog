@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.11.6] - 2026-08-11
+
+### Fixed
+- 全局硬编码 CSS 变量化：button、kbd、mark、dlabel、dot、date input 等全部用变量
+- 导出面板 glue 颜色使用 --glue-prev/--glue-next 变量
+- 标签管理 drag-over/drag-handle 颜色变量化
+- 统计面板 date-input 添加背景、box-shadow 变量化
+- 帮助面板渐变改用 --primary-soft/--primary 变量
+- ConfirmDialog / Toast 卡片+按钮颜色变量化
+- night 皮肤新增 --primary-hover、--danger-border、--danger-soft、--warn、--now-line、--dlabel-bg、--toast-bg 等 9 个暗色变量
+
+### Added
+- 设置行悬浮高亮（.setting-item 容器 + padding/hover）
+- 标签管理色卡推荐（--skin-palette-count + --skin-palette-1~N）
+- 开发者 Tab 重装皮肤模板按钮
+
+### Changed
+- 皮肤注入统一切换为 read_file_text + data URI（去掉 dev 特殊逻辑和 convertFileSrc）
+- 色卡数量由 CSS 变量控制，日间 10 色 / 夜间 6 色
+
+### Removed
+- 导出图片裁剪预览 croppedPreviewUrl 功能
+
 ## [0.11.3] - 2026-08-11
 
 ### Added
