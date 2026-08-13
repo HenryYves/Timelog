@@ -780,6 +780,7 @@ function trapFocus(e) {
 watch(() => props.show, (val) => {
   if (val) {
     bkPathDraft.value = settings.bkCustomPath
+    refreshSnippets()
   }
 }, { immediate: true })
 
