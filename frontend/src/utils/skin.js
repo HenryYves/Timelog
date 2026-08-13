@@ -79,7 +79,13 @@ export async function injectSkinStyle(skinDir, skinName) {
     const style = document.createElement('style')
     style.id = 'skin-style'
     style.textContent = css
-    document.head.appendChild(style)
+    // 皮肤样式插到片段样式之前，保持「皮肤 < 片段」的覆盖优先级
+    const firstSnippet = document.querySelector('style[data-snippet]')
+    if (firstSnippet) {
+      document.head.insertBefore(style, firstSnippet)
+    } else {
+      document.head.appendChild(style)
+    }
   } catch { /* 文件读取失败，跳过 */ }
 }
 
