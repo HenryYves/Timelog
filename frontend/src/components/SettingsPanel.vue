@@ -60,7 +60,7 @@
               <div class="row">
                 <label>{{ STR.settings.language }}</label>
                 <div>
-                  <select disabled style="width:140px;"><option>中文</option></select>
+                  <select disabled style="width:140px;"><option>{{ STR.settings.languageOption }}</option></select>
                   <span class="restore-spacer"></span>
                 </div>
               </div>
@@ -294,7 +294,7 @@
               <div class="row">
                 <label>{{ STR.settings.zoom }} <span class="val-hint">{{ settings.zoom }}%</span></label>
                 <div>
-                  <button class="small-btn" @click="showZoomPopup = true">调整 ({{ settings.zoom }}%)</button>
+                  <button class="small-btn" @click="showZoomPopup = true">{{ STR.settings.adjustZoom }} ({{ settings.zoom }}%)</button>
                   <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setZoom(DEFAULT_ZOOM)">
                     <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
                   </button>
@@ -330,7 +330,7 @@
 
             <div class="setting-item">
               <div class="row">
-                <label>当前皮肤</label>
+                <label>{{ STR.settings.currentSkin }}</label>
                 <div>
                   <select :value="settings.activeSkin" @change="onSkinSelect($event.target.value)"
                     @focus="onSkinDropdownOpen" style="width:180px;">
@@ -355,7 +355,7 @@
             <div class="sub-head">{{ STR.settings.sectionSnippet }}</div>
 
             <div class="snippet-scroll">
-              <div v-if="snippetFiles.length === 0" class="small" style="padding:8px;">暂无 CSS 片段文件</div>
+              <div v-if="snippetFiles.length === 0" class="small" style="padding:8px;">{{ STR.settings.noSnippets }}</div>
               <div v-for="name in snippetFiles" :key="name" class="row" style="margin-top:6px;">
                 <label>{{ name }}</label>
                 <div>
