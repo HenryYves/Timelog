@@ -17,161 +17,7 @@
 
           <BasicTab v-show="activeTab === 'basic'" @check-update-result="emit('checkUpdateResult', $event)" />
 
-          <!-- ═══════ 编辑器 ═══════ -->
-          <div v-show="activeTab === 'editor'">
-            <div class="section-head">
-              <h4 class="section-title">{{ STR.settings.sectionEditor }}</h4>
-              <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('tEditor')">
-                <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-              </button>
-            </div>
-
-            <div class="setting-item">
-              <div class="row">
-                <label>{{ STR.settings.minBlockMinutes }}</label>
-                <div>
-                  <input type="number" min="0" max="120" style="width:80px;" :value="settings.minBlockMinutes" @change="onMinBlockMinutesChange">
-                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setMinBlockMinutes(DEFAULT_MIN_BLOCK_MINUTES)">
-                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                  </button>
-                </div>
-              </div>
-              <div class="small">{{ STR.settings.descMinBlockMinutes }}</div>
-            </div>
-
-            <div class="setting-item">
-              <div class="row">
-                <label>{{ STR.settings.defaultDuration }}</label>
-                <div>
-                  <input type="number" min="1" max="1440" style="width:80px;" :value="settings.defaultDuration" @change="onDurationChange">
-                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setDuration(DEFAULT_DURATION)">
-                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                  </button>
-                </div>
-              </div>
-              <div class="small">{{ STR.settings.descDefaultDuration }}</div>
-            </div>
-
-            <div class="setting-item">
-              <div class="row">
-                <label>{{ STR.settings.endTimeAtNow }}</label>
-                <div>
-                  <label class="toggle"><input type="checkbox" :checked="settings.endTimeAtNow" @change="settings.setEndTimeAtNow($event.target.checked)"><span class="tk"></span></label>
-                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setEndTimeAtNow(DEFAULT_END_TIME_AT_NOW)"><span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span></button>
-                </div>
-              </div>
-            </div>
-
-            <div class="setting-item">
-              <div class="row">
-                <label>{{ STR.settings.markdownPreview }}</label>
-                <div>
-                  <label class="toggle"><input type="checkbox" :checked="settings.markdownPreview" @change="settings.setMarkdownPreview($event.target.checked)"><span class="tk"></span></label>
-                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setMarkdownPreview(DEFAULT_MARKDOWN_PREVIEW)">
-                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                  </button>
-                </div>
-              </div>
-              <div class="small">{{ STR.settings.descMarkdownPreview }}</div>
-            </div>
-
-            <div class="setting-item">
-              <div class="row">
-                <label>{{ STR.settings.tabToIndent }}</label>
-                <div>
-                  <label class="toggle"><input type="checkbox" :checked="settings.tabToIndent" @change="settings.setTabToIndent($event.target.checked)"><span class="tk"></span></label>
-                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setTabToIndent(DEFAULT_TAB_TO_INDENT)">
-                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                  </button>
-                </div>
-              </div>
-              <div class="small">{{ STR.settings.descTabToIndent }}</div>
-            </div>
-
-            <div class="section-head">
-              <h4 class="section-title">{{ STR.settings.sectionBatchCreate }}</h4>
-              <button class="btn-restore" :title="STR.settings.restoreCategory" @click="resetCategory('batchCreate')">
-                <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-              </button>
-            </div>
-
-            <div class="setting-item">
-              <div class="row">
-                <label>{{ STR.settings.batchMarkdownPreview }}</label>
-                <div>
-                  <label class="toggle"><input type="checkbox" :checked="settings.batchMarkdownPreview" @change="settings.setBatchMarkdownPreview($event.target.checked)"><span class="tk"></span></label>
-                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBatchMarkdownPreview(DEFAULT_BATCH_MARKDOWN_PREVIEW)">
-                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                  </button>
-                </div>
-              </div>
-              <div class="small">{{ STR.settings.descBatchMarkdownPreview }}</div>
-            </div>
-
-            <div class="setting-item">
-              <div class="row">
-                <label>{{ STR.settings.batchTabToIndent }}</label>
-                <div>
-                  <label class="toggle"><input type="checkbox" :checked="settings.batchTabToIndent" @change="settings.setBatchTabToIndent($event.target.checked)"><span class="tk"></span></label>
-                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setBatchTabToIndent(DEFAULT_BATCH_TAB_TO_INDENT)">
-                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                  </button>
-                </div>
-              </div>
-              <div class="small">{{ STR.settings.descBatchTabToIndent }}</div>
-            </div>
-
-            <div class="setting-item">
-              <div class="row">
-                <label>{{ STR.settings.checkBeforeCreate }}</label>
-                <div>
-                  <label class="toggle"><input type="checkbox" :checked="settings.checkBeforeCreate" @change="settings.setCheckBeforeCreate($event.target.checked)"><span class="tk"></span></label>
-                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setCheckBeforeCreate(DEFAULT_CHECK_BEFORE_CREATE)">
-                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                  </button>
-                </div>
-              </div>
-              <div class="small">{{ STR.settings.descCheckBeforeCreate }}</div>
-            </div>
-
-            <div class="setting-item">
-              <div class="row">
-                <label>{{ STR.settings.copyAfterCreate }}</label>
-                <div>
-                  <label class="toggle"><input type="checkbox" :checked="settings.copyAfterCreate" @change="settings.setCopyAfterCreate($event.target.checked)"><span class="tk"></span></label>
-                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setCopyAfterCreate(DEFAULT_COPY_AFTER_CREATE)">
-                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                  </button>
-                </div>
-              </div>
-              <div class="small">{{ STR.settings.descCopyAfterCreate }}</div>
-            </div>
-
-            <div class="setting-item">
-              <div class="row">
-                <label>{{ STR.settings.autoSelectOnFocus }}</label>
-                <div>
-                  <label class="toggle"><input type="checkbox" :checked="settings.autoSelectOnFocus" @change="settings.setAutoSelectOnFocus($event.target.checked)"><span class="tk"></span></label>
-                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setAutoSelectOnFocus(DEFAULT_AUTO_SELECT_ON_FOCUS)">
-                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div class="setting-item">
-              <div class="row">
-                <label>{{ STR.settings.tagDelimiters }}</label>
-                <div>
-                  <input type="text" :value="settings.tagDelimiters" @change="settings.setTagDelimiters($event.target.value)" placeholder="," style="width:200px;">
-                  <button class="btn-restore" :title="STR.settings.restoreDefault" @click="settings.setTagDelimiters(DEFAULT_TAG_DELIMITERS)">
-                    <span class="mico restico" style="-webkit-mask-image: url(/icons/restore.svg)"></span>
-                  </button>
-                </div>
-              </div>
-              <div class="small">{{ STR.settings.descTagDelimiters }}</div>
-            </div>
-          </div>
+          <EditorTab v-show="activeTab === 'editor'" />
 
           <!-- ═══════ 外观 ═══════ -->
           <div v-show="activeTab === 'appearance'">
@@ -508,22 +354,19 @@ import { useToast } from '../composables/useToast.js'
 import { logger } from '../utils/log.js'
 import { migrateBackups } from '../utils/backup.js'
 import {
-  DEFAULT_DURATION, DEFAULT_OPACITY, DEFAULT_KEEP_DAYS,
+  DEFAULT_OPACITY, DEFAULT_KEEP_DAYS,
   DEFAULT_EXPORT_TIMESTAMP, DEFAULT_EXPORT_DIALOG,
   DEFAULT_BORDERLESS, DEFAULT_BACKUP_ON,
-  DEFAULT_TAG_DELIMITERS, DEFAULT_ZOOM, DEFAULT_FONT_FAMILY,
-  DEFAULT_CHECK_BEFORE_CREATE, DEFAULT_COPY_AFTER_CREATE,
-  DEFAULT_MARKDOWN_PREVIEW, DEFAULT_BATCH_MARKDOWN_PREVIEW, DEFAULT_TAB_TO_INDENT, DEFAULT_BATCH_TAB_TO_INDENT, DEFAULT_EDITOR_FONT_SIZE,
+  DEFAULT_ZOOM, DEFAULT_FONT_FAMILY,
+  DEFAULT_EDITOR_FONT_SIZE,
   DEFAULT_SHOW_BLOCK_TITLE, DEFAULT_SHOW_BLOCK_TIME, DEFAULT_SHOW_BLOCK_TAGS, DEFAULT_SHOW_BLOCK_NOTE, DEFAULT_SHOW_BLOCK_COLOR_BAR,
   DEFAULT_MASK_BLOCK_OVERFLOW,
   DEFAULT_RENDER_NOTE_MARKDOWN,
-  DEFAULT_END_TIME_AT_NOW,
-  DEFAULT_MIN_BLOCK_MINUTES,
-  DEFAULT_AUTO_SELECT_ON_FOCUS,
 } from '../constants.js'
 import { STR } from '../strings.js'
 import { reloadSkinStyle, injectSnippetStyle as _injSnippet, removeSnippetStyle as _rmSnippet, syncAllSnippetStyles as _syncSnippets } from '../utils/skin.js'
 import BasicTab from './settings/BasicTab.vue'
+import EditorTab from './settings/EditorTab.vue'
 
 const props = defineProps({
   show: Boolean,
@@ -701,16 +544,6 @@ watch(() => props.show, (val) => {
   }
 }, { immediate: true })
 
-function onDurationChange(e) {
-  settings.setDuration(e.target.value)
-  e.target.value = settings.defaultDuration
-}
-
-function onMinBlockMinutesChange(e) {
-  settings.setMinBlockMinutes(e.target.value)
-  e.target.value = settings.minBlockMinutes
-}
-
 function onEditorFontSizeChange(e) {
   settings.setEditorFontSize(e.target.value)
   e.target.value = settings.editorFontSize
@@ -783,18 +616,6 @@ function onClose() {
 
 function resetCategory(cat) {
   switch (cat) {
-    case 'tEditor':
-      settings.setDuration(DEFAULT_DURATION)
-      settings.setMarkdownPreview(DEFAULT_MARKDOWN_PREVIEW)
-      settings.setTabToIndent(DEFAULT_TAB_TO_INDENT)
-      break
-    case 'batchCreate':
-      settings.setBatchMarkdownPreview(DEFAULT_BATCH_MARKDOWN_PREVIEW)
-      settings.setBatchTabToIndent(DEFAULT_BATCH_TAB_TO_INDENT)
-      settings.setCheckBeforeCreate(DEFAULT_CHECK_BEFORE_CREATE)
-      settings.setCopyAfterCreate(DEFAULT_COPY_AFTER_CREATE)
-      settings.setTagDelimiters(DEFAULT_TAG_DELIMITERS)
-      break
     case 'export':
       settings.setExportTimestamp(DEFAULT_EXPORT_TIMESTAMP)
       settings.setExportDialog(DEFAULT_EXPORT_DIALOG)
