@@ -14,7 +14,7 @@ Tauri v2 桌面应用，Vue 3 + Vite + Pinia 前端，Rust 后端。
 |------|------|
 | `cd frontend && npm install` | 安装前端依赖 |
 | `cd frontend && npm run dev` | 浏览器调试前端 (localhost:1420) |
-| `cd frontend && npm test` | 跑测试（32 tests，2 known failures） |
+| `cd frontend && npm test` | 跑测试（220 tests 全过） |
 | `npm run tauri dev` | Tauri 桌面开发（自动启动 Vite 热更新） |
 | `npm run tauri build` | 打包发布（`beforeBuildCommand` 自动先构建前端） |
 
