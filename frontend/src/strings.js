@@ -175,6 +175,11 @@ export const STR = {
     refresh: '刷新',
     descSkin: '将 .css 文件放入皮肤文件夹即可作为主题使用，下拉切换实时生效',
     descSnippet: '将 .css 文件放入片段文件夹，每个文件对应一个开关',
+    skinInfo: '皮肤信息',
+    skinAuthor: '作者',
+    skinVersion: '版本',
+    skinTip: '提示',
+    skinWarning: '警告',
 
     descExportTimestamp: '例：timelog-backup-2026-07-04-1730.json',
     descExportDialog: '导出时弹出系统文件对话框选择保存位置',

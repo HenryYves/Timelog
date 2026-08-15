@@ -127,6 +127,7 @@ import { useConfirm } from './composables/useConfirm.js'
 import { useCoordConverter, localMinToUnified } from './composables/useCoordConverter.js'
 import { logger } from './utils/log.js'
 import { installSkinTemplates, injectSkinStyle, removeSkinStyle, injectSnippetStyle, removeSnippetStyle, syncAllSnippetStyles } from './utils/skin.js'
+import { refreshSkinInfo } from './composables/useSkinInfo.js'
 
 const store = useTimelogStore()
 const settings = useSettingsStore()
@@ -836,7 +837,8 @@ onMounted(async () => {
   // ── 皮肤变化 → 重建 <link> ──
   watch(() => settings.activeSkin, async (name) => {
     const dir = await resolveSkinDir()
-    injectSkinStyle(dir, name)
+    await injectSkinStyle(dir, name)
+    refreshSkinInfo()
   })
 
   // ── 片段列表变化 → 增删 <link> ──
@@ -883,8 +885,9 @@ onMounted(async () => {
   await installSkinTemplates(skinDir)
 
   if (settings.activeSkin) {
-    injectSkinStyle(skinDir, settings.activeSkin)
+    await injectSkinStyle(skinDir, settings.activeSkin)
   }
+  refreshSkinInfo()
 
   try {
     const sDir = await resolveSnippetDir()

@@ -16,6 +16,8 @@
   --skin-palette-1: #1cbfe2; --skin-palette-2: #61cee6; --skin-palette-3: #9edbe9;
   --skin-palette-4: #99ccb4; --skin-palette-5: #76ac32; --skin-palette-6: #338e65;
   --skin-palette-7: #fc9d9d; --skin-palette-8: #27c4c4; --skin-palette-9: #aabdb4; --skin-palette-10: #45547e;
+  /* 皮肤元信息（可选，皮肤作者在皮肤 .css 的 :root 声明；未声明则不显示）:
+     --skin-author / --skin-version / --skin-tip（多行用 \A）/ --skin-warning / --skin-info-expanded（1 = 默认展开） */
   --md-highlight-bg: #ffc773; --md-code-bg: rgba(0,0,0,0.06);
   --md-marker: #a1afc9;
 }
@@ -550,6 +552,18 @@ mark { background: var(--md-highlight-bg); color: var(--text); padding: 0 2px; b
 select:disabled { opacity: .5; cursor: default; }
 .val-hint { font-weight: 400; color: var(--text2); font-size: 13px; margin-left: 4px; }
 .small-btn { font-size: 12.5px; padding: 4px 10px; }
+.skin-info { margin: 8px 0 4px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.skin-info-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 6px 10px; border: none; background: var(--soft); color: var(--text2); font-size: 12.5px; font-weight: 600; cursor: pointer; border-radius: 0; }
+.skin-info-head:hover { background: var(--soft2); }
+.skin-info-arrow { transition: transform .15s ease; font-size: 11px; }
+.skin-info-arrow.open { transform: rotate(90deg); }
+.skin-info-body { padding: 6px 10px; display: flex; flex-direction: column; gap: 4px; }
+.skin-info-row { display: flex; gap: 8px; font-size: 12.5px; }
+.skin-info-label { color: var(--text2); flex-shrink: 0; min-width: 34px; }
+.skin-info-val { white-space: pre-line; word-break: break-word; }
+.skin-info-tip .skin-info-val { color: var(--text2); }
+.skin-info-warning { border-left: 2px solid var(--warn); padding-left: 6px; }
+.skin-info-warning .skin-info-val { color: var(--warn); }
 .settings-modal { width: 64.5vw; max-width: 95vw; height: calc(81vh / var(--zoom, 1)); max-height: calc(90vh / var(--zoom, 1)); overflow: auto; }
 .zoom-popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 1000; display: flex; align-items: center; justify-content: center; }
 .zoom-popup { background: var(--canvas); border-radius: 8px; padding: 24px 28px; width: calc(640px / var(--zoom, 1)); height: calc(280px / var(--zoom, 1)); text-align: center; display: flex; flex-direction: column; gap: 14px; justify-content: center; }

@@ -5,11 +5,13 @@
  * - 首次启动安装内置皮肤模板（night.css + 图标）
  * - 皮肤 <style> 注入/移除/刷新（读文件 + URL 重写）
  * - CSS 片段 <style> 注入/移除/同步
+ * - 读取当前激活皮肤的元信息（作者/版本/提示/警告）
  *
  * 非职责：皮肤路径解析（依赖 settings store，由调用方传入）
  */
 
 import { invoke } from '@tauri-apps/api/core'
+import { logger } from './log.js'
 
 function isTauri() {
   return !!(window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke)
@@ -98,6 +100,32 @@ export async function reloadSkinStyle(skinDir, skinName) {
   removeSkinStyle()
   if (!skinName || !isTauri()) return
   await injectSkinStyle(skinDir, skinName)
+}
+
+// CSS 原生换行转义 \A（可能带空白终结符、大小写不敏感）→ 实际换行
+function decodeLines(v) {
+  return v.replace(/\\[aA][ \t\r\n]*/g, '\n').trim()
+}
+
+/**
+ * 读取当前激活皮肤的元信息。
+ * 皮肤 CSS 注入为 <style id="skin-style"> 覆盖 :root，用 getComputedStyle 读最终值；
+ * 未激活皮肤 / 未声明变量时返回空串（字段由展示层隐藏）。
+ */
+export function readSkinInfo() {
+  const cs = getComputedStyle(document.documentElement)
+  const get = (name) => cs.getPropertyValue(name).trim()
+  const tip = get('--skin-tip')
+  const warning = get('--skin-warning')
+  // 诊断：确认 WebView2 对 \A 换行转义的实际返回形态（勿假设浏览器行为）
+  logger.debug('skin', 'readSkinInfo raw', { tip, warning })
+  return {
+    author: get('--skin-author'),
+    version: get('--skin-version'),
+    tip: decodeLines(tip),
+    warning: decodeLines(warning),
+    expanded: get('--skin-info-expanded') === '1',
+  }
 }
 
 // ── CSS 片段 ──
