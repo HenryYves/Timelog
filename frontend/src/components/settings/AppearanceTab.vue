@@ -86,16 +86,19 @@
     </div>
 
     <!-- 皮肤信息（默认折叠） -->
-    <div v-if="hasSkinInfo" class="skin-info">
+    <div class="skin-info">
       <button type="button" class="skin-info-head" @click="showSkinInfo = !showSkinInfo">
         <span>{{ STR.settings.skinInfo }}</span>
         <span class="skin-info-arrow" :class="{ open: showSkinInfo }">▸</span>
       </button>
       <div v-if="showSkinInfo" class="skin-info-body">
-        <div v-if="skinInfo.author" class="skin-info-row"><span class="skin-info-label">{{ STR.settings.skinAuthor }}</span><span class="skin-info-val">{{ skinInfo.author }}</span></div>
-        <div v-if="skinInfo.version" class="skin-info-row"><span class="skin-info-label">{{ STR.settings.skinVersion }}</span><span class="skin-info-val">{{ skinInfo.version }}</span></div>
-        <div v-if="skinInfo.tip" class="skin-info-row skin-info-tip"><span class="skin-info-label">{{ STR.settings.skinTip }}</span><span class="skin-info-val">{{ skinInfo.tip }}</span></div>
-        <div v-if="skinInfo.warning" class="skin-info-row skin-info-warning"><span class="skin-info-label">{{ STR.settings.skinWarning }}</span><span class="skin-info-val">{{ skinInfo.warning }}</span></div>
+        <template v-if="hasSkinInfo">
+          <div v-if="skinInfo.author" class="skin-info-row"><span class="skin-info-label">{{ STR.settings.skinAuthor }}</span><span class="skin-info-val">{{ skinInfo.author }}</span></div>
+          <div v-if="skinInfo.version" class="skin-info-row"><span class="skin-info-label">{{ STR.settings.skinVersion }}</span><span class="skin-info-val">{{ skinInfo.version }}</span></div>
+          <div v-if="skinInfo.tip" class="skin-info-row skin-info-tip"><span class="skin-info-label">{{ STR.settings.skinTip }}</span><span class="skin-info-val">{{ skinInfo.tip }}</span></div>
+          <div v-if="skinInfo.warning" class="skin-info-row skin-info-warning"><span class="skin-info-label">{{ STR.settings.skinWarning }}</span><span class="skin-info-val">{{ skinInfo.warning }}</span></div>
+        </template>
+        <div v-else class="skin-info-empty">{{ STR.settings.skinInfoEmpty }}</div>
       </div>
     </div>
 

@@ -561,6 +561,7 @@ select:disabled { opacity: .5; cursor: default; }
 .skin-info-row { display: flex; gap: 8px; font-size: 12.5px; }
 .skin-info-label { color: var(--text2); flex-shrink: 0; min-width: 34px; }
 .skin-info-val { white-space: pre-line; word-break: break-word; }
+.skin-info-empty { color: var(--text2); font-size: 12px; }
 .skin-info-tip .skin-info-val { color: var(--text2); }
 .skin-info-warning { border-left: 2px solid var(--warn); padding-left: 6px; }
 .skin-info-warning .skin-info-val { color: var(--warn); }

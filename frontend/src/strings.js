@@ -180,6 +180,7 @@ export const STR = {
     skinVersion: '版本',
     skinTip: '提示',
     skinWarning: '警告',
+    skinInfoEmpty: '该皮肤未提供信息',
 
     descExportTimestamp: '例：timelog-backup-2026-07-04-1730.json',
     descExportDialog: '导出时弹出系统文件对话框选择保存位置',

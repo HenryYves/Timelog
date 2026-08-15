@@ -21,15 +21,14 @@
   --skin-palette-4: #cd5e3c; --skin-palette-5: #FCE38A; --skin-palette-6: #50616d;
   --md-highlight-bg: #316745; --md-code-bg: rgba(255,255,255,0.08);
   --md-marker: #5a7d9a;
-}
 
-/* 皮肤元信息（可选，取消注释并写入 :root 即可在「外观 → 皮肤信息」显示）：
-  --skin-author: 皮肤作者名;
+  /* 皮肤元信息（可选；多行提示用 \A 换行；--skin-info-expanded: 1 = 默认展开） */
+  --skin-author: Timelog 官方;
   --skin-version: 1.0.0;
-  --skin-tip: 第一行提示\A 第二行;      （多行用 \A 换行）
-  --skin-warning: 注意事项;
-  --skin-info-expanded: 1;              （写 1 则信息默认展开，否则折叠）
-*/
+  --skin-tip: 夜间皮肤示例\A 多行提示第二行;
+  --skin-warning: 这是一条测试警告;
+  --skin-info-expanded: 1;
+}
 
 .win-ico.win-min  { background-image: url(night/icon/win-min_night.svg); }
 .win-ico.win-max  { background-image: url(night/icon/win-max_night.svg); }
