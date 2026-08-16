@@ -415,7 +415,7 @@ function onSliceLeave() {
 .hover-badge {
   display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500;
   background: var(--soft); border-radius: 20px; padding: 2px 10px;
-  animation: fadeIn 0.15s ease;
+  animation: fadeIn 0.15s var(--ease-out);
 }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 .hover-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 2px rgba(0,0,0,0.06); }

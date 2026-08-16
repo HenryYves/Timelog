@@ -29,13 +29,14 @@ const { toastMsg: message, toastVisible: visible } = useToast()
   white-space: nowrap;
 }
 
-.toast-enter-active {
-  transition: opacity .2s;
-}
+.toast-enter-active,
 .toast-leave-active {
-  transition: opacity .2s;
+  transition: opacity .2s var(--ease-out), transform .2s var(--ease-out);
 }
-.toast-enter-from,
+.toast-enter-from {
+  opacity: 0;
+  transform: translate(-50%, 6px);
+}
 .toast-leave-to {
   opacity: 0;
 }

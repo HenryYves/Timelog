@@ -21,7 +21,7 @@
       <!-- Downloading -->
       <div v-if="phase === 'downloading'" class="update-progress">
         <div class="progress-bar">
-          <div class="progress-fill" :style="{ width: progressPct + '%' }"></div>
+          <div class="progress-fill" :style="{ transform: 'scaleX(' + (progressPct / 100) + ')' }"></div>
         </div>
         <div class="progress-text">
           {{ formatBytes(downloaded) }}
@@ -209,12 +209,13 @@ function onRetry() {
   overflow: hidden; margin-bottom: 8px;
 }
 .progress-fill {
-  height: 100%; background: var(--accent); border-radius: 4px;
-  transition: width 0.1s ease;
+  height: 100%; width: 100%; background: var(--accent); border-radius: 4px;
+  transform-origin: left;
+  transition: transform 0.1s var(--ease-out);
 }
 .progress-fill-indeterminate {
   height: 100%; width: 30%; background: var(--accent); border-radius: 4px;
-  animation: progress-slide 1.2s ease-in-out infinite;
+  animation: progress-slide 1.2s linear infinite;
 }
 @keyframes progress-slide {
   0% { transform: translateX(-100%); }

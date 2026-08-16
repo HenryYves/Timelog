@@ -20,6 +20,9 @@
      --skin-author / --skin-version / --skin-tip（多行用 \A）/ --skin-warning / --skin-info-expanded（1 = 默认展开） */
   --md-highlight-bg: #ffc773; --md-code-bg: rgba(0,0,0,0.06);
   --md-marker: #a1afc9;
+  /* 动效缓动 token */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);      /* 入场：快起慢停 */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);  /* 屏幕内移动 */
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--soft); }
@@ -115,15 +118,18 @@ input[type="range"]::-webkit-slider-thumb {
   width: 18px; height: 18px; border-radius: 50%;
   background: var(--primary); border: none;
   box-shadow: 0 1px 4px rgba(0,0,0,.15); cursor: pointer;
-  transition: transform .15s;
+  transition: transform .15s var(--ease-out);
 }
-input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.08); }
+input[type="range"]::-webkit-slider-thumb:active { transform: scale(0.94); }
 input[type="range"]::-moz-range-thumb {
   width: 18px; height: 18px; border-radius: 50%;
   background: var(--primary); border: none;
   box-shadow: 0 1px 4px rgba(0,0,0,.15); cursor: pointer;
+  transition: transform .15s var(--ease-out);
 }
-input[type="range"]::-moz-range-thumb:hover { transform: scale(1.15); }
+input[type="range"]::-moz-range-thumb:hover { transform: scale(1.08); }
+input[type="range"]::-moz-range-thumb:active { transform: scale(0.94); }
 button.del { color: var(--danger); border-color: var(--danger-border); }
 button.del:hover { background: var(--danger-soft); }
 .backup { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text2); }
@@ -251,9 +257,10 @@ mark { background: var(--md-highlight-bg); color: var(--text); padding: 0 2px; b
 }
 .palette-dot {
   width: 18px; height: 18px; border-radius: 50%; display: inline-block;
-  border: 1.5px solid var(--border); cursor: pointer; transition: transform .12s;
+  border: 1.5px solid var(--border); cursor: pointer; transition: transform .12s var(--ease-out);
 }
-.palette-dot:hover { transform: scale(1.25); }
+.palette-dot:hover { transform: scale(1.08); }
+.palette-dot:active { transform: scale(0.92); }
 
 /* Overlay & modal (shared across settings, tag manager, data manager, help, export) */
 .overlay {
@@ -574,3 +581,12 @@ select:disabled { opacity: .5; cursor: default; }
 .settings-content label { display: inline; font-size: inherit; color: inherit; margin: 0; font-weight: inherit; }
 .settings-content input[type="range"] { vertical-align: middle; }
 .snippet-scroll { max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 0 8px 4px; margin-top: 4px; }
+
+/* ── Reduced motion：尊重系统"减少动效"设置 ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -293,7 +293,7 @@ async function onSave() {
   display: flex;
   align-items: center;
   gap: 4px;
-  transition: all 0.2s ease;
+  transition: transform 0.2s var(--ease-out), opacity 0.2s var(--ease-out), background 0.2s var(--ease-out);
   padding: 4px;
   margin: 2px 0;
   border-radius: 4px;
