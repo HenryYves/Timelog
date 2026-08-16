@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.11.12] - 2026-08-16
+
+### Added
+- 皮肤元信息：皮肤作者可在 CSS `:root` 声明 `--skin-author`（作者）/ `--skin-version`（版本）/ `--skin-tip`（提示，多行用 `\A`）/ `--skin-warning`（警告）/ `--skin-info-expanded`（默认展开），在「设置 → 外观」皮肤选择器下方查看，默认折叠
+
+### Changed
+- 设置面板拆分为 BasicTab / EditorTab / AppearanceTab / FilesTab / DevTab 五个子组件；硬编码文案走 STR；scoped 样式迁到全局 style.css
+- 动效优化：更新进度条 width→scaleX（走合成层）、引入缓动 token `--ease-out`/`--ease-in-out`、滑块/色板悬停缩小并补按压反馈、toast 从下浮出、新增 `prefers-reduced-motion` 降级
+
+### Fixed
+- 皮肤注入插到片段样式之前，保持「皮肤 < 片段」覆盖优先级
+- 打开设置面板时自动扫描并填充 CSS 片段列表
+
 ## [0.11.6] - 2026-08-11
 
 ### Fixed
