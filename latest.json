@@ -1,11 +1,11 @@
 {
-  "version": "v0.11.6",
-  "notes": "修复：全局硬编码CSS变量化（button/kbd/mark/dlabel/date input等）、导出面板glue变量、标签管理drag颜色、统计date-input背景、帮助面板渐变、ConfirmDialog/Toast颜色、night皮肤新增9个暗色变量\n新增：设置行悬浮高亮、标签管理色卡推荐、开发者Tab重装皮肤模板按钮\n变更：皮肤注入统一read_file_text+dataURI、色卡数量CSS变量控制\n移除：导出图片裁剪预览\n220 tests",
-  "pub_date": "2026-08-11T00:00:00Z",
+  "version": "v0.11.12",
+  "notes": "新增：皮肤元信息（作者/版本/提示/警告，皮肤 CSS :root 声明，设置→外观折叠展示）\n变更：设置面板拆分为 BasicTab/EditorTab/AppearanceTab/FilesTab/DevTab 五个子组件、动效优化（进度条 scaleX、缓动 token、reduced-motion、按压反馈）\n修复：皮肤注入插到片段样式之前保持覆盖优先级、打开设置面板自动扫描 CSS 片段列表\n220 tests",
+  "pub_date": "2026-08-16T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUJVOURhaFNBNHkxS0YxaWZVaVQzZjRCZUVGM085NFpCc0lwaTZENHpFeExNWjc2YkdhcTBUWm9YZDdPdkpjNUxBR0x6N0s3N05NVnM0MDR5MUYyUEFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2NTQ1OTg2CWZpbGU6dGltZWxvZ18wLjExLjZfeDY0X2VuLVVTLm1zaQovOXdDa1BpeTNBRkxFam1MWlUySFhpb215TEI1U3d4VTRKVk5lTSt6U0JydEpnNlkyYytUL1lXS3d2UzM0WFlTVnhZcGZSN2I4RGFxdFE0T2lqUkVCZz09Cg==",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.11.6/timelog_0.11.6_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUZ2N2ZGcVl4UXNmNHVWU0hZakM4bFBaNFg1ZUNTMFhNbjkxQTdNUk5KRWliWU5oY3BPQWVlT2NndWo4Wk1oeGg5cEkrbkZzYUlsbXpXeDQ2SEpSdmdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2ODg5NjUxCWZpbGU6dGltZWxvZ18wLjExLjEyX3g2NF9lbi1VUy5tc2kKOUNLOENwOXQ3T05pc3AzVDlUL2ZoVlFFUUFlLzJJRjJlcXpPKzZOK29XNjZqMUpJRWs4N3JQR3pzSXZIYzUwTzh1ek5KWUVLeENIdGJoMVp2QlVHQVE9PQo=",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.11.12/timelog_0.11.12_x64_en-US.msi"
     }
   }
 }
