@@ -99,7 +99,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { tExport } from './utils/tauri.js'
 import { save } from '@tauri-apps/plugin-dialog'
-import { useTimelogStore, dkey, storeUndo, todayLocalToStorage } from './store/timelog.js'
+import { useTimelogStore, dkey, addDays, storeUndo, todayLocalToStorage } from './store/timelog.js'
 
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
@@ -622,7 +622,13 @@ function onWindowKeyDown(e) {
     const now = new Date()
     const isToday = dkey(now) === store.dateKey
     const nowMin = now.getHours() * 60 + now.getMinutes()
-    const nowUnified = localMinToUnified('today', nowMin)
+    const todayKey = dkey(now)
+    // nowUnified 按日历关系选帧（对齐 Timeline.vue 的 addDays 逻辑）：now 落后一天→next 帧，提前一天→prev 帧
+    let nowUnified
+    if (store.dateKey === todayKey) nowUnified = localMinToUnified('today', nowMin)
+    else if (store.dateKey === addDays(todayKey, -1)) nowUnified = localMinToUnified('next', nowMin)
+    else if (store.dateKey === addDays(todayKey, 1)) nowUnified = localMinToUnified('prev', nowMin)
+    else nowUnified = 0
 
     // 获取页面可见范围（统一帧坐标）
     const { lo: pageStart, hi: pageEnd } = pageRange.value
@@ -642,9 +648,10 @@ function onWindowKeyDown(e) {
     // 计算结束时间（统一帧坐标）
     const frameEnd = pageEnd
     let endUnified
-    const nowInSameFrame = isToday && nowUnified >= startUnified && nowUnified < frameEnd
+    // 「今天是否结束」看 now 是否落在本页范围 frameEnd 内，而非日历日相等（now 翻日但还在 +01:00 页延内 → 未结束）
+    const nowInPage = nowUnified !== 0 && nowUnified >= startUnified && nowUnified < frameEnd
 
-    if (settings.endTimeAtNow && nowInSameFrame) {
+    if (settings.endTimeAtNow && nowInPage) {
       endUnified = nowUnified
     } else {
       endUnified = Math.min(startUnified + settings.defaultDuration, frameEnd)
