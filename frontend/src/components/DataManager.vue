@@ -2,61 +2,61 @@
   <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="emit('close')">
     <div class="modal" ref="modalEl" @keydown="trapFocus">
       <div class="dm-head">
-        <h2>数据管理</h2>
+        <h2>{{ STR.dataManager.title }}</h2>
         <span class="dm-range" v-if="dateRange">{{ dateRange }}</span>
       </div>
-      <div class="sub">按日期段删除，或逐天删除。</div>
+      <div class="sub">{{ STR.dataManager.subtitle }}</div>
 
-      <label>删除日期段（含起止当天）</label>
+      <label>{{ STR.dataManager.deleteRangeLabel }}</label>
       <div class="timerow">
         <input type="date" v-model="fromDate">
         <span>—</span>
         <input type="date" v-model="toDate">
-        <button class="del" @click="deleteDateRange">删除</button>
+        <button class="del" @click="deleteDateRange">{{ STR.btn.delete }}</button>
       </div>
-      <div class="small">会删除该日期范围内所有天的全部记录。</div>
+      <div class="small">{{ STR.dataManager.deleteRangeHint }}</div>
 
       <div class="divider"></div>
 
-      <label>所有日期</label>
+      <label>{{ STR.dataManager.allDates }}</label>
       <div class="day-list">
-      <div v-if="days.length === 0" class="small">暂无数据</div>
+      <div v-if="days.length === 0" class="small">{{ STR.dataManager.noData }}</div>
       <label class="dayrow select-all" v-if="days.length">
         <input type="checkbox" :checked="allSelected" @change="toggleAll">
-        <span class="small">全选 / 取消</span>
+        <span class="small">{{ STR.dataManager.selectAll }}</span>
       </label>
       <div v-for="d in days" :key="d.date" class="dayrow">
         <label class="dcheck"><input type="checkbox" :checked="selectedDays.has(d.date)" @change="toggleDay(d.date)"></label>
         <div class="dinfo">
           {{ d.date }}
-          <span class="dmeta">{{ d.count }} 条 · {{ d.hours.toFixed(1) }} 小时</span>
+          <span class="dmeta">{{ t('dataManager.dayStats', { count: d.count, hours: d.hours.toFixed(1) }) }}</span>
         </div>
-        <button class="del" @click="deleteDate(d.date)">删除整天</button>
+        <button class="del" @click="deleteDate(d.date)">{{ STR.dataManager.deleteDay }}</button>
       </div>
       </div>
 
       <div v-if="selectedDays.size" class="batch-actions">
-        <button class="del" @click="deleteSelected">删除选中 ({{ selectedDays.size }})</button>
-        <button @click="exportSelected">导出选中 ({{ selectedDays.size }})</button>
+        <button class="del" @click="deleteSelected">{{ t('dataManager.deleteSelected', { n: selectedDays.size }) }}</button>
+        <button @click="exportSelected">{{ t('dataManager.exportSelected', { n: selectedDays.size }) }}</button>
       </div>
 
       <div style="margin-top:12px;">
-        <button class="del" @click="deleteAll">全部删除</button>
-        <span class="small" style="margin-left:8px;">删除所有日期和标签的全部记录，不可恢复。</span>
+        <button class="del" @click="deleteAll">{{ STR.dataManager.deleteAll }}</button>
+        <span class="small" style="margin-left:8px;">{{ STR.dataManager.deleteAllHint }}</span>
       </div>
 
       <div class="divider"></div>
 
-      <label>导入备份</label>
+      <label>{{ STR.dataManager.importSection }}</label>
       <div class="actions">
-        <button @click="triggerImport">导入 JSON</button>
+        <button @click="triggerImport">{{ STR.dataManager.importJson }}</button>
         <input type="file" ref="fileInput" accept="application/json,.json" hidden @change="onFileSelected">
       </div>
-      <div class="small">选择一个 timelog JSON 备份文件导入。已存在的日期会被合并。</div>
+      <div class="small">{{ STR.dataManager.importHint }}</div>
 
       <div class="actions">
         <span class="spacer"></span>
-        <button @click="emit('close')">关闭</button>
+        <button @click="emit('close')">{{ STR.btn.close }}</button>
       </div>
     </div>
   </div>
@@ -364,7 +364,7 @@ async function onFileSelected(e) {
       }
       loadDays()
       emit('changed')
-      await showAlert(STR.toast.imported + ' ' + count + ' 条')
+      await showAlert(t('dataManager.importedCount', { n: count }))
     } catch {
       await showAlert(STR.toast.importFail)
     }

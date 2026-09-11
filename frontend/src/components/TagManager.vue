@@ -1,8 +1,8 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="onCancel">
     <div class="modal" ref="modalEl" @keydown="trapFocus">
-      <h2>管理标签</h2>
-      <div class="sub">点左侧色块自定义颜色；相同"分组"的标签会归类显示（如"很自律"与"自律"放同一组）。</div>
+      <h2>{{ STR.tagManager.title }}</h2>
+      <div class="sub">{{ STR.tagManager.subtitle }}</div>
       <div class="palette">
         <span v-for="i in paletteCount" :key="i" class="palette-dot"
           :style="{ background: 'var(--skin-palette-' + i + ', transparent)' }"
@@ -16,24 +16,24 @@
           class="tagrow"
           :data-index="i"
         >
-          <span class="drag-handle" title="拖拽排序" @mousedown="onMouseDown($event, i)">⋮⋮</span>
+          <span class="drag-handle" :title="STR.tagManager.dragSort" @mousedown="onMouseDown($event, i)">⋮⋮</span>
           <input type="color" v-model="tag.color">
-          <input type="text" class="tn" v-model="tag.name" placeholder="标签名称">
-          <input type="text" class="tg" v-model="tag.group" placeholder="分组">
-          <button class="del" @click="onDeleteTag(i)">删除</button>
+          <input type="text" class="tn" v-model="tag.name" :placeholder="STR.tagManager.tagNamePlaceholder">
+          <input type="text" class="tg" v-model="tag.group" :placeholder="STR.tagManager.groupPlaceholder">
+          <button class="del" @click="onDeleteTag(i)">{{ STR.btn.delete }}</button>
         </div>
       </div>
 
       <div style="margin-top:8px; display:flex; gap:8px;">
-        <button @click="onAddTag">＋ 新增标签</button>
-        <button @click="onSortAlpha">按名称排序</button>
-        <button @click="onSortByGroup">按分组排序</button>
+        <button @click="onAddTag">{{ STR.tagManager.addTag }}</button>
+        <button @click="onSortAlpha">{{ STR.tagManager.sortByName }}</button>
+        <button @click="onSortByGroup">{{ STR.tagManager.sortByGroup }}</button>
       </div>
 
       <div class="actions">
         <span class="spacer"></span>
-        <button class="primary" @click="onSave">保存</button>
-        <button @click="onCancel">取消</button>
+        <button class="primary" @click="onSave">{{ STR.btn.save }}</button>
+        <button @click="onCancel">{{ STR.btn.cancel }}</button>
       </div>
     </div>
   </div>

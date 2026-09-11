@@ -2,29 +2,29 @@
   <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="onCancel">
     <div class="modal" ref="modalEl" @keydown="trapFocus">
       <div class="modal-head">
-        <h2>{{ editingBlock ? '编辑时间块' : '记录时间块' }}</h2>
+        <h2>{{ editingBlock ? STR.editModal.titleEdit : STR.editModal.titleNew }}</h2>
         <span class="duration">{{ duration }}</span>
       </div>
 
-      <label>做了什么</label>
+      <label>{{ STR.editModal.labelTitle }}</label>
       <input
         type="text"
         id="mTitle"
         v-model="mTitle"
-        placeholder="例如：写昨天的复盘"
+        :placeholder="STR.editModal.placeholderTitle"
         autocomplete="off"
         @keydown.enter.prevent="save"
         @focus="settings.autoSelectOnFocus && $event.target.select()"
       >
 
-      <label>时间（可选 +/- 前缀切换帧：−昨天 / +明天 / 无前缀今天）</label>
+      <label>{{ STR.editModal.labelTime }}</label>
       <div class="timerow">
         <input type="text" id="mStart" v-model="mStart" pattern="[+\-]?\d{1,2}:\d{2}" placeholder="-08:00" maxlength="6" autocomplete="off" @keydown.enter.prevent="focusFirstChip" @blur="onTimeBlur('start')" @focus="settings.autoSelectOnFocus && $event.target.select()">
         <span>—</span>
         <input type="text" id="mEnd" v-model="mEnd" pattern="[+\-]?\d{1,2}:\d{2}" placeholder="+08:00" maxlength="6" autocomplete="off" @keydown.enter.prevent="focusFirstChip" @blur="onTimeBlur('end')" @focus="settings.autoSelectOnFocus && $event.target.select()">
       </div>
 
-      <label>标签</label>
+      <label>{{ STR.editModal.labelTags }}</label>
       <div id="mTags" ref="mTagsRef">
         <template v-for="(tagList, group) in groupedTags" :key="group">
           <div v-if="Object.keys(groupedTags).length > 1 || group !== ''" class="grouplabel">{{ group }}</div>
@@ -50,10 +50,10 @@
           tabindex="0"
           @click="emit('manage-tags')"
           @keydown="(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); emit('manage-tags'); } }"
-        >⚙ 管理标签</span>
+        >{{ STR.editModal.manageTags }}</span>
       </div>
 
-      <label>备注（可选）</label>
+      <label>{{ STR.editModal.labelNote }}</label>
       <MarkdownEditor
         v-model="mNote"
         height="126px"
@@ -62,11 +62,11 @@
       />
 
       <div class="actions">
-        <button v-show="!!editingBlock" class="del" @click="deleteBlock">删除</button>
-        <button v-show="!!editingBlock" @click="copyBlock">复制</button>
+        <button v-show="!!editingBlock" class="del" @click="deleteBlock">{{ STR.btn.delete }}</button>
+        <button v-show="!!editingBlock" @click="copyBlock">{{ STR.btn.copy }}</button>
         <span class="spacer"></span>
-        <button class="primary" @click="save">保存</button>
-        <button @click="onCancel">取消</button>
+        <button class="primary" @click="save">{{ STR.btn.save }}</button>
+        <button @click="onCancel">{{ STR.btn.cancel }}</button>
       </div>
     </div>
   </div>
@@ -299,13 +299,13 @@ async function save() {
     const localStart = todayUStart >= DAY_OFFSET.today && todayUStart < DAY_OFFSET.next ? todayUStart - DAY_OFFSET.today : 0
     const localEnd = todayUEnd >= DAY_OFFSET.today && todayUEnd < DAY_OFFSET.next ? todayUEnd - DAY_OFFSET.today : DAY_MIN
     if (us < todayUStart && ue > todayUStart) {
-      const ok = await showConfirm(`时间跨越区段边界，${fmt(localStart)}之前的部分将存入昨天。确认？`)
+      const ok = await showConfirm(t('editModal.splitToPrev', { time: fmt(localStart) }))
       if (!ok) return
       splitKeys.push({ dateKey: addDays(timelogStore.dateKey, -1), start: us + DAY_MIN, end: todayUStart + DAY_MIN })
       s = todayUStart
     }
     if (us < todayUEnd && ue > todayUEnd) {
-      const ok = await showConfirm(`时间跨越区段边界，${fmt(localEnd)}之后的部分将存入明天。确认？`)
+      const ok = await showConfirm(t('editModal.splitToNext', { time: fmt(localEnd) }))
       if (!ok) return
       splitKeys.push({ dateKey: addDays(timelogStore.dateKey, 1), start: todayUEnd - DAY_MIN, end: ue - DAY_MIN })
       en = todayUEnd

@@ -4,97 +4,97 @@
 
       <!-- ======================== TEXT EXPORT VIEW ======================== -->
       <template v-if="mode === 'export'">
-        <h2>导出文本（当天）</h2>
+        <h2>{{ STR.exportPanel.textExportTitle }}</h2>
         <textarea class="exportbox" readonly :value="exText"></textarea>
         <div class="actions">
-          <span class="copied" v-if="copiedMsg">已复制 ✓</span>
+          <span class="copied" v-if="copiedMsg">{{ STR.exportPanel.copiedMark }}</span>
           <span class="spacer"></span>
-          <button type="button" @click="emit('close')">关闭</button>
-          <button type="button" class="primary" @click="copyText">复制到剪贴板</button>
+          <button type="button" @click="emit('close')">{{ STR.btn.close }}</button>
+          <button type="button" class="primary" @click="copyText">{{ STR.exportPanel.copyToClipboard }}</button>
         </div>
       </template>
 
       <!-- ======================== TEXT IMPORT VIEW ======================== -->
       <template v-if="mode === 'import'">
-        <h2>从文本导入</h2>
-        <div class="sub">粘贴"导出文本"格式的内容，解析为记录导入到指定日期。</div>
+        <h2>{{ STR.exportPanel.textImportTitle }}</h2>
+        <div class="sub">{{ STR.exportPanel.textImportHint }}</div>
 
-        <label>粘贴文本</label>
+        <label>{{ STR.exportPanel.pasteText }}</label>
         <textarea class="exportbox import-area" v-model="importText"
-          placeholder="- (9:00-10:30:工作)写周报;记得同步进度"
+          :placeholder="STR.exportPanel.pasteTextPlaceholder"
           @input="onImportTextChange"></textarea>
 
-        <label>导入到日期 <span class="date-warn" v-if="importDateMismatch">（与当前日期不同）</span></label>
+        <label>{{ STR.exportPanel.importToDate }} <span class="date-warn" v-if="importDateMismatch">{{ STR.exportPanel.dateMismatch }}</span></label>
         <input type="date" v-model="importDate" :class="{ 'input-warn': importDateMismatch }">
 
-        <label>导入方式</label>
+        <label>{{ STR.exportPanel.importMode }}</label>
         <div class="radio">
-          <label><input type="radio" name="txMode" value="merge" v-model="importMode" checked> 合并到该天</label>
-          <label><input type="radio" name="txMode" value="replace" v-model="importMode"> 覆盖该天</label>
+          <label><input type="radio" name="txMode" value="merge" v-model="importMode" checked> {{ STR.exportPanel.mergeIntoDay }}</label>
+          <label><input type="radio" name="txMode" value="replace" v-model="importMode"> {{ STR.exportPanel.overwriteDay }}</label>
         </div>
 
         <div class="small" v-if="importPreview !== null">{{ importPreview }}</div>
 
         <div class="actions">
           <span class="spacer"></span>
-          <button type="button" class="primary" @click="confirmImport">确认导入</button>
-          <button type="button" @click="emit('close')">取消</button>
+          <button type="button" class="primary" @click="confirmImport">{{ STR.exportPanel.confirmImport }}</button>
+          <button type="button" @click="emit('close')">{{ STR.btn.cancel }}</button>
         </div>
       </template>
 
       <!-- ======================== JSON EXPORT VIEW ======================== -->
       <template v-if="mode === 'json-export'">
-        <h2>导出备份</h2>
-        <div class="sub">选择要导出的内容。</div>
+        <h2>{{ STR.exportPanel.exportBackupTitle }}</h2>
+        <div class="sub">{{ STR.exportPanel.exportBackupHint }}</div>
 
-        <label>导出内容</label>
+        <label>{{ STR.exportPanel.exportContent }}</label>
         <div class="check-group">
-          <label><input type="checkbox" v-model="exportDays" checked> 数据</label>
-          <label><input type="checkbox" v-model="exportTags" checked> 标签</label>
-          <label><input type="checkbox" v-model="exportStats" checked> 统计视图</label>
-          <label><input type="checkbox" v-model="exportSettings"> 设置</label>
+          <label><input type="checkbox" v-model="exportDays" checked> {{ STR.exportPanel.data }}</label>
+          <label><input type="checkbox" v-model="exportTags" checked> {{ STR.exportPanel.tags }}</label>
+          <label><input type="checkbox" v-model="exportStats" checked> {{ STR.exportPanel.statsView }}</label>
+          <label><input type="checkbox" v-model="exportSettings"> {{ STR.exportPanel.settings }}</label>
         </div>
 
         <div class="actions">
           <span class="spacer"></span>
-          <button type="button" class="primary" @click="emit('exportJson', { days: exportDays, tags: exportTags, stats: exportStats, settings: exportSettings })">确认导出</button>
-          <button type="button" @click="emit('close')">取消</button>
+          <button type="button" class="primary" @click="emit('exportJson', { days: exportDays, tags: exportTags, stats: exportStats, settings: exportSettings })">{{ STR.exportPanel.confirmExport }}</button>
+          <button type="button" @click="emit('close')">{{ STR.btn.cancel }}</button>
         </div>
       </template>
 
       <!-- ======================== JSON IMPORT VIEW ======================== -->
       <template v-if="mode === 'json-import' && jsonImportData">
-        <h2>导入备份</h2>
+        <h2>{{ STR.exportPanel.importBackupTitle }}</h2>
         <div class="sub">{{ jsonImportSummary }}</div>
 
-        <label>导入内容</label>
+        <label>{{ STR.exportPanel.importContent }}</label>
         <div class="check-group">
-          <label><input type="checkbox" v-model="jsonImportDays"> 数据</label>
-          <label><input type="checkbox" v-model="jsonImportTags"> 标签</label>
-          <label><input type="checkbox" v-model="jsonImportStats"> 统计视图</label>
-          <label v-if="jsonImportData.settings"><input type="checkbox" v-model="jsonImportSettings"> 设置</label>
+          <label><input type="checkbox" v-model="jsonImportDays"> {{ STR.exportPanel.data }}</label>
+          <label><input type="checkbox" v-model="jsonImportTags"> {{ STR.exportPanel.tags }}</label>
+          <label><input type="checkbox" v-model="jsonImportStats"> {{ STR.exportPanel.statsView }}</label>
+          <label v-if="jsonImportData.settings"><input type="checkbox" v-model="jsonImportSettings"> {{ STR.exportPanel.settings }}</label>
         </div>
 
-        <label>导入方式</label>
+        <label>{{ STR.exportPanel.importMode }}</label>
         <div class="radio">
-          <label><input type="radio" name="jimMode" value="merge" v-model="jsonImportMode"> 合并（保留现有）</label>
-          <label><input type="radio" name="jimMode" value="replace" v-model="jsonImportMode"> 覆盖（清空后导入）</label>
+          <label><input type="radio" name="jimMode" value="merge" v-model="jsonImportMode"> {{ STR.exportPanel.mergeKeepExisting }}</label>
+          <label><input type="radio" name="jimMode" value="replace" v-model="jsonImportMode"> {{ STR.exportPanel.replaceClear }}</label>
         </div>
 
-        <label>只导入日期范围（可选，留空=全部）</label>
+        <label>{{ STR.exportPanel.importDateRange }}</label>
         <div class="timerow">
           <input type="date" v-model="jsonDateFrom"><span>—</span><input type="date" v-model="jsonDateTo">
         </div>
 
-        <label>只导入每日时间段（可选，留空=整天）</label>
+        <label>{{ STR.exportPanel.importTimeRange }}</label>
         <div class="timerow">
           <input type="time" v-model="jsonTimeFrom" step="60"><span>—</span><input type="time" v-model="jsonTimeTo" step="60">
         </div>
 
         <div class="actions">
           <span class="spacer"></span>
-          <button type="button" class="primary" @click="confirmJsonImport">确认导入</button>
-          <button type="button" @click="cancelJsonImport">取消</button>
+          <button type="button" class="primary" @click="confirmJsonImport">{{ STR.exportPanel.confirmImport }}</button>
+          <button type="button" @click="cancelJsonImport">{{ STR.btn.cancel }}</button>
         </div>
       </template>
 
@@ -327,8 +327,13 @@ function buildJsonImportSummary(data) {
   let cnt = 0
   dates.forEach(d => cnt += data.days[d].length)
   const sorted = dates.slice().sort()
-  return '共 ' + dates.length + ' 天、' + cnt + ' 条记录' +
-    (dates.length ? '（' + sorted[0] + ' → ' + sorted[sorted.length - 1] + '）' : '')
+  if (!dates.length) return t('exportPanel.jsonImportSummary', { days: dates.length, count: cnt })
+  return t('exportPanel.jsonImportSummaryRange', {
+    days: dates.length,
+    count: cnt,
+    from: sorted[0],
+    to: sorted[sorted.length - 1],
+  })
 }
 
 function isDayKey(k) {

@@ -12,56 +12,56 @@
         </div>
         <div class="date-jump" v-if="showDateJump" @mousedown.stop @keydown.escape.stop="showDateJump = false">
           <input type="text" v-model="jumpDate" placeholder="yyyy-mm-dd" maxlength="10" @keydown.enter="onDateJump" />
-          <button @click="onDateJump">跳转</button>
+          <button @click="onDateJump">{{ STR.app.jump }}</button>
         </div>
         <button class="icon" @click="store.goNextDay()">›</button>
-        <button @click="store.goToday()">今天</button>
+        <button @click="store.goToday()">{{ STR.app.today }}</button>
       </div>
       <span class="spacer"></span>
       <span class="version">{{ APP_VERSION }}</span>
       <div class="more-wrap">
-        <button class="more-btn" id="moreBtn" title="更多" @click="showMore = !showMore"><img src="/icons/more.svg"
-            alt="更多"></button>
+        <button class="more-btn" id="moreBtn" :title="STR.app.more" @click="showMore = !showMore"><img src="/icons/more.svg"
+            :alt="STR.app.more"></button>
         <div class="dropdown" :class="{ open: showMore }" @keydown.escape.stop="showMore = false"
           @keydown="trapMoreFocus">
-          <button class="dropdown-item" @click="showSettings = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/settings.svg)"></span>设置</button>
-          <button class="dropdown-item" @click="showStats = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/stats.svg)"></span>统计</button>
-          <button class="dropdown-item" @click="showTagMgr = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/tag.svg)"></span>标签</button>
+          <button class="dropdown-item" @click="showSettings = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/settings.svg)"></span>{{ STR.settings.title }}</button>
+          <button class="dropdown-item" @click="showStats = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/stats.svg)"></span>{{ STR.stats.title }}</button>
+          <button class="dropdown-item" @click="showTagMgr = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/tag.svg)"></span>{{ STR.app.tags }}</button>
           <!-- 导出 submenu -->
           <div class="submenu-wrap">
             <button class="dropdown-item submenu-trigger"
-              @click.stop="showExportSub = !showExportSub; showImportSub = false"><span class="mico" style="-webkit-mask-image: url(/icons/export.svg)"></span>导出
+              @click.stop="showExportSub = !showExportSub; showImportSub = false"><span class="mico" style="-webkit-mask-image: url(/icons/export.svg)"></span>{{ STR.app.export }}
               <span class="sub-arrow">▸</span></button>
             <div class="submenu-drop" :class="{ open: showExportSub }" @mouseleave="showExportSub = false"
               @keydown.escape.stop="showExportSub = false" @keydown="trapSubFocus">
-              <button class="dropdown-item" @click="showExportImage = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/export-image.svg)"></span>导出切图</button>
-              <button class="dropdown-item" @click="showExport = true; exportMode = 'export'; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/export-text.svg)"></span>导出文本</button>
+              <button class="dropdown-item" @click="showExportImage = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/export-image.svg)"></span>{{ STR.app.exportSlice }}</button>
+              <button class="dropdown-item" @click="showExport = true; exportMode = 'export'; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/export-text.svg)"></span>{{ STR.app.exportText }}</button>
               <button class="dropdown-item"
-                @click="showExport = true; exportMode = 'json-export'; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/export-json.svg)"></span>导出JSON</button>
+                @click="showExport = true; exportMode = 'json-export'; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/export-json.svg)"></span>{{ STR.app.exportJson }}</button>
             </div>
           </div>
 
           <!-- 导入 submenu -->
           <div class="submenu-wrap">
             <button class="dropdown-item submenu-trigger"
-              @click.stop="showImportSub = !showImportSub; showExportSub = false"><span class="mico" style="-webkit-mask-image: url(/icons/import.svg)"></span>导入
+              @click.stop="showImportSub = !showImportSub; showExportSub = false"><span class="mico" style="-webkit-mask-image: url(/icons/import.svg)"></span>{{ STR.app.import }}
               <span class="sub-arrow">▸</span></button>
             <div class="submenu-drop" :class="{ open: showImportSub }" @mouseleave="showImportSub = false"
               @keydown.escape.stop="showImportSub = false" @keydown="trapSubFocus">
-              <button class="dropdown-item" @click="doImport(); showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/import-json.svg)"></span>导入JSON备份</button>
-              <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/text-import.svg)"></span>文本导入</button>
+              <button class="dropdown-item" @click="doImport(); showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/import-json.svg)"></span>{{ STR.app.importJsonBackup }}</button>
+              <button class="dropdown-item" @click="showExport = true; exportMode = 'import'; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/text-import.svg)"></span>{{ STR.app.textImport }}</button>
             </div>
           </div>
-          <button class="dropdown-item" @click="showDataMgr = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/data.svg)"></span>管理数据</button>
-          <button class="dropdown-item" @click="doBackupNow(); showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/backup.svg)"></span>立即备份<span class="dot" :class="bkStatusClass"></span></button>
+          <button class="dropdown-item" @click="showDataMgr = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/data.svg)"></span>{{ STR.app.manageData }}</button>
+          <button class="dropdown-item" @click="doBackupNow(); showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/backup.svg)"></span>{{ STR.app.backupNow }}<span class="dot" :class="bkStatusClass"></span></button>
           <div class="dropdown-footer"><span>{{ bkStatusText }}</span><button class="dropdown-item btn-help-mini"
               @click="showHelp = true; showMore = false">help</button></div>
         </div>
       </div>
       <span class="win-ctrls" :class="{ on: winCtrlActive }" id="winCtrls">
-        <button class="win-btn" id="winMin" title="最小化" @click="onWinMin"><span class="win-ico win-min"></span></button>
-        <button class="win-btn" id="winMax" :title="isMaximized ? '还原' : '最大化'" @click="onWinMax"><span class="win-ico" :class="isMaximized ? 'win-restore' : 'win-max'"></span></button>
-        <button class="win-btn close" id="winClose" title="关闭" @click="onWinClose"><span class="win-ico win-close"></span></button>
+        <button class="win-btn" id="winMin" :title="STR.app.minimize" @click="onWinMin"><span class="win-ico win-min"></span></button>
+        <button class="win-btn" id="winMax" :title="isMaximized ? STR.app.restore : STR.app.maximize" @click="onWinMax"><span class="win-ico" :class="isMaximized ? 'win-restore' : 'win-max'"></span></button>
+        <button class="win-btn close" id="winClose" :title="STR.btn.close" @click="onWinClose"><span class="win-ico win-close"></span></button>
       </span>
     </header>
     <main id="scroller" tabindex="-1">
@@ -104,7 +104,7 @@ import { useTimelogStore, dkey, addDays, storeUndo, todayLocalToStorage } from '
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
 import { APP_VERSION, compareSemver, DAY_MIN, DAY_OFFSET } from './constants.js'
-import { STR, t } from './strings.js'
+import { STR, t, lang } from './strings.js'
 import {
   bkStatusText, bkStatusClass, setBackupPrefs,
   initBackup, scheduleSave, scheduleClean, doAutoSave,
@@ -189,7 +189,9 @@ function isRolloutAllowed(version, rollout) {
 const dateLabel = computed(() => {
   const d = store.curDate
   const wd = STR.stats.weekDays[d.getDay()]
-  return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + wd
+  const locale = lang.value === 'zh' ? 'zh-CN' : 'en-US'
+  const dateStr = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric' }).format(d)
+  return dateStr + ' ' + wd
 })
 
 function fmtDateInput(d) { return dkey(d) }
@@ -410,12 +412,12 @@ async function doExportJson(opts = {}) {
     if (!filePath) return // user cancelled
     try {
       await window.__TAURI__.fs.writeTextFile(filePath, json)
-      toast('已导出到：' + filePath)
+      toast(t('app.exportedTo', { path: filePath }))
     } catch { toast(STR.toast.backupFail) }
     return
   }
   const ok = await tExport(filename, json)
-  if (ok) toast('已导出到下载目录：' + filename)
+  if (ok) toast(t('app.exportedToDownloads', { filename }))
   else toast(STR.toast.backupFail)
 }
 
