@@ -43,7 +43,7 @@
       <div class="row">
         <label>{{ STR.settings.language }}</label>
         <div>
-          <select style="width:140px;" :value="settings.language" @change="settings.setLanguage($event.target.value)">
+          <select style="min-width:140px; flex:1;" :value="settings.language" @change="settings.setLanguage($event.target.value)">
             <option v-for="l in langs" :key="l.code" :value="l.code">{{ l.label }}</option>
           </select>
           <button type="button" class="small-btn" @click="openLangsFolder">{{ STR.settings.openLangFolder }}</button>
