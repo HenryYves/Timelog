@@ -43,7 +43,8 @@
       <div class="row">
         <label>{{ STR.settings.language }}</label>
         <div>
-          <select style="min-width:140px; flex:1;" :value="settings.language" @change="settings.setLanguage($event.target.value)">
+          <select style="min-width:140px; flex:1;" :value="settings.language" @change="settings.setLanguage($event.target.value)"
+            @mouseenter="refreshLangs" @focus="refreshLangs">
             <option v-for="l in langs" :key="l.code" :value="l.code">{{ l.label }}</option>
           </select>
           <button type="button" class="small-btn" @click="openLangsFolder">{{ STR.settings.openLangFolder }}</button>
@@ -108,6 +109,9 @@ async function openLangsFolder() {
   } catch (e) { logger.error('settings', 'openLangsFolder failed', e) }
 }
 onMounted(() => { loadUserLangs() })
+// 悬停/聚焦时预取用户语言包 —— 原生 select 弹层打开后无法再刷新 options，
+// 借 mouseenter(早于点击) 把扫描提前做完，点开时即已是最新列表
+async function refreshLangs() { await loadUserLangs() }
 
 async function onCheckUpdate() {
   checkingUpdate.value = true
