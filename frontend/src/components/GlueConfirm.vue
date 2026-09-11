@@ -13,7 +13,7 @@
 
 <script setup>
 import { ref, computed, nextTick, watch } from 'vue'
-import { STR, t } from '../strings.js'
+import { STR, t, lang } from '../strings.js'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -25,8 +25,9 @@ const okBtn = ref(null)
 
 const sourceLabel = computed(() => {
   if (!props.sourceDate) return ''
-  const [y, m, d] = props.sourceDate.split('-')
-  return `${parseInt(m)}月${parseInt(d)}日`
+  const [y, m, d] = props.sourceDate.split('-').map(Number)
+  const locale = lang.value === 'zh' ? 'zh-CN' : 'en-US'
+  return new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric' }).format(new Date(y, m - 1, d))
 })
 
 watch(() => props.show, async (v) => {

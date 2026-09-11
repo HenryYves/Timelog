@@ -172,6 +172,7 @@
     "descExportTimestamp": "例：timelog-backup-2026-07-04-1730.json",
     "descExportDialog": "导出时弹出系统文件对话框选择保存位置",
     "descBackupPath": "输入绝对路径，留空则使用 AppData",
+    "changeBkPath": "将备份路径改为 \"{path}\" 并迁移已有备份？",
     "descBackupOn": "关闭后不再自动写入备份文件，避免数据量大时影响性能",
     "descKeepDays": "0 = 保留全部；设 7 则仅保留最近 7 个有数据的天",
     "descCheckUpdate": "手动检测是否有新版本可下载",

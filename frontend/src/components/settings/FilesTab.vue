@@ -85,7 +85,7 @@
 import { ref } from 'vue'
 import { useSettingsStore } from '../../store/settings.js'
 import { useConfirm } from '../../composables/useConfirm.js'
-import { STR } from '../../strings.js'
+import { STR, t } from '../../strings.js'
 import { migrateBackups } from '../../utils/backup.js'
 import { DEFAULT_EXPORT_TIMESTAMP, DEFAULT_EXPORT_DIALOG, DEFAULT_BACKUP_ON, DEFAULT_KEEP_DAYS } from '../../constants.js'
 
@@ -96,7 +96,7 @@ const bkPathDraft = ref(settings.bkCustomPath)
 async function onBkPathBlur() {
   const np = bkPathDraft.value.trim()
   if (np === settings.bkCustomPath) return
-  const ok = await showConfirm(`将备份路径改为 "${np}" 并迁移已有备份？`)
+  const ok = await showConfirm(t('settings.changeBkPath', { path: np }))
   if (!ok) return
   const old = settings.bkCustomPath
   settings.setBkCustomPath(np)
