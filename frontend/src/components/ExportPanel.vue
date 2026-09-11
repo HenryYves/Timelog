@@ -111,7 +111,7 @@ import { useSettingsStore } from '../store/settings.js'
 import { KEY_PREFIX } from '../constants.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
-import { STR } from '../strings.js'
+import { STR, t } from '../strings.js'
 import { scheduleSave } from '../utils/backup.js'
 
 const props = defineProps({
@@ -300,7 +300,7 @@ async function confirmImport() {
     timelogStore.loadBlocks()
   }
   scheduleSave()
-  toast(STR.toast.importCountTo(recs.length, date))
+  toast(t('toast.importCountTo', { n: recs.length, date }))
 }
 
 // --- JSON Export ---

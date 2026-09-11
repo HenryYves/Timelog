@@ -1,9 +1,9 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="emit('close')">
     <div class="modal update-dialog" @keydown="trapFocus">
-      <h2>{{ STR.update.title(updateInfo?.version) }}</h2>
+      <h2>{{ t('update.title', { v: updateInfo?.version }) }}</h2>
 
-      <p v-if="updateInfo?.date" class="update-date">{{ STR.update.published(updateInfo.date) }}</p>
+      <p v-if="updateInfo?.date" class="update-date">{{ t('update.published', { d: updateInfo.date }) }}</p>
 
       <div v-if="updateInfo?.body" class="update-body">
         <div class="update-body-label">{{ STR.update.changelog }}</div>
@@ -56,7 +56,7 @@
 import { ref, computed, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { Channel } from '@tauri-apps/api/core'
-import { STR } from '../strings.js'
+import { STR, t } from '../strings.js'
 import { logger } from '../utils/log.js'
 
 const props = defineProps({

@@ -95,7 +95,7 @@ import { buildGluePrevLabels, buildTodayLabels, buildGlueNextLabels, mergeAllLab
 import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH, DAY_OFFSET } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
 import { useConfirm } from '../composables/useConfirm.js'
-import { STR } from '../strings.js'
+import { STR, t } from '../strings.js'
 import { useCoordConverter, localMinToUnified } from '../composables/useCoordConverter.js'
 import CutConfirm from './CutConfirm.vue'
 import GlueConfirm from './GlueConfirm.vue'
@@ -478,7 +478,7 @@ function onMouseUp(e) {
     })
     console.log('[Selection Final] Selected IDs:', Array.from(selectedBlocks.value))
     if (selectedBlocks.value.size > 0) {
-      toast(STR.toast.contextSelected(selectedBlocks.value.size))
+      toast(t('toast.contextSelected', { n: selectedBlocks.value.size }))
     }
     if (hadSelMoved) {
       suppressContextMenu.value = true
@@ -509,7 +509,7 @@ function onBlockContextMenu(ev) {
     }
   } else {
     selectedBlocks.value.add(ev.id)
-    toast(STR.toast.contextSelected(selectedBlocks.value.size))
+    toast(t('toast.contextSelected', { n: selectedBlocks.value.size }))
   }
 }
 
@@ -591,7 +591,7 @@ async function onCutConfirm(cutAt, direction) {
     }
   }
   if (hasShort) {
-    const ok = await showConfirm(STR.cut.shortBlock(shortDur))
+    const ok = await showConfirm(t('cut.shortBlock', { dur: shortDur }))
     if (!ok) return
   }
 
@@ -649,7 +649,7 @@ function onKeyDown(e) {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
     if (copySelectedLocal()) {
       e.preventDefault()
-      toast(STR.toast.copied(store.clipboard.length))
+      toast(t('toast.copied', { n: store.clipboard.length }))
     }
     return
   }
@@ -710,7 +710,7 @@ function copySelectedLocal() {
 
 async function onDeleteSelected() {
   const n = selectedBlocks.value.size
-  const ok = await showConfirm(STR.confirm.deleteSelected(n))
+  const ok = await showConfirm(t('confirm.deleteSelected', { n }))
   if (!ok) return
   store.deleteSelectedBlocks()
   toast(STR.toast.deleted)
@@ -744,7 +744,7 @@ function doPaste() {
   })
   newBlocks.forEach(nb => store.addBlock(nb))
   store.selectedBlocks = new Set(newBlocks.map(n => n.id))
-  toast(STR.toast.pasteResult(newBlocks.length, anchored))
+  toast(t(anchored ? 'toast.pasteResultAnchored' : 'toast.pasteResultOriginal', { n: newBlocks.length }))
 }
 
 // --- Scroll to now ---

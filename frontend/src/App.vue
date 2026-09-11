@@ -104,7 +104,7 @@ import { useTimelogStore, dkey, addDays, storeUndo, todayLocalToStorage } from '
 import { useSettingsStore } from './store/settings.js'
 import { useTagStore } from './store/tags.js'
 import { APP_VERSION, compareSemver, DAY_MIN, DAY_OFFSET } from './constants.js'
-import { STR } from './strings.js'
+import { STR, t } from './strings.js'
 import {
   bkStatusText, bkStatusClass, setBackupPrefs,
   initBackup, scheduleSave, scheduleClean, doAutoSave,
@@ -668,7 +668,7 @@ function onWindowKeyDown(e) {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A')) {
     e.preventDefault()
     store.selectAll()
-    toast(STR.toast.contextSelected(store.selectedBlocks.size))
+    toast(t('toast.contextSelected', { n: store.selectedBlocks.size }))
   }
 }
 

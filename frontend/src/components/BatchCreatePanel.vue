@@ -11,7 +11,7 @@
         :tag-line="true"
         auto-focus
       />
-      <div class="small" style="margin:4px 0 10px;">{{ STR.batchCreate.preview(parsed.length) }}</div>
+      <div class="small" style="margin:4px 0 10px;">{{ t('batchCreate.preview', { n: parsed.length }) }}</div>
       <div class="actions">
         <span class="spacer"></span>
         <button class="primary" :disabled="!parsed.length" @click="onCreate">{{ STR.batchCreate.create }}</button>
@@ -30,7 +30,7 @@ import { useSettingsStore } from '../store/settings.js'
 import { useCoordConverter } from '../composables/useCoordConverter.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useToast } from '../composables/useToast.js'
-import { STR } from '../strings.js'
+import { STR, t } from '../strings.js'
 import MarkdownEditor from './MarkdownEditor.vue'
 
 const props = defineProps({ show: Boolean })
@@ -173,14 +173,14 @@ async function onCreate() {
     if (short.length) {
       const names = short.map(b => `${fmtSigned(b.start)}-${fmtSigned(b.end)} ${b.title}`).join('\n')
       const confirmed = await showConfirm(
-        `以下 ${short.length} 个时间块跨度不足 ${settings.minBlockMinutes} 分钟：\n${names}\n\n${STR.confirm.shortBlock(short[0].end - short[0].start, settings.minBlockMinutes)}`
+        `以下 ${short.length} 个时间块跨度不足 ${settings.minBlockMinutes} 分钟：\n${names}\n\n${t('confirm.shortBlock', { dur: short[0].end - short[0].start, min: settings.minBlockMinutes })}`
       )
       if (!confirmed) return
     }
   }
 
   if (settings.checkBeforeCreate) {
-    const lines = [`${STR.batchCreate.preview(blocks.length)}\n`]
+    const lines = [`${t('batchCreate.preview', { n: blocks.length })}\n`]
     for (const b of blocks) {
       lines.push(`${fmtSigned(b.start)} - ${fmtSigned(b.end)}  ${b.title}`)
       if (b.tags.length) lines.push(`  标签：${b.tags.join(', ')}`)
@@ -199,7 +199,7 @@ async function onCreate() {
       tags: b.tags,
     })
   }
-  toast(STR.batchCreate.created(blocks.length))
+  toast(t('batchCreate.created', { n: blocks.length }))
   if (settings.copyAfterCreate && text.value.trim()) {
     if (window.__TAURI__) {
       try { await window.__TAURI__.core.invoke('clipboard_write_text', { text: text.value }) } catch {}

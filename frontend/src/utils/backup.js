@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { isTauri, tRead, tWrite, tReadDir, tRemove } from './tauri.js'
 import { KEY_PREFIX, MAIN_NAME, DATA_DIR, MAX_BACKUP_COUNT } from '../constants.js'
-import { STR } from '../strings.js'
+import { STR, t } from '../strings.js'
 import { logger } from './log.js'
 import { useToast } from '../composables/useToast.js'
 import { extractBlocks } from './dayStorage.js'
@@ -268,7 +268,7 @@ export async function migrateBackups(oldPath, newPath) {
       }
       await T.core.invoke('plugin:fs|remove', { path: oldDir + '/' + f, options: {} })
     }
-    toast(STR.toast.backupMigrated(bks.length))
+    toast(t('toast.backupMigrated', { n: bks.length }))
   } catch (e) {
     logger.error('backup', 'migrateBackups failed', e)
   }

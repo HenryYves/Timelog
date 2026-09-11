@@ -44,7 +44,7 @@ import { ref, watch, computed } from 'vue'
 import { useTagStore } from '../store/tags.js'
 import { KEY_PREFIX } from '../constants.js'
 import { useConfirm } from '../composables/useConfirm.js'
-import { STR } from '../strings.js'
+import { STR, t } from '../strings.js'
 import { createAutoScroll } from '../utils/autoScroll.js'
 import { extractBlocks, extractCutMeta } from '../utils/dayStorage.js'
 
@@ -204,7 +204,7 @@ async function onDeleteTag(index) {
   const tag = tagDraft.value[index]
   const name = tag.name.trim()
   if (name) {
-    const ok = await showConfirm(STR.confirm.deleteTag(name))
+    const ok = await showConfirm(t('confirm.deleteTag', { name }))
     if (!ok) { modalEl.value?.querySelector('button')?.focus(); return }
     deletedNames.value.add(name)
   }
@@ -272,7 +272,7 @@ async function onSave() {
     const origName = origNames.value.get(tag._uid)
     const newName = tag.name.trim()
     if (origName && newName && origName !== newName) {
-      const ok = await showConfirm(STR.confirm.renameTag(origName, newName))
+      const ok = await showConfirm(t('confirm.renameTag', { old: origName, name: newName }))
       if (ok) { tagStore.replaceTagInBlocks(origName, newName) }
       else { modalEl.value?.querySelector('button')?.focus() }
     }

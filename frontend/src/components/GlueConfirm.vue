@@ -1,7 +1,7 @@
 <template>
   <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="emit('close')">
     <div class="modal" @keydown="trapFocus" style="max-width:360px">
-      <p style="text-align:center;font-size:15px;margin-bottom:16px">{{ STR.glue.confirm(sourceLabel) }}</p>
+      <p style="text-align:center;font-size:15px;margin-bottom:16px">{{ t('glue.confirm', { date: sourceLabel }) }}</p>
       <div class="actions">
         <span class="spacer"></span>
         <button class="primary" @click="emit('confirm')" ref="okBtn">{{ STR.btn.ok }}</button>
@@ -13,7 +13,7 @@
 
 <script setup>
 import { ref, computed, nextTick, watch } from 'vue'
-import { STR } from '../strings.js'
+import { STR, t } from '../strings.js'
 
 const props = defineProps({
   show: { type: Boolean, default: false },

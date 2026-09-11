@@ -81,7 +81,7 @@ import { useSettingsStore } from '../store/settings.js'
 import { useCoordConverter } from '../composables/useCoordConverter.js'
 import { useToast } from '../composables/useToast.js'
 import { useConfirm } from '../composables/useConfirm.js'
-import { STR } from '../strings.js'
+import { STR, t } from '../strings.js'
 import MarkdownEditor from './MarkdownEditor.vue'
 
 const props = defineProps({
@@ -315,7 +315,7 @@ async function save() {
   const dur = en - s
   // Confirm short blocks (new blocks only, not edits)
   if (!props.editingBlock && settings.minBlockMinutes > 0 && dur < settings.minBlockMinutes) {
-    const confirmed = await showConfirm(STR.confirm.shortBlock(dur, settings.minBlockMinutes))
+    const confirmed = await showConfirm(t('confirm.shortBlock', { dur, min: settings.minBlockMinutes }))
     if (!confirmed) return  // stay in editor
   }
   // 写分裂块到相邻天

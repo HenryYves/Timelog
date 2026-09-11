@@ -67,7 +67,7 @@ import { ref, watch, computed } from 'vue'
 import { KEY_PREFIX } from '../constants.js'
 import { pushStoreUndo, addDays } from '../store/timelog.js'
 import { useConfirm } from '../composables/useConfirm.js'
-import { STR } from '../strings.js'
+import { STR, t } from '../strings.js'
 import { extractBlocks, normalizeDayData } from '../utils/dayStorage.js'
 
 const props = defineProps({ show: Boolean })
@@ -209,7 +209,7 @@ function returnBorrowedTime(date) {
 }
 
 async function deleteDate(date) {
-  const ok = await showConfirm(STR.confirm.deleteDay(date))
+  const ok = await showConfirm(t('confirm.deleteDay', { d: date }))
   if (!ok) { refocusModal(); return }
   returnBorrowedTime(date)
   localStorage.removeItem(KEY_PREFIX + date)
@@ -230,7 +230,7 @@ async function deleteDateRange() {
     return
   }
   const total = toDel.reduce((s, d) => s + d.count, 0)
-  const ok = await showConfirm(STR.confirm.deleteRangeConfirm(toDel.length, total))
+  const ok = await showConfirm(t('confirm.deleteRangeConfirm', { days: toDel.length, count: total }))
   if (!ok) { refocusModal(); return }
   toDel.forEach(d => {
     returnBorrowedTime(d.date)
@@ -246,7 +246,7 @@ async function deleteSelected() {
     const day = days.value.find(x => x.date === d)
     return s + (day?.count || 0)
   }, 0)
-  const ok = await showConfirm(STR.confirm.deleteRangeConfirm(selectedDays.value.size, total))
+  const ok = await showConfirm(t('confirm.deleteRangeConfirm', { days: selectedDays.value.size, count: total }))
   if (!ok) { refocusModal(); return }
   selectedDays.value.forEach(d => {
     returnBorrowedTime(d)
@@ -293,7 +293,7 @@ async function deleteAll() {
     await showAlert(STR.confirm.noRecords)
     return
   }
-  const ok = await showConfirm(STR.confirm.deleteAllConfirm(totalDays, totalBlocks))
+  const ok = await showConfirm(t('confirm.deleteAllConfirm', { days: totalDays, count: totalBlocks }))
   if (!ok) { refocusModal(); return }
   days.value.forEach(d => localStorage.removeItem(KEY_PREFIX + d.date))
   loadDays()
