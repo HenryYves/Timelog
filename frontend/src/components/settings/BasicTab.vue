@@ -46,6 +46,7 @@
           <select style="width:140px;" :value="settings.language" @change="settings.setLanguage($event.target.value)">
             <option v-for="l in langs" :key="l.code" :value="l.code">{{ l.label }}</option>
           </select>
+          <button type="button" class="small-btn" @click="openLangsFolder">{{ STR.settings.openLangFolder }}</button>
           <span class="restore-spacer"></span>
         </div>
       </div>
@@ -86,19 +87,27 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { useSettingsStore } from '../../store/settings.js'
 import { useToast } from '../../composables/useToast.js'
 import { APP_VERSION, compareSemver, DEFAULT_AUTO_UPDATE, DEFAULT_AUTO_SCROLL } from '../../constants.js'
-import { STR, availableLangs } from '../../strings.js'
+import { STR, availableLangs, loadUserLangs, languagesDir } from '../../strings.js'
 import { logger } from '../../utils/log.js'
 
 const emit = defineEmits(['check-update-result'])
 const settings = useSettingsStore()
 const { toast } = useToast()
 const checkingUpdate = ref(false)
-const langs = availableLangs()
+const langs = computed(() => availableLangs())
+
+// 用户语言包：AppData\languages 下的 *.json 运行时注入，加载后下拉即时刷新
+async function openLangsFolder() {
+  try {
+    await invoke('open_folder', { path: await languagesDir() })
+  } catch (e) { logger.error('settings', 'openLangsFolder failed', e) }
+}
+onMounted(() => { loadUserLangs() })
 
 async function onCheckUpdate() {
   checkingUpdate.value = true

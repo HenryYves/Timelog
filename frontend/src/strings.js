@@ -12,6 +12,8 @@ export {
   getLang,
   availableLangs,
   registerPack,
+  loadUserLangs,
+  languagesDir,
   initI18n,
   DEFAULT_LANG,
 } from './i18n/index.js'

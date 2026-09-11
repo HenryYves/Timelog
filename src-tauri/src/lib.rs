@@ -213,23 +213,35 @@ fn get_default_asset_dir() -> Result<String, String> {
     Ok(format!("{}\\com.timelog.app", appdata))
 }
 
-/// 扫描目录中 .css 文件，返回去后缀文件名列表。目录不存在则创建。
-#[tauri::command]
-fn scan_css_files(path: String) -> Result<Vec<String>, String> {
-    let dir = Path::new(&path);
+/// 扫描目录中指定后缀的文件，返回去后缀文件名列表。目录不存在则创建。
+fn scan_files_by_ext(path: &str, ext: &str) -> Result<Vec<String>, String> {
+    let dir = Path::new(path);
     if !dir.exists() {
         fs::create_dir_all(dir).map_err(|e| format!("创建目录失败: {}", e))?;
     }
+    let suffix = format!(".{}", ext);
     let mut files: Vec<String> = Vec::new();
     for entry in fs::read_dir(dir).map_err(|e| format!("读取目录失败: {}", e))? {
         let entry = entry.map_err(|e| format!("读取条目失败: {}", e))?;
         let fname = entry.file_name().to_string_lossy().to_string();
-        if fname.ends_with(".css") {
-            files.push(fname[..fname.len() - 4].to_string());
+        if fname.ends_with(&suffix) {
+            files.push(fname[..fname.len() - suffix.len()].to_string());
         }
     }
     files.sort();
     Ok(files)
+}
+
+/// 扫描目录中 .css 文件，返回去后缀文件名列表
+#[tauri::command]
+fn scan_css_files(path: String) -> Result<Vec<String>, String> {
+    scan_files_by_ext(&path, "css")
+}
+
+/// 扫描目录中 .json 文件（语言包），返回去后缀文件名列表
+#[tauri::command]
+fn scan_json_files(path: String) -> Result<Vec<String>, String> {
+    scan_files_by_ext(&path, "json")
 }
 
 /// 读取文本文件内容
@@ -356,6 +368,7 @@ pub fn run(reset_settings: bool, minimized: bool) {
             get_default_asset_dir,
             open_devtools,
             scan_css_files,
+            scan_json_files,
             read_file_text,
             write_file_text,
             open_folder,

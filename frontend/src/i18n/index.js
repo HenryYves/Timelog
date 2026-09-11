@@ -36,15 +36,60 @@ export const lang = ref(readPersistedLang())
 /** 取当前语言码 */
 export function getLang() { return lang.value }
 
-/** 可用语言列表 [{ code, label }] */
+// 语言包注册版本号：让 availableLangs() 具备响应式依赖（用户包注入后下拉能刷新）
+const _packsRev = ref(0)
+
+/** 可用语言列表 [{ code, label }]（响应式：读取 _packsRev 建立依赖） */
 export function availableLangs() {
+  _packsRev.value // eslint-disable-line no-unused-expressions
   return Object.keys(PACKS).map(code => ({ code, label: LANG_LABELS[code] || code }))
 }
 
-/** 注册/覆盖语言包（P3 文件注入入口） */
+/** 注册/覆盖语言包（文件注入入口） */
 export function registerPack(code, pack, label) {
   PACKS[code] = pack
   if (label) LANG_LABELS[code] = label
+  _packsRev.value++
+}
+
+function isTauri() {
+  return !!(typeof window !== 'undefined' && window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke)
+}
+
+/** 用户语言文件夹默认路径（AppData 下 languages） */
+export async function languagesDir() {
+  const { invoke } = await import('@tauri-apps/api/core')
+  const base = await invoke('get_default_asset_dir')
+  return base + '\\languages'
+}
+
+/**
+ * 从用户目录加载语言包（*.json），运行时注入 —— 用户不重编即可添加语言。
+ * 文件名即语言码（如 ja.json → 'ja'）；可选 `_meta: { code, label }` 覆盖码与显示名。
+ * 单个文件解析失败不影响其它；缺 key 时自动回退默认语言。
+ * @param {string} [dir] 语言文件夹路径，缺省用 AppData\languages
+ * @returns {Promise<string[]>} 成功注册的语言码
+ */
+export async function loadUserLangs(dir) {
+  if (!isTauri()) return []
+  const { invoke } = await import('@tauri-apps/api/core')
+  const d = dir || await languagesDir()
+  const added = []
+  let names = []
+  try { names = await invoke('scan_json_files', { path: d }) } catch { return [] }
+  for (const name of names) {
+    try {
+      const raw = await invoke('read_file_text', { path: d + '\\' + name + '.json' })
+      const pack = JSON.parse(raw)
+      if (!pack || typeof pack !== 'object' || Array.isArray(pack)) continue
+      const meta = pack._meta || {}
+      delete pack._meta
+      const code = meta.code || name
+      registerPack(code, pack, meta.label || code)
+      added.push(code)
+    } catch { /* 跳过坏文件 */ }
+  }
+  return added
 }
 
 /** 按点分路径从语言包取值 */
@@ -70,10 +115,23 @@ export function t(key, params) {
 // ── 响应式 STR：纯文本读取用 ──
 export const STR = reactive({})
 
+// 深合并：over 覆盖 base；over 缺失的键回退 base（用户包可以是部分翻译）
+function deepMerge(base, over) {
+  if (Array.isArray(over)) return over
+  if (over && typeof over === 'object' && base && typeof base === 'object' && !Array.isArray(base)) {
+    const out = { ...base }
+    for (const k of Object.keys(over)) out[k] = deepMerge(base[k], over[k])
+    return out
+  }
+  return over === undefined ? base : over
+}
+
 function applyLang(code) {
   const pack = PACKS[code] || PACKS[DEFAULT_LANG]
+  // 以默认语言为底、当前语言覆盖 —— 保证部分翻译的包不会让 STR.x.y 变 undefined
+  const merged = pack === PACKS[DEFAULT_LANG] ? pack : deepMerge(PACKS[DEFAULT_LANG], pack)
   for (const k of Object.keys(STR)) delete STR[k]
-  Object.assign(STR, pack)
+  Object.assign(STR, merged)
 }
 
 /** 手动切换语言（无效码回退默认） */
