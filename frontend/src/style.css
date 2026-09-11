@@ -244,6 +244,8 @@ kbd {
 mark { background: var(--md-highlight-bg); color: var(--text); padding: 0 2px; border-radius: 2px; }
 .small { font-size: 12px; color: var(--text2); }
 .divider { height: 1px; background: var(--border); margin: 16px 0; }
+/* 单行截断 + v-ellipsis 指令(被截断时自动挂 title/aria-label) */
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .actions { display: flex; align-items: center; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
 
 /* Shared across multiple components */

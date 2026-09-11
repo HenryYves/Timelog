@@ -6,7 +6,7 @@
       <div class="bar-row" v-for="d in items" :key="d.tag" :class="{ interactive }"
         @mouseenter="$emit('slice-enter', d)"
         @mouseleave="$emit('slice-leave')">
-        <span class="bar-label" :title="d.tag">{{ d.tag }}</span>
+        <span class="bar-label" v-ellipsis>{{ d.tag }}</span>
         <span class="bar-track">
           <span class="bar-fill" :style="{ width: barW(d.minutes) + '%', background: d.color }"></span>
         </span>
