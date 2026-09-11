@@ -34,7 +34,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { STR } from '../strings.js'
 import BasicTab from './settings/BasicTab.vue'
 import EditorTab from './settings/EditorTab.vue'
@@ -48,13 +48,14 @@ defineProps({
 const emit = defineEmits(['close', 'checkUpdateResult'])
 
 const activeTab = ref('basic')
-const tabs = [
+// computed：切语言时重新求值，导航标签即时更新（普通数组会冻结成首次语言）
+const tabs = computed(() => [
   { key: 'basic', label: STR.settings.navBasic },
   { key: 'editor', label: STR.settings.navEditor },
   { key: 'appearance', label: STR.settings.navAppearance },
   { key: 'files', label: STR.settings.navFiles },
   { key: 'dev', label: STR.settings.navDev },
-]
+])
 
 function trapFocus(e) {
   if (e.key !== 'Tab') return

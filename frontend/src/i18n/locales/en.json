@@ -71,6 +71,7 @@
     "noUpdate": "You're on the latest version",
     "checkFailed": "Update check failed, please check your network",
     "downloadFailed": "Download failed",
+    "errorWithDetail": "{base}: {detail}",
     "installFailed": "Installation failed",
     "retry": "Retry",
     "cancel": "Cancel",

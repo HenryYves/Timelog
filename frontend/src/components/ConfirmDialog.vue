@@ -12,12 +12,12 @@
           v-if="type === 'confirm'"
           class="dlg-cancel"
           @click="$emit('close')"
-        >{{ cancelLabel }}</button>
+        >{{ STR.btn.cancel }}</button>
         <button
           class="dlg-ok"
           ref="okBtnRef"
           @click="$emit('confirm')"
-        >{{ okLabel }}</button>
+        >{{ STR.btn.ok }}</button>
       </div>
     </div>
   </div>
@@ -67,8 +67,6 @@ function trapFocus(e) {
   }
 }
 
-const okLabel = STR.btn.ok
-const cancelLabel = STR.btn.cancel
 </script>
 
 <style scoped>

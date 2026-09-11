@@ -135,7 +135,7 @@ async function startDownload() {
     if (cancelFlag) return false
     logger.error('update', 'download failed', e)
     phase.value = 'error'
-    errorMessage.value = `${STR.update.downloadFailed}：${e?.message || String(e)}`
+    errorMessage.value = t('update.errorWithDetail', { base: STR.update.downloadFailed, detail: e?.message || String(e) })
     return false
   } finally {
     isDownloading = false
@@ -155,7 +155,7 @@ async function onUpdateNow() {
   } catch (e) {
     logger.error('update', 'install failed', e)
     phase.value = 'error'
-    errorMessage.value = `${STR.update.installFailed}：${e?.message || String(e)}`
+    errorMessage.value = t('update.errorWithDetail', { base: STR.update.installFailed, detail: e?.message || String(e) })
   }
 }
 

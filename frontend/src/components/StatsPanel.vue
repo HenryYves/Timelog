@@ -156,14 +156,15 @@ const tagGroups = computed(() => [...new Set(tagStore.tags.map(t => t.group).fil
 function tagGroup(name) { const t = tagStore.tags.find(x => x.name === name); return t?.group || '' }
 
 // ── Time range ──
-const timeOptions = [
+// computed：切语言时重新求值，时间范围菜单标签即时更新
+const timeOptions = computed(() => [
   { value: 'today', label: STR.stats.timeToday },
   { value: '24h', label: STR.stats.time24h },
   { value: 'week', label: STR.stats.timeWeek },
   { value: '168h', label: STR.stats.time168h },
   { value: '7d', label: STR.stats.time7d },
   { value: 'month', label: STR.stats.timeMonth },
-]
+])
 const timeRange = ref(localStorage.getItem('timelog:stats-time-range') || 'today')
 const showTimeMenu = ref(false)
 const customStart = ref(localStorage.getItem('timelog:stats-custom-start') || '')
@@ -187,7 +188,7 @@ function validateDates() {
   }
 }
 const timeLabel = computed(() => {
-  const opt = timeOptions.find(o => o.value === timeRange.value)
+  const opt = timeOptions.value.find(o => o.value === timeRange.value)
   return opt ? opt.label : STR.stats.timeCustom
 })
 watch(timeRange, (v) => { localStorage.setItem('timelog:stats-time-range', v); if (v !== 'custom') dateError.value = '' })
