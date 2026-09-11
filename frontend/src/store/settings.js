@@ -13,6 +13,7 @@ import {
   DEFAULT_MIN_BLOCK_MINUTES,
   DEFAULT_AUTO_SELECT_ON_FOCUS,
 } from '../constants.js'
+import { DEFAULT_LANG } from '../strings.js'
 
 function loadNum(k, d) {
   const v = localStorage.getItem(KEY_PREFIX + k)
@@ -86,6 +87,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const endTimeAtNow = ref(loadBool('endTimeAtNow', DEFAULT_END_TIME_AT_NOW))
   const minBlockMinutes = ref(loadNum('minBlockMinutes', DEFAULT_MIN_BLOCK_MINUTES))
   const autoSelectOnFocus = ref(loadBool('autoSelectOnFocus', DEFAULT_AUTO_SELECT_ON_FOCUS))
+  const language = ref(localStorage.getItem(KEY_PREFIX + 'language') || DEFAULT_LANG)
 
   function saveNum(k, v) { localStorage.setItem(KEY_PREFIX + k, String(v)) }
   function saveBool(k, v) { localStorage.setItem(KEY_PREFIX + k, v ? '1' : '0') }
@@ -195,6 +197,7 @@ export const useSettingsStore = defineStore('settings', () => {
     saveNum('minBlockMinutes', minBlockMinutes.value)
   }
   function setAutoSelectOnFocus(v) { autoSelectOnFocus.value = v; saveBool('autoSelectOnFocus', v) }
+  function setLanguage(v) { language.value = v; localStorage.setItem(KEY_PREFIX + 'language', v) }
 
   function reloadSettings() {
     defaultDuration.value = loadNum('defaultDuration', DEFAULT_DURATION)
@@ -227,6 +230,7 @@ export const useSettingsStore = defineStore('settings', () => {
     endTimeAtNow.value = loadBool('endTimeAtNow', DEFAULT_END_TIME_AT_NOW)
     minBlockMinutes.value = loadNum('minBlockMinutes', DEFAULT_MIN_BLOCK_MINUTES)
     autoSelectOnFocus.value = loadBool('autoSelectOnFocus', DEFAULT_AUTO_SELECT_ON_FOCUS)
+    language.value = localStorage.getItem(KEY_PREFIX + 'language') || DEFAULT_LANG
     activeSkin.value = (localStorage.getItem(KEY_PREFIX + 'activeSkin') || '')
     skinPath.value = (localStorage.getItem(KEY_PREFIX + 'skinPath') || '')
     snippetPath.value = (localStorage.getItem(KEY_PREFIX + 'snippetPath') || '')
@@ -247,11 +251,13 @@ export const useSettingsStore = defineStore('settings', () => {
     endTimeAtNow,
     minBlockMinutes,
     autoSelectOnFocus,
+    language,
     setShowBlockTitle, setShowBlockTime, setShowBlockTags, setShowBlockNote, setShowBlockColorBar, setMaskBlockOverflow,
     setRenderNoteMarkdown,
     setEndTimeAtNow,
     setMinBlockMinutes,
     setAutoSelectOnFocus,
+    setLanguage,
     setMarkdownPreview, setBatchMarkdownPreview, setTabToIndent, setBatchTabToIndent, setEditorFontSize,
     setActiveSkin, setSkinPath, setSnippetPath, setEnabledSnippets,
     reloadSettings,

@@ -43,7 +43,9 @@
       <div class="row">
         <label>{{ STR.settings.language }}</label>
         <div>
-          <select disabled style="width:140px;"><option>{{ STR.settings.languageOption }}</option></select>
+          <select style="width:140px;" :value="settings.language" @change="settings.setLanguage($event.target.value)">
+            <option v-for="l in langs" :key="l.code" :value="l.code">{{ l.label }}</option>
+          </select>
           <span class="restore-spacer"></span>
         </div>
       </div>
@@ -89,13 +91,14 @@ import { invoke } from '@tauri-apps/api/core'
 import { useSettingsStore } from '../../store/settings.js'
 import { useToast } from '../../composables/useToast.js'
 import { APP_VERSION, compareSemver, DEFAULT_AUTO_UPDATE, DEFAULT_AUTO_SCROLL } from '../../constants.js'
-import { STR } from '../../strings.js'
+import { STR, availableLangs } from '../../strings.js'
 import { logger } from '../../utils/log.js'
 
 const emit = defineEmits(['check-update-result'])
 const settings = useSettingsStore()
 const { toast } = useToast()
 const checkingUpdate = ref(false)
+const langs = availableLangs()
 
 async function onCheckUpdate() {
   checkingUpdate.value = true

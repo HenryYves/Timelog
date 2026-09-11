@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { STR, t, getLang, availableLangs } from '../../i18n/index.js'
+import { STR, t, getLang, availableLangs, setLang } from '../../i18n/index.js'
 
 describe('i18n: t() 占位符插值', () => {
   it('单占位符', () => {
@@ -50,6 +50,18 @@ describe('i18n: 响应式 STR facade（纯文本读取）', () => {
 
   it('默认语言 zh，可用语言列表', () => {
     expect(getLang()).toBe('zh')
-    expect(availableLangs()).toEqual([{ code: 'zh', label: '中文' }])
+    expect(availableLangs().map(l => l.code)).toEqual(['zh', 'en'])
+  })
+
+  it('setLang 切换语言后 STR 与 t() 立即跟随', () => {
+    setLang('en')
+    expect(getLang()).toBe('en')
+    expect(STR.settings.language).toBe('Language')
+    expect(t('toast.copied', { n: 3 })).not.toBe('已复制 3 个')
+
+    setLang('zh')
+    expect(getLang()).toBe('zh')
+    expect(STR.settings.language).toBe('语言')
+    expect(t('toast.copied', { n: 3 })).toBe('已复制 3 个')
   })
 })

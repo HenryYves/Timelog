@@ -15,6 +15,7 @@
 import { reactive, ref, watch } from 'vue'
 import { KEY_PREFIX } from '../constants.js'
 import zh from './locales/zh.json'
+import en from './locales/en.json'
 
 export const DEFAULT_LANG = 'zh'
 
@@ -24,7 +25,7 @@ function readPersistedLang() {
 }
 
 // 已注册的语言包（P3 文件注入时用 registerPack 追加）
-const PACKS = { zh }
+const PACKS = { zh, en }
 
 // 语言显示名（供设置下拉）
 const LANG_LABELS = { zh: '中文', en: 'English' }
@@ -80,6 +81,9 @@ export function setLang(code) {
   lang.value = PACKS[code] ? code : DEFAULT_LANG
 }
 
+// 模块级同步监听：任何 lang 变更都立即应用，不依赖 initI18n 是否被调用
+watch(() => lang.value, applyLang, { flush: 'sync' })
+
 /**
  * 初始化 i18n。
  * @param {Object} [settings] settings store（含 `language` ref）
@@ -87,7 +91,6 @@ export function setLang(code) {
  */
 export function initI18n(settings) {
   if (settings?.language && PACKS[settings.language]) lang.value = settings.language
-  watch(() => lang.value, applyLang, { immediate: true })
   if (settings) {
     watch(() => settings.language, v => { if (v && PACKS[v]) lang.value = v })
   }
