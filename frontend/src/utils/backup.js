@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { isTauri, tRead, tWrite, tReadDir, tRemove } from './tauri.js'
 import { KEY_PREFIX, MAIN_NAME, DATA_DIR, MAX_BACKUP_COUNT } from '../constants.js'
-import { STR, t } from '../strings.js'
+import { STR, t, lang } from '../strings.js'
 import { logger } from './log.js'
 import { useToast } from '../composables/useToast.js'
 import { extractBlocks } from './dayStorage.js'
@@ -138,7 +138,7 @@ function bkPath(name) { return DATA_DIR + '/' + name }
 // =============================================
 export async function initBackup() {
   if (!isTauri()) {
-    setBk('浏览器模式 · 仅本地', 'warn')
+    setBk(STR.backup.browserMode, 'warn')
     return
   }
   try {
@@ -154,10 +154,10 @@ export async function initBackup() {
         window.dispatchEvent(new CustomEvent('backup:restored'))
       } catch (e) { logger.error('backup', 'restore from backup error', e) }
     }
-    setBk(_backupOn ? '备份可用 · 自动备份' : '自动备份已关闭', _backupOn ? 'on' : 'warn')
+    setBk(_backupOn ? STR.backup.available : STR.backup.autoOff, _backupOn ? 'on' : 'warn')
   } catch (e) {
     logger.error('backup', 'initBackup failed', e)
-    setBk('备份初始化失败', 'warn')
+    setBk(STR.backup.initFailed, 'warn')
   }
 }
 
@@ -175,13 +175,14 @@ export async function doAutoSave() {
     }
     localStorage.setItem(KEY_PREFIX + 'lastBackupDate', today)
     await tWrite(bkPath(MAIN_NAME), JSON.stringify(getAllData(), null, 2))
+    const locale = lang.value === 'zh' ? 'zh-CN' : 'en-US'
     setBk(
-      '已备份 · ' + new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+      t('backup.savedAt', { time: new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) }),
       'on',
     )
   } catch (e) {
     logger.error('backup', 'doAutoSave failed', e)
-    setBk('备份失败', 'warn')
+    setBk(STR.toast.backupFail, 'warn')
   }
 }
 

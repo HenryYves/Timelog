@@ -281,7 +281,7 @@ const showBlockOpts = ref(false)
 const showAuthorOpts = ref(false)
 const showWatermarkOpts = ref(false)
 
-import { STR } from '../strings.js'
+import { STR, t, lang } from '../strings.js'
 import { useTimelogStore, fmt, fmtSigned, dkey } from '../store/timelog.js'
 import { useTagStore } from '../store/tags.js'
 
@@ -378,7 +378,7 @@ watch(settings, () => {
       logger.info('export', 'saveSettings key=' + settingsKey.value + ' size=' + JSON.stringify(settings).length)
     } catch (e) {
       logger.error('export', 'settings save failed', e)
-      toast('导出设置保存失败，如已选图片请重新选择较小的图片')
+      toast(STR.exportImage.saveSettingsFail)
     }
   }, 300)
 }, { deep: true })
@@ -476,7 +476,8 @@ const showAuthorBlock = computed(() =>
 
 const exportDateTitle = computed(() => {
   const d = new Date()
-  return d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日'
+  const locale = lang.value === 'zh' ? 'zh-CN' : 'en-US'
+  return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric' }).format(d)
 })
 
 const defaultTitleText = computed(() => {
@@ -577,8 +578,8 @@ async function pickAsset(target, callback) {
     const { open } = await import('@tauri-apps/plugin-dialog')
     const { readFile } = await import('@tauri-apps/plugin-fs')
     const path = await open({
-      title: target === 'avatar' ? '选择头像' : '选择水印图',
-      filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'] }],
+      title: target === 'avatar' ? STR.exportImage.pickAvatarTitle : STR.exportImage.pickWmImageTitle,
+      filters: [{ name: STR.exportImage.filterImages, extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'] }],
       multiple: false,
     })
     if (!path) return
@@ -597,7 +598,7 @@ async function pickAsset(target, callback) {
       callback(assetPath)
     } catch (e) {
       logger.error('export', 'pickAsset Tauri failed', e)
-      toast('图片加载失败，请选择有效的图片文件')
+      toast(STR.exportImage.imageLoadFail)
     }
   } else {
     const input = document.createElement('input')
@@ -612,7 +613,7 @@ async function pickAsset(target, callback) {
         callback(dataUrl)
       } catch (e) {
         logger.error('export', 'pickAsset browser failed', e)
-        toast('图片加载失败，请选择有效的图片文件')
+        toast(STR.exportImage.imageLoadFail)
       }
     }
     input.click()
@@ -627,7 +628,7 @@ function resetSettings() {
   Object.assign(settings, defaults)
   authorAvatarUrl.value = ''
   wmImageUrl.value = ''
-  toast('已重置为默认设置')
+  toast(STR.exportImage.resetDone)
 }
 
 function trapFocus(e) {
@@ -757,7 +758,7 @@ async function doExport() {
       ? 'timelog-stats-' + dkey(new Date()) + '.png'
       : 'timelog-' + dkey(new Date()) + '.png'
     const path = await saveCanvasToFile(canvas, fn)
-    if (path) toast('已导出到：' + path)
+    if (path) toast(t('app.exportedTo', { path }))
     emit('close')
   } catch (e) {
     logger.error('export', 'export failed', e)

@@ -295,7 +295,7 @@ function applyDrag() {
     adrag.el.style.height = Math.max((b.en - b.s) * PX_MIN, 2) + 'px'
     adrag.el.classList.add('resizing')
   }
-  showDLabel(activeMin(), fmtSigned(b.s) + ' – ' + fmtSigned(b.en) + '（' + (b.en - b.s) + 'm，↑↓微调）')
+  showDLabel(activeMin(), t('timeline.dragHint', { start: fmtSigned(b.s), end: fmtSigned(b.en), dur: b.en - b.s }))
 }
 
 function endDrag(commit) {
@@ -607,7 +607,9 @@ async function onCutConfirm(cutAt, direction) {
   const result = cutDay(store.dateKey, cutAt, direction)
   if (result) {
     store.loadBlocks()
-    toast(`已剪切 ${result.moved} 个块到 ${direction === 'forward' ? '明天' : '昨天'}`)
+    toast(direction === 'forward'
+      ? t('timeline.cutToNext', { n: result.moved })
+      : t('timeline.cutToPrev', { n: result.moved }))
   } else {
     toast(STR.cut.constraintFail)
   }
@@ -620,7 +622,7 @@ function onGlueBackConfirm() {
   const result = glueBack(store.dateKey, sourceDate)
   if (result) {
     store.loadBlocks()
-    toast('已粘回')
+    toast(STR.timeline.gluedBack)
   }
   showGlueConfirm.value = false
   glueTarget.value = null

@@ -13,9 +13,15 @@
  * 只有 `reactive()` 的深代理能让嵌套/子树读取都登记依赖。
  */
 import { reactive, ref, watch } from 'vue'
+import { KEY_PREFIX } from '../constants.js'
 import zh from './locales/zh.json'
 
 export const DEFAULT_LANG = 'zh'
+
+// 模块加载即读取持久化语言 —— 保证首屏与"默认标签种子"用对语言，不依赖 initI18n 的调用时机
+function readPersistedLang() {
+  try { return localStorage.getItem(KEY_PREFIX + 'language') || DEFAULT_LANG } catch { return DEFAULT_LANG }
+}
 
 // 已注册的语言包（P3 文件注入时用 registerPack 追加）
 const PACKS = { zh }
@@ -23,8 +29,8 @@ const PACKS = { zh }
 // 语言显示名（供设置下拉）
 const LANG_LABELS = { zh: '中文', en: 'English' }
 
-/** 当前语言码 */
-export const lang = ref(DEFAULT_LANG)
+/** 当前语言码（初始值来自持久化设置） */
+export const lang = ref(readPersistedLang())
 
 /** 取当前语言码 */
 export function getLang() { return lang.value }
@@ -88,5 +94,5 @@ export function initI18n(settings) {
   return STR
 }
 
-// 模块加载即用默认语言填充 STR，保证模板首次渲染前就有值
-applyLang(DEFAULT_LANG)
+// 模块加载即用当前语言填充 STR，保证模板首次渲染前就有值
+applyLang(lang.value)

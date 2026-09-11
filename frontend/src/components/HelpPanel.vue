@@ -48,7 +48,7 @@
       <div class="help-section">
         <h3>{{ STR.help.sectionDebug }}</h3>
         <div style="display:flex;gap:8px;align-items:center">
-          <button @click="toggleLogs">{{ showLogs ? '隐藏日志' : '查看日志' }}</button>
+          <button @click="toggleLogs">{{ showLogs ? STR.help.hideLogs : STR.help.showLogs }}</button>
           <button @click="doExportLogs">{{ STR.help.exportLogs }}</button>
         </div>
         <pre v-if="showLogs" class="log-view">{{ logContent }}</pre>
@@ -68,7 +68,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { STR } from '../strings.js'
+import { STR, t } from '../strings.js'
 import { exportLogs, getLogText, logger } from '../utils/log.js'
 import { useToast } from '../composables/useToast.js'
 
@@ -79,11 +79,11 @@ const logContent = ref('')
 async function doExportLogs() {
   try {
     const path = await exportLogs()
-    if (path) toast('日志已导出到：' + path)
-    else toast('已取消')
+    if (path) toast(t('help.logExportedTo', { path }))
+    else toast(STR.help.exportCanceled)
   } catch (e) {
     logger.error('help', 'exportLogs failed', e)
-    toast('导出日志失败')
+    toast(STR.help.exportLogsFailed)
   }
 }
 

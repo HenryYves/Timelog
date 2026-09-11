@@ -4,6 +4,7 @@ import { KEY_PREFIX } from '../constants.js'
 import { useTimelogStore } from './timelog.js'
 import { useSettingsStore } from './settings.js'
 import { logger } from '../utils/log.js'
+import { STR } from '../strings.js'
 import { extractBlocks, extractCutMeta } from '../utils/dayStorage.js'
 
 const PALETTE = {
@@ -12,14 +13,10 @@ const PALETTE = {
   purple: '#6D3FB8', pink: '#B03A79', red: '#C13B2E',
 }
 
-const DEFAULT_TAGS = [
-  { name: '专注', color: '#A1AFC9', group: '自我评价' },
-  { name: '摸鱼', color: '#F0C7C1', group: '自我评价' },
-  { name: '学习', color: '#C4E0D4', group: '正事' },
-  { name: '工作', color: '#A1AFC9', group: '正事' },
-  { name: '运动', color: '#B5D8A8', group: '生活' },
-  { name: '社交', color: '#FCE38A', group: '生活' },
-]
+// 默认标签种子从语言包读取（按首次运行时的语言生成；一经生成即成为用户数据，之后不再随语言变）
+function defaultTags() {
+  return (STR.tags?.defaults || []).map(t => ({ ...t }))
+}
 
 export const useTagStore = defineStore('tags', () => {
   const tags = ref([])
@@ -29,8 +26,8 @@ export const useTagStore = defineStore('tags', () => {
   function loadTags() {
     try {
       const raw = localStorage.getItem(KEY_PREFIX + 'tags')
-      tags.value = raw ? JSON.parse(raw) : [...DEFAULT_TAGS]
-    } catch (e) { logger.error('tags', 'loadTags failed', e); tags.value = [...DEFAULT_TAGS] }
+      tags.value = raw ? JSON.parse(raw) : defaultTags()
+    } catch (e) { logger.error('tags', 'loadTags failed', e); tags.value = defaultTags() }
   }
 
   function saveTags() {

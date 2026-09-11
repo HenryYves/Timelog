@@ -92,7 +92,9 @@
     "preview": "预览：{n} 个时间块",
     "create": "创建",
     "created": "已创建 {n} 个时间块",
-    "defaultTitle": "(未命名)"
+    "defaultTitle": "(未命名)",
+    "shortWarningHeader": "以下 {n} 个时间块跨度不足 {min} 分钟：",
+    "tagsLine": "  标签：{tags}"
   },
   "settings": {
     "title": "设置",
@@ -318,6 +320,11 @@
     "sectionDebug": "调试",
     "exportLogs": "导出日志",
     "noLogs": "暂无日志",
+    "showLogs": "查看日志",
+    "hideLogs": "隐藏日志",
+    "logExportedTo": "日志已导出到：{path}",
+    "exportCanceled": "已取消",
+    "exportLogsFailed": "导出日志失败",
     "footer": "Made by Yves / 陈虹宇 · 2026",
     "close": "关闭"
   },
@@ -365,6 +372,29 @@
     "importJson": "导入 JSON",
     "importHint": "选择一个 timelog JSON 备份文件导入。已存在的日期会被合并。",
     "importedCount": "导入成功 {n} 条"
+  },
+  "timeline": {
+    "dragHint": "{start} – {end}（{dur}m，↑↓微调）",
+    "cutToNext": "已剪切 {n} 个块到明天",
+    "cutToPrev": "已剪切 {n} 个块到昨天",
+    "gluedBack": "已粘回"
+  },
+  "backup": {
+    "browserMode": "浏览器模式 · 仅本地",
+    "available": "备份可用 · 自动备份",
+    "autoOff": "自动备份已关闭",
+    "initFailed": "备份初始化失败",
+    "savedAt": "已备份 · {time}"
+  },
+  "tags": {
+    "defaults": [
+      { "name": "专注", "color": "#A1AFC9", "group": "自我评价" },
+      { "name": "摸鱼", "color": "#F0C7C1", "group": "自我评价" },
+      { "name": "学习", "color": "#C4E0D4", "group": "正事" },
+      { "name": "工作", "color": "#A1AFC9", "group": "正事" },
+      { "name": "运动", "color": "#B5D8A8", "group": "生活" },
+      { "name": "社交", "color": "#FCE38A", "group": "生活" }
+    ]
   },
   "tagManager": {
     "title": "管理标签",
@@ -429,6 +459,12 @@
     "copied": "已复制到剪贴板",
     "copyFail": "复制失败",
     "exportFail": "导出失败",
+    "saveSettingsFail": "导出设置保存失败，如已选图片请重新选择较小的图片",
+    "pickAvatarTitle": "选择头像",
+    "pickWmImageTitle": "选择水印图",
+    "filterImages": "图片",
+    "imageLoadFail": "图片加载失败，请选择有效的图片文件",
+    "resetDone": "已重置为默认设置",
     "bgMode": "背景色",
     "bgTheme": "跟随主题",
     "bgCustom": "自定义",
