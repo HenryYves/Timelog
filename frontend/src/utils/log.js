@@ -1,3 +1,5 @@
+import { STR } from '../strings.js'
+
 const MAX_LOGS = 200
 const LOG_KEY = 'timelog:logs'
 
@@ -43,11 +45,11 @@ export const logger = {
 
 export function getLogText() {
   const logs = getLogs()
-  return logs.map(e => `[${e.t}] [${e.l.toUpperCase()}] [${e.s}] ${e.m}` + (e.x ? ' ' + JSON.stringify(e.x) : '')).join('\n') || '(暂无日志)'
+  return logs.map(e => `[${e.t}] [${e.l.toUpperCase()}] [${e.s}] ${e.m}` + (e.x ? ' ' + JSON.stringify(e.x) : '')).join('\n')
 }
 
 export async function exportLogs() {
-  const text = getLogText() === '(暂无日志)' ? '' : getLogText()
+  const text = getLogText()
   const defaultName = 'timelog-debug-' + new Date().toISOString().slice(0, 10) + '.log'
 
   if (window.__TAURI__) {
@@ -55,7 +57,7 @@ export async function exportLogs() {
     const { writeTextFile } = await import('@tauri-apps/plugin-fs')
     const path = await save({
       defaultPath: defaultName,
-      filters: [{ name: '日志', extensions: ['log', 'txt'] }],
+      filters: [{ name: STR.log.fileType, extensions: ['log', 'txt'] }],
     })
     if (path) {
       await writeTextFile(path, text)

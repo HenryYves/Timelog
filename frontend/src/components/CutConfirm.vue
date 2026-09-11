@@ -2,7 +2,7 @@
   <div v-if="show" class="overlay" @mousedown.self="emit('close')" @keydown.escape.stop="emit('close')">
     <div class="modal cut-confirm" @keydown="trapFocus" style="max-width:420px">
       <p class="cut-line">
-        剪刀落处，
+        {{ STR.cut.lineBefore }}
         <input
           ref="timeInput"
           type="text"
@@ -12,14 +12,14 @@
           autocomplete="off"
           @keydown.enter="onConfirm"
           @keydown.escape.stop="emit('close')"
-        />，
+        />{{ STR.cut.lineAfterTime }}
         <span class="cut-dir-wrap" @click.stop @keydown.escape.stop="showDir = false">
           <span class="cut-dir-btn" @click="showDir = !showDir" tabindex="0" @keydown.enter="showDir = !showDir" @keydown.space.prevent="showDir = !showDir">[{{ directionText }}▾]</span>
           <div v-if="showDir" class="dropdown open" style="position:absolute;left:0;top:100%">
-            <button class="dropdown-item" @click="setDir('forward'); showDir = false">{{ STR.cut.forward }}（→明天）</button>
-            <button class="dropdown-item" @click="setDir('backward'); showDir = false">{{ STR.cut.backward }}（→昨天）</button>
+            <button class="dropdown-item" @click="setDir('forward'); showDir = false">{{ STR.cut.dirForwardItem }}</button>
+            <button class="dropdown-item" @click="setDir('backward'); showDir = false">{{ STR.cut.dirBackwardItem }}</button>
           </div>
-        </span>。
+        </span>{{ STR.cut.lineEnd }}
       </p>
       <div class="actions">
         <span class="spacer"></span>

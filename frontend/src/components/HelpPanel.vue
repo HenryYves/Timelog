@@ -13,7 +13,7 @@
       <div class="help-section">
         <h3>{{ STR.help.sectionShortcuts }}</h3>
         <ul>
-          <li v-for="t in STR.help.helpShortcuts" :key="t" v-html="renderShortcut(t)"></li>
+          <li v-for="s in STR.help.helpShortcuts" :key="s.keys" v-html="renderShortcut(s)"></li>
         </ul>
       </div>
 
@@ -89,7 +89,7 @@ async function doExportLogs() {
 
 function toggleLogs() {
   showLogs.value = !showLogs.value
-  if (showLogs.value) logContent.value = getLogText()
+  if (showLogs.value) logContent.value = getLogText() || STR.help.noLogs
 }
 
 const props = defineProps({
@@ -97,13 +97,10 @@ const props = defineProps({
 })
 const emit = defineEmits(['close'])
 
-function renderShortcut(t) {
-  // Split on first double-space: "Ctrl + C  复制选中" → kbd: "Ctrl + C", text: "复制选中"
-  const idx = t.indexOf('  ')
-  if (idx < 0) return t
-  const keys = t.slice(0, idx)
-  const desc = t.slice(idx + 2)
-  return '<kbd>' + keys.replace(/ \+ /g, '</kbd> + <kbd>') + '</kbd> ' + desc
+// 快捷键项为结构化数据 { keys, desc }，不再依赖"双空格"分隔符
+function renderShortcut(item) {
+  const keys = String(item.keys).replace(/ \+ /g, '</kbd> + <kbd>')
+  return '<kbd>' + keys + '</kbd> ' + item.desc
 }
 
 // Focus trap

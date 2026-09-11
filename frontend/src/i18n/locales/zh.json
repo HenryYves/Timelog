@@ -239,8 +239,11 @@
   "cut": {
     "forward": "便是明朝",
     "backward": "溯与昨宵",
-    "confirmTitleFwd": "剪刀落处，{time}，[便是明朝▾]。",
-    "confirmTitleBwd": "剪刀落处，{time}，[溯与昨宵▾]。",
+    "dirForwardItem": "便是明朝（→明天）",
+    "dirBackwardItem": "溯与昨宵（→昨天）",
+    "lineBefore": "剪刀落处，",
+    "lineAfterTime": "，",
+    "lineEnd": "。",
     "shortBlock": "切出片段不足10分钟（{dur}分），是否保留？",
     "extremeAll": "将移走当天所有时间块，确定？",
     "extremeNone": "该时刻无内容可切。",
@@ -269,21 +272,21 @@
     ],
     "sectionShortcuts": "快捷键",
     "helpShortcuts": [
-      "Esc  关闭弹窗 / 取消选择",
-      "Delete  删除选中的时间块",
-      "Ctrl + C  复制选中",
-      "Ctrl + V  粘贴",
-      "Ctrl + A  全选当天时间块",
-      "T  快速记录当前时间",
-      "N  批量创建",
-      "S  打开统计视图",
-      "Ctrl+P  导出图片",
-      "P  导出文本",
-      "← →  切换上/下一天",
-      "↑ ↓  拖动时微调时间（±1 分钟）",
-      "右键 空白处  剪刀切分时间轴（便是明朝/溯与昨宵）",
-      "右键 胶水区  粘回时间块",
-      "?  打开此帮助"
+      { "keys": "Esc", "desc": "关闭弹窗 / 取消选择" },
+      { "keys": "Delete", "desc": "删除选中的时间块" },
+      { "keys": "Ctrl + C", "desc": "复制选中" },
+      { "keys": "Ctrl + V", "desc": "粘贴" },
+      { "keys": "Ctrl + A", "desc": "全选当天时间块" },
+      { "keys": "T", "desc": "快速记录当前时间" },
+      { "keys": "N", "desc": "批量创建" },
+      { "keys": "S", "desc": "打开统计视图" },
+      { "keys": "Ctrl+P", "desc": "导出图片" },
+      { "keys": "P", "desc": "导出文本" },
+      { "keys": "← →", "desc": "切换上/下一天" },
+      { "keys": "↑ ↓", "desc": "拖动时微调时间（±1 分钟）" },
+      { "keys": "右键 空白处", "desc": "剪刀切分时间轴（便是明朝/溯与昨宵）" },
+      { "keys": "右键 胶水区", "desc": "粘回时间块" },
+      { "keys": "?", "desc": "打开此帮助" }
     ],
     "sectionWindow": "窗口操作",
     "helpWindow": [
@@ -314,8 +317,18 @@
     ],
     "sectionDebug": "调试",
     "exportLogs": "导出日志",
+    "noLogs": "暂无日志",
     "footer": "Made by Yves / 陈虹宇 · 2026",
     "close": "关闭"
+  },
+  "log": {
+    "fileType": "日志"
+  },
+  "common": {
+    "untitled": "(未命名)"
+  },
+  "exportPanel": {
+    "parsableCount": "可解析 {n} 条记录"
   },
   "exportImage": {
     "title": "导出图片",

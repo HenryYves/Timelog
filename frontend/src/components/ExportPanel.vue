@@ -234,7 +234,7 @@ function parseImportText(text) {
 
 function onImportTextChange() {
   const n = parseImportText(importText.value).length
-  importPreview.value = n ? '可解析 ' + n + ' 条记录' : '未解析到有效记录'
+  importPreview.value = n ? t('exportPanel.parsableCount', { n }) : STR.confirm.importNoRecords
 }
 
 const importDateMismatch = computed(() => {
@@ -244,7 +244,7 @@ const importDateMismatch = computed(() => {
 async function confirmImport() {
   const recs = parseImportText(importText.value)
   if (!recs.length) {
-    await showAlert('未解析到有效记录，请检查文本格式。')
+    await showAlert(STR.confirm.importNoRecords)
     return
   }
   const date = importDate.value || dkey(new Date())

@@ -51,7 +51,7 @@
           <i v-for="(t, ti) in (ev.tags || [])" :key="ti" :style="{ background: colorOf(t).hex }" />
           <i v-if="!ev.tags || !ev.tags.length" style="background: var(--no-tag, #C4C3C0)" />
         </div>
-        <div v-if="settingsStore.showBlockTitle" class="bt">{{ ev.title || '(未命名)' }}</div>
+        <div v-if="settingsStore.showBlockTitle" class="bt">{{ ev.title || STR.common.untitled }}</div>
         <div v-if="settingsStore.showBlockTime && (ev.end - ev.start) * PX_MIN >= 32" class="bs">{{ fmtSigned(ev.start)
         }}–{{
             fmtSigned(ev.end) }}</div>

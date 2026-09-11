@@ -204,7 +204,7 @@
                     <i v-for="(t, ti) in (b.tags || [])" :key="ti" :style="{ background: tagColor(t) }" />
                     <i v-if="!b.tags || !b.tags.length" style="background: var(--no-tag, #C4C3C0)" />
                   </div>
-                  <div v-if="settings.showBlockTitle" class="bt">{{ b.title || '(未命名)' }}</div>
+                  <div v-if="settings.showBlockTitle" class="bt">{{ b.title || STR.common.untitled }}</div>
                   <div v-if="settings.showBlockTime && (b.end - b.start) >= 32" class="bs">{{ fmtSigned(b.start) }}–{{ fmtSigned(b.end) }}</div>
                   <div v-if="settings.showBlockTags && (b.end - b.start) >= 18 && b.tags?.length" class="btags">
                     <span v-for="t in b.tags" :key="t"><span class="tdot" :style="{ background: tagColor(t) }" />{{ t }}</span>
@@ -217,7 +217,7 @@
             <!-- Stats preview -->
             <div v-if="props.mode === 'stats'" class="exp-stats">
               <div v-for="card in (props.cardId ? statsCards.filter(c => c.id === props.cardId) : statsCards)" :key="card.id" class="exp-stat-card">
-                <div class="exp-stat-card-title">{{ card.name || (card.type === 'pie' ? '饼图' : '柱状图') }}</div>
+                <div class="exp-stat-card-title">{{ card.name || (card.type === 'pie' ? STR.stats.pie : STR.stats.bar) }}</div>
                 <PieChart
                   v-if="card.type === 'pie'"
                   :slices="(statsPieCharts[card.id] || {}).slices || []"
@@ -481,7 +481,15 @@ const exportDateTitle = computed(() => {
 
 const defaultTitleText = computed(() => {
   if (props.mode === 'stats') {
-    const labels = { today: '今天', '24h': '24h', week: '本周', '168h': '24×7h', '7d': '最近 7 天', month: '本月', custom: '自定义' }
+    const labels = {
+      today: STR.stats.timeToday,
+      '24h': STR.stats.time24h,
+      week: STR.stats.timeWeek,
+      '168h': STR.stats.time168h,
+      '7d': STR.stats.time7d,
+      month: STR.stats.timeMonth,
+      custom: STR.stats.timeCustom,
+    }
     return exportDateTitle.value + ' (' + (labels[statsTimeRange.value] || '') + ')'
   }
   return exportDateTitle.value
