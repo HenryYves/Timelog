@@ -12,7 +12,7 @@
  * （`STR.stats.untagged`）与**整组对象外传**（StatsPanel 把整个 `STR.stats` 传给 computeCardsData），
  * 只有 `reactive()` 的深代理能让嵌套/子树读取都登记依赖。
  */
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref, watch, nextTick } from 'vue'
 import { KEY_PREFIX } from '../constants.js'
 import zh from './locales/zh.json'
 import en from './locales/en.json'
@@ -140,7 +140,13 @@ export function setLang(code) {
 }
 
 // 模块级同步监听：任何 lang 变更都立即应用，不依赖 initI18n 是否被调用
-watch(() => lang.value, applyLang, { flush: 'sync' })
+watch(() => lang.value, (v) => {
+  applyLang(v)
+  if (import.meta.env.DEV) {
+    // 等 DOM 更新完再自检布局溢出（多语言文本长度差异把关）
+    nextTick(() => import('../utils/devOverflow.js').then(m => m.checkOverflow('(语言切换后)')).catch(() => {}))
+  }
+}, { flush: 'sync' })
 
 /**
  * 初始化 i18n。
