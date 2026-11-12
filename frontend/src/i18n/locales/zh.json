@@ -209,6 +209,7 @@
     "timeRange": "时间范围",
     "weekDays": ["周日", "周一", "周二", "周三", "周四", "周五", "周六"],
     "timeToday": "今天",
+    "timeCurrent": "当前日",
     "time24h": "24h",
     "timeWeek": "本周",
     "time168h": "24×7h",

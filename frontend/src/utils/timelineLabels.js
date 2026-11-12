@@ -67,6 +67,31 @@ export function buildGlueNextLabels(cutAt) {
 }
 
 /**
+ * 生成半小时刻度线（独立于 hourline 存在判定）
+ *
+ * 旧实现从 hourline 反推 halfline（"下一个整点存在才有"），剪切后页面的
+ * 首尾半刻线会因相邻整点不在页内而丢失。这里直接按 30 分钟网格判断：
+ * 只要 :30 落在可见区间 (lo, hi) 内就画（两端点本身不重复画）。
+ *
+ * 页面连续性保证：fromPrev 与 toPrev（或 fromNext 与 toNext）不会同时存在
+ * （checkCutBidir），因此 y = (min - lo) * PX_MIN 与 hourline 坐标一致。
+ *
+ * @param {number} lo - pageRange.lo（统一帧）
+ * @param {number} hi - pageRange.hi（统一帧）
+ * @returns {Array<{min: number, y: number}>}
+ */
+export function buildHalfLines(lo, hi) {
+  const lines = []
+  const first = Math.ceil(lo / 30) * 30
+  for (let min = first; min < hi; min += 30) {
+    if (min <= lo) continue          // 页面起点不画（剪切边）
+    if (min % 60 === 0) continue     // 整点由 hourline 负责
+    lines.push({ min, y: (min - lo) * PX_MIN })
+  }
+  return lines
+}
+
+/**
  * 合并三个区段的标签为时间轴刻度线
  * @param {Array} prevLabels - buildGluePrevLabels 的结果
  * @param {Array} todayLabels - buildTodayLabels 的结果

@@ -191,7 +191,10 @@ function getPlainText() {
         if (tag === 'DIV') {
           // contenteditable 用 <div> 换行，在每个 <div> 前插入 \n（首个除外）
           if (parts.length > 0) parts.push('\n')
-          walk(child)
+          // 空行结构 <div><br></div>：<br> 只是占位，DIV 已计一个换行，不能再算
+          const onlyBr = child.childNodes.length === 1 &&
+            child.firstChild.nodeType === 1 && child.firstChild.tagName === 'BR'
+          if (!onlyBr) walk(child)
         } else if (tag === 'BR') {
           parts.push('\n')
         } else {

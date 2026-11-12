@@ -40,9 +40,7 @@
         width: Math.abs(selRect.right - selRect.left) + 'px'
       }" />
       <div v-for="(label, i) in allLabels" :key="'hl' + i" class="hourline" :style="{ top: label.y + 'px' }" />
-      <template v-for="(label, i) in allLabels" :key="'hfl' + i">
-        <div v-if="i < allLabels.length - 1" class="halfline" :style="{ top: label.y + 30 * PX_MIN + 'px' }" />
-      </template>
+      <div v-for="l in halfLines" :key="'hf' + l.min" class="halfline" :style="{ top: l.y + 'px' }" />
       <div v-for="ev in layoutBlocks" :key="ev.id" class="block" :class="{ bsel: selectedBlocks.has(ev.id) }"
         :style="computeBlockStyle(ev)" :title="blockTitle(ev)" @mousemove="onBlockMouseMove($event, ev)"
         @mousedown.left="onBlockMouseDown($event, ev)" @click="onBlockClick($event, ev)"
@@ -90,7 +88,7 @@ import { useSettingsStore } from '../store/settings.js'
 import { mdToHtml } from '../utils/markdown.js'
 import { createAutoScroll } from '../utils/autoScroll.js'
 import { layoutOverlap, blockStyle, blockVisualStyle } from '../utils/blockLayout.js'
-import { buildGluePrevLabels, buildTodayLabels, buildGlueNextLabels, mergeAllLabels } from '../utils/timelineLabels.js'
+import { buildGluePrevLabels, buildTodayLabels, buildGlueNextLabels, mergeAllLabels, buildHalfLines } from '../utils/timelineLabels.js'
 
 import { PX_MIN, DAY_MIN, EDGE, GUTTER_WIDTH, DAY_OFFSET } from '../constants.js'
 import { useToast } from '../composables/useToast.js'
@@ -209,6 +207,9 @@ const glueNextLabels = computed(() =>
 
 const allLabels = computed(() =>
   mergeAllLabels(gluePrevLabels.value, todayLabels.value, glueNextLabels.value, gutterHeights.value))
+
+const halfLines = computed(() =>
+  buildHalfLines(pageRange.value.lo, pageRange.value.hi))
 
 // --- Cut availability ---
 const canCutFwd = computed(() => canCutForward(store._cutMeta))

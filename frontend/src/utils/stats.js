@@ -27,14 +27,17 @@ function fmtDate(d) {
  * @param {string} customStart - 自定义起始日期
  * @param {string} customEnd - 自定义结束日期
  * @param {Object} timeWindow - 24h/168h 的时间窗口 {startDate, endDate}
+ * @param {string} currentDate - "current" 范围指向的日期（编辑界面当前页）
  * @returns {string[]} 日期字符串数组
  */
-export function getDaysInRange(timeRange, customStart, customEnd, timeWindow = null) {
+export function getDaysInRange(timeRange, customStart, customEnd, timeWindow = null, currentDate = null) {
   const now = new Date()
   const days = []
   const r = timeRange
   if (r === 'today') {
     days.push(fmtDate(now))
+  } else if (r === 'current') {
+    if (currentDate) days.push(currentDate)
   } else if (r === '24h' || r === '168h') {
     // For 24h/168h, use timeWindow to determine exact date range
     if (timeWindow) {
@@ -241,10 +244,10 @@ export function computeUnrecorded(days, blocksByDay, rangesByDay = null) {
  * @param {Function} tagGroup - (tagName) => group string
  * @param {Object} tagStore - Pinia tag store (has .colorOf method + .tags array)
  * @param {Object} STR - stats strings (needs .untagged)
- * @param {Object} timeRangeState - { timeRange, customStart, customEnd, now }
+ * @param {Object} timeRangeState - { timeRange, customStart, customEnd, now, currentDate }
  * @returns {Object} map of cardId -> [{tag, minutes, color}]
  */
-export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, customStart, customEnd, now }) {
+export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, customStart, customEnd, now, currentDate }) {
   const PAL = ['#A1AFC9', '#F0C7C1', '#C4E0D4', '#B5D8A8', '#FCE38A', '#F36838', '#9370DB', '#20B2AA', '#FF7F50', '#87CEEB']
   const map = {}
 
@@ -284,7 +287,7 @@ export function computeCardsData(cards, tagGroup, tagStore, STR, { timeRange, cu
   }
 
   // Get days to load (pass timeWindow for 24h/168h)
-  const days = getDaysInRange(timeRange, customStart, customEnd, timeWindow)
+  const days = getDaysInRange(timeRange, customStart, customEnd, timeWindow, currentDate)
   const blocksByDay = days.map(d => loadDayBlocks(d))
 
   // Compute visible range for each day (统一帧坐标)

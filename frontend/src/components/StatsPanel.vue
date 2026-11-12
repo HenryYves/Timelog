@@ -159,6 +159,7 @@ function tagGroup(name) { const t = tagStore.tags.find(x => x.name === name); re
 // computed：切语言时重新求值，时间范围菜单标签即时更新
 const timeOptions = computed(() => [
   { value: 'today', label: STR.stats.timeToday },
+  { value: 'current', label: STR.stats.timeCurrent },
   { value: '24h', label: STR.stats.time24h },
   { value: 'week', label: STR.stats.timeWeek },
   { value: '168h', label: STR.stats.time168h },
@@ -328,7 +329,8 @@ const cardTagData = computed(() => {
       timeRange: timeRange.value,
       customStart: customStart.value,
       customEnd: customEnd.value,
-      now: new Date()
+      now: new Date(),
+      currentDate: store.dateKey,
     }
   )
 })

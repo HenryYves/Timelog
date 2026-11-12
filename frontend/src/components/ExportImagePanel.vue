@@ -188,7 +188,7 @@
                   <div v-if="gutterHeights.prev" class="exp-gutter-section glue glue-prev" :style="{ top: '0px', height: (gutterHeights.prev * PX_MIN) + 'px' }">
                     <div v-for="l in prevLabels" :key="'gp'+l.min" class="exp-hlabel" :style="{ top: l.top + 'px' }">{{ l.text }}</div>
                   </div>
-                  <div class="exp-gutter-section" :style="{ top: (gutterHeights.prev * PX_MIN) + 'px', height: (gutterHeights.today * PX_MIN) + 'px' }">
+                  <div class="exp-gutter-section exp-today" :style="{ top: (gutterHeights.prev * PX_MIN) + 'px', height: (gutterHeights.today * PX_MIN) + 'px' }">
                     <div v-for="l in todayLabels" :key="'gt'+l.min" class="exp-hlabel" :style="{ top: l.top + 'px' }">{{ l.text }}</div>
                   </div>
                   <div v-if="gutterHeights.next" class="exp-gutter-section glue glue-next" :style="{ top: ((gutterHeights.prev + gutterHeights.today) * PX_MIN) + 'px', height: (gutterHeights.next * PX_MIN) + 'px' }">
@@ -197,7 +197,7 @@
                 </div>
                 <!-- Hour/half lines -->
                 <div v-for="(l, i) in allLabels" :key="'hl'+i" class="exp-hourline" :style="{ top: l.y + 'px' }" />
-                <template v-for="(l, i) in allLabels" :key="'hfl'+i"><div v-if="i < allLabels.length - 1" class="exp-halfline" :style="{ top: (l.y + 30 * PX_MIN) + 'px' }" /></template>
+                <div v-for="l in halfLines" :key="'hfl'+l.min" class="exp-halfline" :style="{ top: l.y + 'px' }" />
                 <!-- Time blocks -->
                 <div v-for="b in layoutBlocks" :key="b.id" class="block" :style="blockStyle(b)">
                   <div v-if="settings.showBlockColorBar" class="cbar">
@@ -292,7 +292,7 @@ import { useToast } from '../composables/useToast.js'
 import { logger } from '../utils/log.js'
 import { tWriteBinary, tEnsureSubDir } from '../utils/tauri.js'
 import { computeCardsData, buildPieChart, fmtDur, pctOf } from '../utils/stats.js'
-import { buildGluePrevLabels, buildTodayLabels, buildGlueNextLabels, mergeAllLabels } from '../utils/timelineLabels.js'
+import { buildGluePrevLabels, buildTodayLabels, buildGlueNextLabels, mergeAllLabels, buildHalfLines } from '../utils/timelineLabels.js'
 import PieChart from './PieChart.vue'
 import BarChart from './BarChart.vue'
 
@@ -388,10 +388,9 @@ const timelogStore = useTimelogStore()
 const tagStore = useTagStore()
 
 // Stats data refs
+// 导出图固定用「当前日」（编辑界面当前指向的日期），不跟随分析面板的时间范围
 const statsCards = ref([])
-const statsTimeRange = ref('today')
-const statsCustomStart = ref('')
-const statsCustomEnd = ref('')
+const statsTimeRange = ref('current')
 
 function statsTagGroup(name) {
   const t = tagStore.tags.find(x => x.name === name)
@@ -404,8 +403,7 @@ const statsCardData = computed(() => {
   if (props.cardId) cards = cards.filter(c => c.id === props.cardId)
   return computeCardsData(cards, statsTagGroup, tagStore, STR, {
     timeRange: statsTimeRange.value,
-    customStart: statsCustomStart.value,
-    customEnd: statsCustomEnd.value,
+    currentDate: timelogStore.dateKey,
   })
 })
 
@@ -426,9 +424,7 @@ watch(() => props.show, (val) => {
     try {
       statsCards.value = JSON.parse(localStorage.getItem('timelog:stats-cards') || '[]')
     } catch (e) { logger.error('export', 'statsCards parse failed', e); statsCards.value = [] }
-    statsTimeRange.value = localStorage.getItem('timelog:stats-time-range') || 'today'
-    statsCustomStart.value = localStorage.getItem('timelog:stats-custom-start') || ''
-    statsCustomEnd.value = localStorage.getItem('timelog:stats-custom-end') || ''
+    statsTimeRange.value = 'current'
   }
 }, { immediate: true })
 
@@ -455,6 +451,9 @@ const nextLabels = computed(() =>
 
 const allLabels = computed(() =>
   mergeAllLabels(prevLabels.value, todayLabels.value, nextLabels.value, gutterHeights.value))
+
+const halfLines = computed(() =>
+  buildHalfLines(pageRange.value.lo, pageRange.value.hi))
 
 function tagColor(t) {
   return tagStore.colorOf(t).hex
@@ -484,6 +483,7 @@ const defaultTitleText = computed(() => {
   if (props.mode === 'stats') {
     const labels = {
       today: STR.stats.timeToday,
+      current: STR.stats.timeCurrent,
       '24h': STR.stats.time24h,
       week: STR.stats.timeWeek,
       '168h': STR.stats.time168h,
@@ -857,6 +857,10 @@ async function doExport() {
   position: absolute;
   left: 0;
   right: 0;
+}
+.exp-gutter-section.exp-today {
+  z-index: 1;
+  /* 24:00 标签 translateY(-50%) 不被后渲染的 glue-next 背景盖住（同 Timeline.vue） */
 }
 .exp-gutter-section.glue.glue-prev {
   background: var(--glue-prev);

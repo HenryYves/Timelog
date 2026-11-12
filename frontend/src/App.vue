@@ -8,7 +8,11 @@
         <span class="date" @click.stop="showDateMenu = !showDateMenu"
           @dblclick.stop="showDateJump = true; showDateMenu = false">{{ dateLabel }}</span>
         <div class="date-popover" v-if="showDateMenu" @mousedown.stop @keydown.escape.stop="showDateMenu = false">
-          <input type="date" :value="fmtDateInput(store.curDate)" @change="onDatePick($event.target.value)" />
+          <input type="date" :value="fmtDateInput(store.curDate)"
+            @change="onDatePick($event.target.value)"
+            @keydown="onDateInputKeydown"
+            @keydown.enter="onDateInputCommit($event)"
+            @blur="onDateInputCommit($event)" />
         </div>
         <div class="date-jump" v-if="showDateJump" @mousedown.stop @keydown.escape.stop="showDateJump = false">
           <input type="text" v-model="jumpDate" placeholder="yyyy-mm-dd" maxlength="10" @keydown.enter="onDateJump" />
@@ -196,12 +200,29 @@ const dateLabel = computed(() => {
 
 function fmtDateInput(d) { return dkey(d) }
 
-function onDatePick(val) {
+// WebView2 的 date 控件在键盘输入第一个数字后就触发 change（值已合法），
+// 例如想输入 15 号，按下 1 就跳到当月 1 号。键盘编辑期间不提交，
+// 等 Enter 或 blur 再提交；鼠标从日历选日期不经键盘，仍立即提交。
+let _dateInputKeyAt = 0
+const DATE_KEY_GUARD_MS = 800
+
+function onDateInputKeydown() { _dateInputKeyAt = Date.now() }
+
+function commitDateInput(val) {
   if (!val) return
   const d = new Date(val)
   if (isNaN(d.getTime())) return
-  store.setDate(d)
+  if (dkey(d) !== store.dateKey) store.setDate(d)
   showDateMenu.value = false
+}
+
+function onDatePick(val) {
+  if (Date.now() - _dateInputKeyAt < DATE_KEY_GUARD_MS) return
+  commitDateInput(val)
+}
+
+function onDateInputCommit(e) {
+  commitDateInput(e.target.value)
 }
 
 function onDateJump() {
@@ -530,6 +551,21 @@ function applyBorderless() {
   }
 }
 
+// 鼠标侧键翻页：后退(3)/前进(4) = ArrowLeft/ArrowRight。
+// Chromium/WebView2 对 XBUTTON 先发 mousedown 再发 auxclick，两处都拦默认行为，
+// 只在一个事件里翻页，避免一次点击翻两页。
+let _mouseNavAt = 0
+function onWindowMouseNav(e) {
+  if (e.button !== 3 && e.button !== 4) return
+  e.preventDefault()
+  if (e.type === 'auxclick' && Date.now() - _mouseNavAt < 500) return
+  // 同时屏蔽导航栈默认动作（Tauri 单页应用不应有历史导航）
+  if (modalStack.value.length > 0) return
+  if (e.type === 'mousedown') _mouseNavAt = Date.now()
+  if (e.button === 3) store.goPrevDay()
+  else store.goNextDay()
+}
+
 // Global keyboard shortcuts (overlay close, modal delete, T, ?)
 function onWindowKeyDown(e) {
   // ── Body-level: when More is open, keep Tab cycling within header ──
@@ -789,6 +825,8 @@ onMounted(async () => {
   }).catch(e => { logger.warn('tauri', 'second-instance listener failed', e) })
 
   window.addEventListener('keydown', onWindowKeyDown)
+  window.addEventListener('mousedown', onWindowMouseNav)
+  window.addEventListener('auxclick', onWindowMouseNav)
   window.addEventListener('backup:restored', onBackupRestored)
   document.addEventListener('click', closeMore)
 
@@ -914,6 +952,8 @@ onMounted(async () => {
 onUnmounted(() => {
   _bnoteMO.disconnect()
   window.removeEventListener('keydown', onWindowKeyDown)
+  window.removeEventListener('mousedown', onWindowMouseNav)
+  window.removeEventListener('auxclick', onWindowMouseNav)
   window.removeEventListener('backup:restored', onBackupRestored)
   document.removeEventListener('click', closeMore)
 })

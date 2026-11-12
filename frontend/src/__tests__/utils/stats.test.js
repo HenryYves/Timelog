@@ -98,6 +98,10 @@ describe('getDaysInRange', () => {
     expect(days.length).toBeGreaterThanOrEqual(1)
     expect(days.length).toBeLessThanOrEqual(2)
   })
+  it('current: single day from the navigation date, not real today', () => {
+    const days = getDaysInRange('current', '', '', null, '2026-01-05')
+    expect(days).toEqual(['2026-01-05'])
+  })
 })
 
 // ---- buildPieChart ----

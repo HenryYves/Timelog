@@ -209,6 +209,7 @@
     "timeRange": "Time range",
     "weekDays": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
     "timeToday": "Today",
+    "timeCurrent": "Current day",
     "time24h": "24h",
     "timeWeek": "This week",
     "time168h": "24×7h",
