@@ -337,6 +337,33 @@
   "common": {
     "untitled": "(未命名)"
   },
+  "thanks": {
+    "title": "特别鸣谢",
+    "sectionProjects": "本项目使用了以下项目",
+    "sectionAssets": "素材与灵感来源",
+    "sectionPeople": "感谢每一位使用者、反馈者与贡献者",
+    "projectsNote": "以及大量传递依赖与其他开源代码，完整清单见 THIRD_PARTY_NOTICES.md。",
+    "projects": [
+      { "name": "Vue 3", "license": "MIT", "desc": "渐进式前端框架", "url": "https://vuejs.org" },
+      { "name": "Pinia", "license": "MIT", "desc": "Vue 状态管理", "url": "https://pinia.vuejs.org" },
+      { "name": "Tauri", "license": "MIT 或 Apache-2.0", "desc": "桌面应用框架", "url": "https://tauri.app" },
+      { "name": "html2canvas", "license": "MIT", "desc": "页面截图渲染", "url": "https://html2canvas.hertzen.com" },
+      { "name": "Rust crate 生态", "license": "各按其协议", "desc": "serde、reqwest、base64 等", "url": "https://crates.io" }
+    ],
+    "assets": [
+      { "name": "Marcelo Dolza（Uiverse.io）", "license": "MIT", "desc": "赞赏卡片 UI", "url": "https://uiverse.io/marcelodolza/fluffy-panda-74" },
+      { "name": "CSS Buttons（Uiverse.io）", "license": "MIT", "desc": "出票按钮 UI", "url": "https://uiverse.io/cssbuttons-io/massive-mayfly-74" },
+      { "name": "阿里巴巴矢量图标库（Iconfont）", "license": "版权归原作者", "desc": "部分图标", "url": "https://www.iconfont.cn" }
+    ],
+    "eject": "赞赏作者",
+    "cardFront": "赞赏作者",
+    "cardFrontSub": "THANKS",
+    "cardThanksLine": "谢谢你的支持",
+    "cardBackHint": "扫码赞赏",
+    "cardHint": "点击或悬停翻转卡片",
+    "donateNote": "赞赏完全自愿，不影响任何功能。",
+    "close": "关闭"
+  },
   "app": {
     "jump": "跳转",
     "today": "今天",
@@ -351,6 +378,7 @@
     "textImport": "文本导入",
     "manageData": "管理数据",
     "backupNow": "立即备份",
+    "thanks": "特别鸣谢",
     "minimize": "最小化",
     "restore": "还原",
     "maximize": "最大化",

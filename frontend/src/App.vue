@@ -58,6 +58,7 @@
           </div>
           <button class="dropdown-item" @click="showDataMgr = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/data.svg)"></span>{{ STR.app.manageData }}</button>
           <button class="dropdown-item" @click="doBackupNow(); showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/backup.svg)"></span>{{ STR.app.backupNow }}<span class="dot" :class="bkStatusClass"></span></button>
+          <button class="dropdown-item" @click="showThanks = true; showMore = false"><span class="mico" style="-webkit-mask-image: url(/icons/thanks.svg)"></span>{{ STR.app.thanks }}</button>
           <div class="dropdown-footer"><span>{{ bkStatusText }}</span><button class="dropdown-item btn-help-mini"
               @click="showHelp = true; showMore = false">help</button></div>
         </div>
@@ -85,6 +86,7 @@
     <ConfirmDialog :show="confirmVisible" :message="confirmMessage" :type="confirmType" @close="resolveConfirm(false)"
       @confirm="resolveConfirm(true)" />
     <HelpPanel v-if="showHelp" :show="showHelp" @close="showHelp = false" />
+    <ThanksPanel v-if="showThanks" :show="showThanks" @close="showThanks = false" />
     <UpdateDialog v-if="showUpdate" :show="showUpdate" :update-info="updateInfo" @close="showUpdate = false"
       @will-install-on-exit="onWillInstallOnExit" />
     <BatchCreatePanel v-if="showBatchCreate" :show="showBatchCreate" @close="showBatchCreate = false" />
@@ -122,6 +124,7 @@ import DataManager from './components/DataManager.vue'
 import Toast from './components/Toast.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import HelpPanel from './components/HelpPanel.vue'
+import ThanksPanel from './components/ThanksPanel.vue'
 import UpdateDialog from './components/UpdateDialog.vue'
 import BatchCreatePanel from './components/BatchCreatePanel.vue'
 import StatsPanel from './components/StatsPanel.vue'
@@ -296,6 +299,10 @@ const exportClose = useModal(showExport, () => { jsonImportData.value = null })
 // Help
 const showHelp = ref(false)
 const helpClose = useModal(showHelp)
+
+// 特别鸣谢
+const showThanks = ref(false)
+const thanksClose = useModal(showThanks)
 
 // Update dialog
 const showUpdate = ref(false)

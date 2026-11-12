@@ -337,6 +337,33 @@
   "common": {
     "untitled": "(Untitled)"
   },
+  "thanks": {
+    "title": "Special Thanks",
+    "sectionProjects": "This project builds on the following projects",
+    "sectionAssets": "Assets and inspiration",
+    "sectionPeople": "Thanks to every user, reporter and contributor",
+    "projectsNote": "And many transitive dependencies and other open-source code. See THIRD_PARTY_NOTICES.md for the full list.",
+    "projects": [
+      { "name": "Vue 3", "license": "MIT", "desc": "Progressive frontend framework", "url": "https://vuejs.org" },
+      { "name": "Pinia", "license": "MIT", "desc": "State management for Vue", "url": "https://pinia.vuejs.org" },
+      { "name": "Tauri", "license": "MIT OR Apache-2.0", "desc": "Desktop application framework", "url": "https://tauri.app" },
+      { "name": "html2canvas", "license": "MIT", "desc": "Screenshot rendering", "url": "https://html2canvas.hertzen.com" },
+      { "name": "Rust crate ecosystem", "license": "Per crate license", "desc": "serde, reqwest, base64, and more", "url": "https://crates.io" }
+    ],
+    "assets": [
+      { "name": "Marcelo Dolza (Uiverse.io)", "license": "MIT", "desc": "Donation card UI", "url": "https://uiverse.io/marcelodolza/fluffy-panda-74" },
+      { "name": "CSS Buttons (Uiverse.io)", "license": "MIT", "desc": "Ticket button UI", "url": "https://uiverse.io/cssbuttons-io/massive-mayfly-74" },
+      { "name": "Alibaba Iconfont", "license": "Copyright of the original authors", "desc": "Some icons", "url": "https://www.iconfont.cn" }
+    ],
+    "eject": "Support the author",
+    "cardFront": "Support the author",
+    "cardFrontSub": "THANKS",
+    "cardThanksLine": "Thank you for your support",
+    "cardBackHint": "Scan to support",
+    "cardHint": "Click or hover to flip the card",
+    "donateNote": "Donations are voluntary and do not affect any feature.",
+    "close": "Close"
+  },
   "app": {
     "jump": "Go to",
     "today": "Today",
@@ -351,6 +378,7 @@
     "textImport": "Text import",
     "manageData": "Manage data",
     "backupNow": "Back up now",
+    "thanks": "Special thanks",
     "minimize": "Minimize",
     "restore": "Restore",
     "maximize": "Maximize",
