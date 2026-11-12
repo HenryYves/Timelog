@@ -10,8 +10,9 @@
       @input="onInput"
       @keydown="onKeydown"
       @paste="onPaste"
-      @compositionstart="isComposing = true"
-      @compositionend="isComposing = false; startUndoEntry('insertText'); onInput"
+      @compositionstart="onCompositionStart"
+      @compositionend="onCompositionEnd"
+      @blur="onEditorBlur"
       @focus="onEditorFocus"
       @mousedown="clickFocus = true"
     />
@@ -60,7 +61,8 @@ const navMode = ref(false)
 let inputLock = 0
 const editorUndo = new UndoManager()
 let pendingUndoEntry = null // snapshot taken before current input
-let isComposing = false    // IME composition in progress — skip undo tracking
+let isComposing = false    // IME composition in progress — skip DOM rescan & model emit
+let compositionSnapshot = null  // 组合开始前的文本/光标，用于生成一条独立撤销记录
 let clickFocus = false
 
 function onEditorFocus() {
@@ -499,8 +501,45 @@ function commitUndoEntry() {
   pendingUndoEntry = null
 }
 
+// ── IME composition ──
+// 组合输入期间不能扫描/重建行内 DOM：重建会把正在组合的文字节点摘掉，
+// 水杉等输入法的组合被取消，中文打不出来（Typora/Obsidian 同为 contenteditable 却正常，
+// 因为它们不在组合中途改 DOM）。组合结束后再统一扫描并更新 model。
+
+function onCompositionStart() {
+  isComposing = true
+  compositionSnapshot = _undoSnapshot()
+}
+
+function onCompositionEnd() {
+  isComposing = false
+  // 整段组合输入记为一条独立撤销记录（prev=组合前，next=组合后）
+  if (compositionSnapshot) {
+    const next = _undoSnapshot()
+    if (compositionSnapshot.text !== next.text) {
+      const entry = { prev: compositionSnapshot, next, inputType: 'insertComposition' }
+      editorUndo.push({
+        _snapshot: entry,
+        undo: () => restoreUndoState(entry.prev),
+        redo: () => restoreUndoState(entry.next),
+      })
+    }
+    compositionSnapshot = null
+  }
+  onInput()
+}
+
+// 组合中失焦/切换窗口时 compositionend 可能不触发，兜底复位并补一次同步
+function onEditorBlur() {
+  if (!isComposing) return
+  isComposing = false
+  compositionSnapshot = null
+  onInput()
+}
+
 function onInput() {
   if (inputLock > 0) return
+  if (isComposing) return
   inputLock++
 
   // Commit undo entry (snapshot after browser DOM change)

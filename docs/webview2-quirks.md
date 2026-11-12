@@ -173,3 +173,19 @@ Backspace/Delete 处理 EditMarkdown 元素时的规则（`onKeydown` Case 1/1b�
 **调试要点**：重叠文字恰好是两个 CJK 字、位置恰好在行首/行尾、不随字体变化（mango 字体改变字宽触发的是另一个路径但根源相同）。
 
 **方案**：在导出预览 CSS（scoped）中加 `word-break: break-all`，强制浏览器和 html2canvas 都采用逐字换行，换行点完全一致。见 commit `60e1109`。
+
+## 输入法（IME）相关
+
+### 17. 行内有渲染元素时，水杉输入法无法输入中文
+
+**现象**：备注编辑器（`MarkdownEditor.vue`）中，光标所在行只要存在 `EditMarkdown-*` 渲染元素（粗体、行内代码、链接等），水杉输入法（Windows 开源版）就打不出中文；空行正常。微软拼音无此问题，Typora / Obsidian（同为 Chromium + contenteditable）也正常。
+
+**原因**：编辑器每次 `input`（包括 `insertCompositionText` 组合中间态）都执行 `scanAndHighlight()`，它先 `unwrapFormatting` 拆除所有渲染元素、再重新包裹。已渲染行每次按键都真正改动了 DOM，把正在组合的文字节点摘除；水杉的组合状态绑定在原节点上，节点被替换后组合被取消。未渲染行没有可拆除的元素，DOM 不变，所以正常。Typora/Obsidian 在组合期间不改 DOM，因此无此问题。
+
+**方案**（`MarkdownEditor.vue`）：
+
+- `onInput` 在 `isComposing` 时直接返回：不扫描、不 emit
+- `compositionstart` 保存文本/光标快照；`compositionend` 用它生成一条独立撤销记录（整串中文 = 一次撤销），然后补扫并更新 model
+- `blur` 兜底：组合中失焦时 `compositionend` 可能不触发，需复位 `isComposing` 并手动跑一次 `onInput`
+
+**回归提示**：任何在 `input` 里重建 contenteditable DOM 的逻辑都要考虑组合输入；自动化测试覆盖不到 IME，只能人工实测。
