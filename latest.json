@@ -1,11 +1,11 @@
 {
-  "version": "v0.12.0",
-  "notes": "新增：多语言(i18n)系统（中英双语，设置→基础→语言）、语言包文件注入（把 .json 放入 %APPDATA%\\com.timelog.app\\languages\\ 即可添加语言，缺失的 key 自动回退中文）、伪语言包与开发期布局溢出自检、v-ellipsis 指令\n变更：界面文案全面外置（硬编码审计）、日期与排序格式化跟随语言、默认标签种子按语言生成、切换语言即时生效、行容器适配长文案\n修复：t 键创建时间块「结束=当前时间」跨午夜时误用默认时长、帮助面板快捷键列表翻译安全、日志空态判断\n235 tests",
-  "pub_date": "2026-09-11T00:00:00Z",
+  "version": "v0.13.0",
+  "notes": "新增：特别鸣谢弹窗（出票动画、可翻转赞赏卡片）、第三方声明 THIRD_PARTY_NOTICES、统计时间范围「当前日」、鼠标侧键翻页\n变更：导出图片统计模式固定当前日\n修复：导出图 +1day 区遮挡 24:00、剪切后首尾半小时刻度线丢失、备注空行回读翻倍、日期弹层首字提前跳转、水杉输入法在已渲染行无法输入中文\n246 tests",
+  "pub_date": "2026-11-12T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUlWaWVTd3pIRDN4MjVITXdnbUFUV0RzYys2dVVLRjBhWHFrRVZKVFYvUlZoWmZUN1RSOWtpY29oWm45V0hVNkk4VUd5SE9seUNZeFcyWGg1Uy9rK1F3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg5MTExODk4CWZpbGU6dGltZWxvZ18wLjEyLjBfeDY0X2VuLVVTLm1zaQp0UGpTTDVtMmxVQkl2N0VHTzBlL29sVXZiUzBpdEYzQmlhTWVubTBybWpreHBVRkkvRVZvU0hvM0RWVzB3UU5RVWU3dG1DajVPdXNYYll5NlBzcVBCZz09Cg==",
-      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.12.0/timelog_0.12.0_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUSU52SU91MnYvbUhoU3RvRDcwdzhmajZOTzZQc1l1TEhWdWU3bHhwQUpIUmVPZGJYNXNkdTJPUTJoTkYybVpTSTVxYnMyeU5mTGJZWXE4Q0wxQ1pNc2pGSWM5V0IrYUFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk0NDY0NDg2CWZpbGU6dGltZWxvZ18wLjEzLjBfeDY0X2VuLVVTLm1zaQpYQXRpdjJKcnVFRUhOQUJ6V1IwMjR4Snk5WWhvZ3NZS25xdVk1bGhqM1BCbk5TNFQrdTRPYnhWeXhBS1JBVTM5cWcwZnFMQmkzYWtySWxNOFN3anhCdz09Cg==",
+      "url": "https://github.com/HenryYves/Timelog/releases/download/v0.13.0/timelog_0.13.0_x64_en-US.msi"
     }
   }
 }
